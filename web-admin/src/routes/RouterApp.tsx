@@ -11,6 +11,8 @@ import OwnerDetailPage from "../pages/owners/OwnerDetailPage";
 import TenantListPage from "../pages/tenants/TenantListPage";
 import TenantDetailPage from "../pages/tenants/TenantDetailPage";
 import OwnerListPage from "../pages/owners/OwnerListPage";
+import { PublicRoute } from "../components/auth/PublicRoute";
+import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 
 const router = createBrowserRouter([
   {
@@ -19,11 +21,14 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <LoginPage />,
+        element:
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
       },
       {
         path: "dashboard",
-        element: <Sidebar />,
+        element: <ProtectedRoute><Sidebar /></ProtectedRoute>,
         children: [
           {
             index: true,

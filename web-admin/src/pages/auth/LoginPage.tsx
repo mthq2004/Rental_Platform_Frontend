@@ -1,20 +1,20 @@
 import { Form, Input, Button, ConfigProvider } from "antd";
-import { useNavigate } from "react-router-dom";
 import {
   PhoneOutlined,
-  ApartmentOutlined,
   CheckCircleFilled,
 } from "@ant-design/icons";
 import { isValidPhone } from "../../utils/validators";
 import logoImg from "../../assets/logo.png";
+import { useAppDispatch } from "../../stores/hooks";
+import { loginUser } from "../../stores/slices/auth.slice";
 
 const LoginPage = () => {
   const [form] = Form.useForm();
-  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
-  const onFinish = (values: Record<string, any>) => {
+  const onFinish = async (values: Record<string, any>) => {
     console.log("Dữ liệu đăng nhập:", values);
-    navigate("/dashboard");
+    dispatch(loginUser(values));
   };
 
   return (
