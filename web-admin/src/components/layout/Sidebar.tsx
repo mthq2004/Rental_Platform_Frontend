@@ -10,10 +10,23 @@ import {
   BarChartOutlined,
   SettingOutlined,
   LogoutOutlined,
+  SearchOutlined,
+  BellOutlined,
+  QuestionOutlined,
 } from "@ant-design/icons";
-import { Button, Layout, Menu, theme } from "antd";
+import {
+  Button,
+  Layout,
+  Menu,
+  theme,
+  Input,
+  Dropdown,
+  Avatar,
+  Badge,
+  Breadcrumb,
+} from "antd";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-
+import logoImg from "../../assets/logo.png";
 const { Header, Sider, Content } = Layout;
 
 const Sidebar: React.FC = () => {
@@ -38,34 +51,83 @@ const Sidebar: React.FC = () => {
   };
 
   /* =========================
+     BREADCRUMB
+  ========================= */
+  const getBreadcrumbItems = () => {
+    const path = location.pathname;
+    const items = [{ title: "Ứng dụng" }];
+
+    if (path.includes("/properties")) {
+      items.push({ title: "Quản lý Bất động sản" });
+    } else if (path.includes("/owners")) {
+      items.push({ title: "Quản lý Chủ sở hữu" });
+    } else if (path.includes("/tenants")) {
+      items.push({ title: "Quản lý Người thuê" });
+    } else if (path.includes("/contracts")) {
+      items.push({ title: "Quản lý Hợp đồng" });
+    } else if (path.includes("/settings")) {
+      items.push({ title: "Cài đặt" });
+    } else {
+      items.push({ title: "Bảng điều khiển" });
+    }
+
+    return items;
+  };
+
+  /* =========================
+     USER DROPDOWN MENU
+  ========================= */
+  const userMenuItems = [
+    {
+      key: "profile",
+      label: "Hồ sơ cá nhân",
+      onClick: () => navigate("/dashboard/profile"),
+    },
+    {
+      key: "settings",
+      label: "Cài đặt",
+      onClick: () => navigate("/dashboard/settings"),
+    },
+    {
+      type: "divider",
+      // children: [],
+    },
+    {
+      key: "logout",
+      label: "Đăng xuất",
+      onClick: () => navigate("/"),
+    },
+  ];
+
+  /* =========================
      MAIN MENU
   ========================= */
   const menuItems = [
     {
       key: "dashboard",
-      icon: <DashboardOutlined />,
-      label: "Dashboard",
+      icon: <BarChartOutlined />,
+      label: "Thống kê",
       onClick: () => navigate("/dashboard"),
     },
     {
       key: "properties",
       icon: <HomeOutlined />,
-      label: "Properties",
+      label: "Bất động sản",
       onClick: () => navigate("/dashboard/properties"),
     },
     {
       key: "users",
       icon: <UserOutlined />,
-      label: "Users",
+      label: "Người dùng",
       children: [
         {
           key: "owners",
-          label: "Owners",
+          label: "Chủ sở hữu",
           onClick: () => navigate("/dashboard/owners"),
         },
         {
           key: "tenants",
-          label: "Tenants",
+          label: "Người thuê",
           onClick: () => navigate("/dashboard/tenants"),
         },
       ],
@@ -73,14 +135,8 @@ const Sidebar: React.FC = () => {
     {
       key: "contracts",
       icon: <FileTextOutlined />,
-      label: "Contracts",
+      label: "Hợp đồng",
       onClick: () => navigate("/dashboard/contracts"),
-    },
-    {
-      key: "reports",
-      icon: <BarChartOutlined />,
-      label: "Reports",
-      onClick: () => navigate("/dashboard/reports"),
     },
   ];
 
@@ -91,13 +147,13 @@ const Sidebar: React.FC = () => {
     {
       key: "settings",
       icon: <SettingOutlined />,
-      label: "Settings",
+      label: "Cài đặt",
       onClick: () => navigate("/dashboard/settings"),
     },
     {
       key: "logout",
       icon: <LogoutOutlined />,
-      label: "Log Out",
+      label: "Đăng xuất",
       onClick: () => navigate("/"),
     },
   ];
@@ -133,17 +189,20 @@ const Sidebar: React.FC = () => {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div
               style={{
-                width: 40,
-                height: 40,
+                width: 80,
+                height: 80,
                 borderRadius: 12,
-                background: "#0b50da",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#fff",
               }}
             >
-              <ApartmentOutlined style={{ fontSize: 20 }} />
+              <img
+                src={logoImg}
+                alt="EstateAdmin Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
 
             {!collapsed && (
@@ -202,13 +261,97 @@ const Sidebar: React.FC = () => {
          CONTENT
       ========================= */}
       <Layout>
-        <Header style={{ padding: 0, background: colorBgContainer }}>
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{ width: 64, height: 64, fontSize: 16 }}
-          />
+        <Header
+          style={{
+            padding: "0 24px",
+            background: colorBgContainer,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+          }}
+        >
+          {/* LEFT SECTION */}
+          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ width: 64, height: 64, fontSize: 16 }}
+            />
+
+            <Breadcrumb items={getBreadcrumbItems()} />
+          </div>
+
+          {/* RIGHT SECTION */}
+          <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+            {/* SEARCH */}
+            <Input
+              placeholder="Tìm kiếm..."
+              prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+              style={{ width: 250, borderRadius: 6 }}
+              size="large"
+            />
+
+            {/* INFO BUTTON */}
+            <Button
+              type="text"
+              shape="circle"
+              icon={<QuestionOutlined style={{ fontSize: 18 }} />}
+              style={{
+                width: 40,
+                height: 40,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "1px solid #d9d9d9",
+              }}
+            />
+
+            {/* NOTIFICATIONS */}
+            <Badge count={3} color="#ff4d4f">
+              <Button
+                type="text"
+                shape="circle"
+                icon={<BellOutlined style={{ fontSize: 18 }} />}
+                style={{
+                  width: 40,
+                  height: 40,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "1px solid #d9d9d9",
+                }}
+              />
+            </Badge>
+
+            {/* DIVIDER */}
+            <div style={{ width: 1, height: 32, backgroundColor: "gray" }} />
+
+            {/* USER PROFILE */}
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  cursor: "pointer",
+                }}
+              >
+                <Avatar size={40} src={logoImg} />
+                <div style={{ lineHeight: 1.4 }}>
+                  <div
+                    style={{ fontSize: 14, fontWeight: 600, color: "#262626" }}
+                  >
+                    Super Admin
+                  </div>
+                  <div style={{ fontSize: 12, color: "#8c8c8c" }}>
+                    Quản trị viên
+                  </div>
+                </div>
+              </div>
+            </Dropdown>
+          </div>
         </Header>
 
         <Content

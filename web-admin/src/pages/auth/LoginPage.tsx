@@ -6,6 +6,7 @@ import {
   CheckCircleFilled,
 } from "@ant-design/icons";
 import { isValidPhone } from "../../utils/validators";
+import logoImg from "../../assets/logo.png";
 
 const LoginPage = () => {
   const [form] = Form.useForm();
@@ -40,9 +41,13 @@ const LoginPage = () => {
           <div className="w-full max-w-[440px] flex flex-col gap-6">
             {/* Logo + Heading */}
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-[#0b50da] rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-                  <ApartmentOutlined style={{ fontSize: "28px" }} />
+              <div className="flex items-center gap-3 mb-4 border-b border-gray-200 pb-4">
+                <div className="w-24 h-24 rounded-xl flex items-center justify-center text-white ">
+                  <img
+                    src={logoImg}
+                    alt="EstateAdmin Logo"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <span className="text-2xl font-bold tracking-tight text-[#111318] dark:text-white">
                   EstateAdmin
