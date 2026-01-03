@@ -24,11 +24,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     }
   }, [dispatch, isAuth, navigate]);
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">
-      <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
-    </div>;
-  }
+  // if (loading) {
+  //   return <div className="flex items-center justify-center h-screen">
+  //     <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
+  //   </div>;
+  // }
 
   return isAuth ? <>{children}</> : null;
 };

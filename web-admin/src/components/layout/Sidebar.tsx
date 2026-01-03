@@ -27,12 +27,19 @@ import {
 } from "antd";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import logoImg from "../../assets/logo.png";
+import { useAppDispatch } from "../../stores/hooks";
+import { logout } from "../../stores/slices/auth.slice";
 const { Header, Sider, Content } = Layout;
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
+
+  const logoutUser = () => {
+    dispatch(logout())
+  }
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -95,7 +102,7 @@ const Sidebar: React.FC = () => {
     {
       key: "logout",
       label: "Đăng xuất",
-      onClick: () => navigate("/"),
+      onClick: logoutUser,
     },
   ];
 
@@ -154,7 +161,7 @@ const Sidebar: React.FC = () => {
       key: "logout",
       icon: <LogoutOutlined />,
       label: "Đăng xuất",
-      onClick: () => navigate("/"),
+      onClick: logoutUser,
     },
   ];
 

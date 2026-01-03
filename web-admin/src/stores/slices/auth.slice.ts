@@ -17,7 +17,7 @@ const initialState: initialStateType = {
 export const loginUser = createAsyncThunk(
     "auth/login",
     async (data: any) => {
-        const response = await http.post("/estate/auth/login", data);
+        const response = await http.post("/estate/auth/admin/login", data);
         return response;
     }
 );

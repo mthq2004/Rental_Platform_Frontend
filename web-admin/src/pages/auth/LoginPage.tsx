@@ -5,12 +5,13 @@ import {
 } from "@ant-design/icons";
 import { isValidPhone } from "../../utils/validators";
 import logoImg from "../../assets/logo.png";
-import { useAppDispatch } from "../../stores/hooks";
+import { useAppDispatch, useAppSelector } from "../../stores/hooks";
 import { loginUser } from "../../stores/slices/auth.slice";
 
 const LoginPage = () => {
   const [form] = Form.useForm();
   const dispatch = useAppDispatch();
+  const { loading } = useAppSelector(state => state.auth)
 
   const onFinish = async (values: Record<string, any>) => {
     console.log("Dữ liệu đăng nhập:", values);
@@ -118,6 +119,7 @@ const LoginPage = () => {
                   size="large"
                   block
                   className="text-lg font-bold shadow-md hover:translate-y-[-1px] transition-all"
+                  loading={loading}
                 >
                   Đăng Nhập
                 </Button>
