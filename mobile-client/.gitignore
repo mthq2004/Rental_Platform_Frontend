@@ -45,3 +45,4 @@ app-example
 # Environment variables
 .env
 .env.*
+.env*
