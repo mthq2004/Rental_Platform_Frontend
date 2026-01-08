@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { COLORS } from '@/utils/colors';
 
 export default function TabLayout() {
   return (
@@ -37,7 +38,7 @@ export default function TabLayout() {
               <Ionicons 
                 name="home" 
                 size={24} 
-                color={focused ? '#7759caff' : color}
+                color={focused ? COLORS.primary : color}
               />
             </View>
           ),
@@ -54,7 +55,7 @@ export default function TabLayout() {
               <MaterialCommunityIcons 
                 name="bookmark-outline" 
                 size={24} 
-                color={focused ? '#7759caff' : color}
+                color={focused ? COLORS.primary : color}
               />
             </View>
           ),
@@ -85,7 +86,7 @@ export default function TabLayout() {
               <Ionicons 
                 name="chatbubble-ellipses-outline" 
                 size={24} 
-                color={focused ? '#7759caff' : color}
+                color={focused ? COLORS.primary : color}
               />
             </View>
           ),
@@ -101,7 +102,7 @@ export default function TabLayout() {
               <Ionicons 
                 name="person-circle-outline" 
                 size={24} 
-                color={focused ? '#7759caff' : color}
+                color={focused ? COLORS.primary : color}
               />
             </View>
           ),
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
     width: 45,
     height: 45,
     borderRadius: 28,
-    backgroundColor: '#7759caff',
+    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,

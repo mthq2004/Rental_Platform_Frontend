@@ -13,7 +13,7 @@ const HeaderBanner: React.FC = () => {
     };
 
     return (
-        <View className="bg-[#7759caff] pt-16 rounded-b-3xl">
+        <View className="bg-primary pt-16 rounded-b-3xl">
             <View className="px-5 pb-20 flex-row justify-between items-start">
                 <View className="flex-1">
                     <Text className="text-3xl font-bold text-white mb-1">

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -80,29 +81,26 @@ export default function OnboardingScreen() {
     <View className="flex-1 bg-slate-50">
       <StatusBar barStyle="dark-content" />
       
-      {/* Header with Skip Button */}
       <View className="pt-14 px-6 pb-3 flex-row justify-end">
         <TouchableOpacity 
           onPress={handleSkip}
           className="px-5 py-2"
           activeOpacity={0.7}
         >
-          <Text className="text-slate-600 text-sm font-semibold">Bỏ qua</Text>
+          <Text className="text-primary text-sm font-bold">Bỏ qua</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Logo */}
       <View className="flex-row items-center justify-center mb-6">
         <View className="relative w-10 h-10 mr-3">
-          <View className="absolute top-0 left-0 w-6 h-6 bg-blue-600 rounded-lg" 
+          <View className="absolute top-0 left-0 w-6 h-6 bg-primary rounded-lg" 
                 style={{ transform: [{ rotate: '6deg' }] }} />
-          <View className="absolute bottom-0 right-0 w-6 h-6 bg-blue-400 rounded-lg" 
+          <View className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-lg" 
                 style={{ transform: [{ rotate: '-6deg' }] }} />
         </View>
         <Text className="text-3xl font-black text-slate-900">Bất động sản</Text>
       </View>
 
-      {/* Carousel */}
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -114,30 +112,30 @@ export default function OnboardingScreen() {
       >
         {SLIDES.map((slide) => (
           <View key={slide.id} className="items-center px-5" style={{ width }}>
-            {/* Image Card */}
             <View className="bg-white rounded-3xl overflow-hidden shadow-2xl" 
                   style={{ 
                     width: width - 40, 
-                    height: height * 0.5,
+                    height: height * 0.45,
                     shadowColor: '#000',
                     shadowOffset: { width: 0, height: 10 },
                     shadowOpacity: 0.2,
                     shadowRadius: 20,
                     elevation: 15,
                   }}>
-              <Image
+
+              <View className='w-full h-full'>
+                <Image
                 source={{ uri: slide.image }}
                 className="w-full h-full"
                 resizeMode="cover"
               />
+              </View>
               
-              {/* Gradient Overlay */}
               <LinearGradient
                 colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.7)']}
                 className="absolute inset-0"
               />
               
-              {/* Verified Badge */}
               <View className="absolute top-6 right-6 flex-row items-center bg-white/95 px-4 py-2.5 rounded-full"
                     style={{
                       shadowColor: '#000',
@@ -146,14 +144,13 @@ export default function OnboardingScreen() {
                       shadowRadius: 8,
                       elevation: 5,
                     }}>
-                <View className="w-5 h-5 bg-emerald-500 rounded-full items-center justify-center mr-2">
-                  <Text className="text-white text-xs font-bold">✓</Text>
+                <View className="w-5 h-5 bg-primary rounded-full items-center justify-center mr-2">
+                  <Ionicons name="checkmark" size={12} color="white" />
                 </View>
                 <Text className="text-slate-900 text-xs font-bold">Đã Xác Minh</Text>
               </View>
 
-              {/* Property Info Card */}
-              <View className="absolute bottom-6 left-6 right-6 bg-white/95 rounded-2xl p-4"
+              {/* <View className="absolute bottom-6 left-6 right-6 bg-white/95 rounded-2xl p-4"
                     style={{
                       shadowColor: '#000',
                       shadowOffset: { width: 0, height: 4 },
@@ -161,25 +158,13 @@ export default function OnboardingScreen() {
                       shadowRadius: 12,
                       elevation: 8,
                     }}>
-                <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-blue-600 text-xs font-bold uppercase tracking-wide">
-                    Căn Hộ Cao Cấp
-                  </Text>
-                  <Text className="text-slate-900 text-base font-black">{slide.price}</Text>
-                </View>
-                <Text className="text-slate-900 text-sm font-bold mb-1.5">{slide.name}</Text>
-                <View className="flex-row items-center gap-4">
-                  <Text className="text-slate-600 text-xs font-medium">🛏 {slide.beds}</Text>
-                  <Text className="text-slate-600 text-xs font-medium">📐 {slide.area}</Text>
-                </View>
-              </View>
+              </View> */}
             </View>
           </View>
         ))}
       </ScrollView>
 
-      {/* Pagination Dots */}
-      <View className="flex-row items-center justify-center my-7">
+      <View className="flex-row items-center justify-center my-5">
         {SLIDES.map((_, index) => (
           <TouchableOpacity
             key={index}
@@ -192,7 +177,7 @@ export default function OnboardingScreen() {
             <View 
               className={`rounded-full mx-1 ${
                 index === activeSlide 
-                  ? 'w-8 h-2 bg-blue-600' 
+                  ? 'w-8 h-2 bg-primary' 
                   : 'w-2 h-2 bg-slate-300'
               }`}
             />
@@ -200,12 +185,11 @@ export default function OnboardingScreen() {
         ))}
       </View>
 
-      {/* Text Content */}
       <View className="items-center px-6 mb-6">
         <Text className="text-4xl font-black text-slate-900 text-center leading-tight mb-1">
           {currentSlide.title}
         </Text>
-        <Text className="text-4xl font-black text-blue-600 text-center leading-tight mb-3">
+        <Text className="text-4xl font-black text-primary text-center leading-tight mb-3">
           {currentSlide.highlight}
         </Text>
         <Text className="text-slate-600 text-base text-center leading-6 font-medium">
@@ -213,12 +197,11 @@ export default function OnboardingScreen() {
         </Text>
       </View>
 
-      {/* CTA Buttons */}
       <View className="px-5 pb-8">
         <TouchableOpacity 
           onPress={handleCreateAccount}
           activeOpacity={0.8}
-          className="bg-blue-600 rounded-2xl py-4 items-center mb-4"
+          className="bg-primary rounded-2xl py-4 items-center mb-4"
           style={{
             shadowColor: '#2563EB',
             shadowOffset: { width: 0, height: 8 },

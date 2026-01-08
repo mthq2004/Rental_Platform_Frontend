@@ -24,7 +24,7 @@ const SearchFilter: React.FC = () => {
           <Ionicons
             name="location-sharp"
             size={24}
-            color="#7759caff"
+            color="#0040d1"
           />
         </View>
         <Text className="text-sm text-gray-700 flex-1">Khu vực:</Text>
@@ -32,7 +32,7 @@ const SearchFilter: React.FC = () => {
           onPress={handleAreaSelect}
           className="flex-row items-center gap-2"
         >
-          <Text className="text-[#7759caff] font-medium">Chọn khu vực</Text>
+          <Text className="text-primary font-medium">Chọn khu vực</Text>
           <Text className="text-xs text-gray-500">▼</Text>
         </TouchableOpacity>
       </View>
@@ -41,7 +41,7 @@ const SearchFilter: React.FC = () => {
           <Ionicons
             name="business-sharp"
             size={24}
-            color="#7759caff"
+            color="#0040d1"
           />
         </View>
         <Text className="text-sm text-gray-700 flex-1">Loại hình BDS:</Text>
@@ -57,7 +57,7 @@ const SearchFilter: React.FC = () => {
         <Ionicons
             name="search"
             size={24}
-            color="#7759caff"
+            color="#0040d1"
             className='mr-2'
           />
         <TextInput
@@ -69,7 +69,7 @@ const SearchFilter: React.FC = () => {
         />
         <TouchableOpacity
           onPress={handleSearch}
-          className="bg-[#7759caff] px-5 py-2 rounded-lg ml-2"
+          className="bg-primary px-5 py-2 rounded-lg ml-2"
         >
           <Text className="text-white font-medium">Tìm nhà</Text>
         </TouchableOpacity>
