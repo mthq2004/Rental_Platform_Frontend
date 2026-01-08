@@ -14,7 +14,7 @@ const Header = () => {
   ];
 
   return (
-    <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="mx-auto max-w-[1440px] px-6">
         <div className="flex h-[72px] items-center justify-between">
           {/* ===== LEFT: LOGO ===== */}

@@ -152,7 +152,7 @@ const HeroSection = () => {
 
   return (
     <section
-      className={`relative w-full ${
+      className={`py-4 relative w-full ${
         isLocationModalOpen ? "overflow-visible" : "overflow-hidden"
       }`}
       style={{ zIndex: isLocationModalOpen ? 100 : 1 }}
