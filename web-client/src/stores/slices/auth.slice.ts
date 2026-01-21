@@ -15,14 +15,22 @@ const initialState: initialStateType = {
 };
 
 export const loginUser = createAsyncThunk("auth/login", async (data: any) => {
-  const response = await http.post("/estate/auth/user/login", data);
+  const response = await http.post("/auth/user/login", data);
   return response;
 });
 
 export const getProfileUser = createAsyncThunk("auth/getProfile", async () => {
-  const response = await http.get("/estate/auth/profile");
+  const response = await http.get("/auth/profile");
   return response;
 });
+
+export const loginWithGoogle = createAsyncThunk(
+  "auth/loginWithGoogle",
+  async (credential: string) => {
+    const response = await http.post("/estate/auth/google", { credential });
+    return response;
+  }
+);
 
 export const authSlice = createSlice({
   name: "auth",
@@ -32,8 +40,8 @@ export const authSlice = createSlice({
       state.isAuth = false;
       state.user = null;
       state.loading = false;
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
     },
   },
   extraReducers: (builder) => {
@@ -44,8 +52,8 @@ export const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuth = true;
-        localStorage.setItem("accessToken", action.payload.data.accessToken);
-        localStorage.setItem("refreshToken", action.payload.data.refreshToken);
+        localStorage.setItem("access_token", action.payload.data.accessToken);
+        localStorage.setItem("refresh_token", action.payload.data.refreshToken);
         state.user = action.payload.data.user;
       })
       .addCase(loginUser.rejected, (state) => {
@@ -66,6 +74,23 @@ export const authSlice = createSlice({
         state.loading = false;
         state.isAuth = false;
         state.user = null;
+      });
+
+    // Google Login
+    builder
+      .addCase(loginWithGoogle.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(loginWithGoogle.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuth = true;
+        localStorage.setItem("access_token", action.payload.data.accessToken);
+        localStorage.setItem("refresh_token", action.payload.data.refreshToken);
+        state.user = action.payload.data.user;
+      })
+      .addCase(loginWithGoogle.rejected, (state) => {
+        state.loading = false;
+        state.isAuth = false;
       });
   },
 });

@@ -42,8 +42,8 @@ const FooterBottom = () => {
             </div>
 
             <p className="text-[13px] leading-relaxed max-w-xs text-gray-600">
-              Nền tảng bất động sản đáng tin cậy, kết nối người mua, người bán
-              và người thuê một cách minh bạch, hiệu quả.
+              Nền tảng bất động sản đáng tin cậy, kết nối chủ nhà và người thuê
+              một cách minh bạch, hiệu quả.
             </p>
 
             <div className="flex gap-3">

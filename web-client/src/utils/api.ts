@@ -59,9 +59,8 @@ class HttpClient {
   ) {
     const url = endpoint.startsWith("http")
       ? endpoint
-      : `${this.baseUrl}/api${
-          endpoint.startsWith("/") ? endpoint : `/${endpoint}`
-        }`;
+      : `${this.baseUrl}/api${endpoint.startsWith("/") ? endpoint : `/${endpoint}`
+      }`;
 
     const headers = this.buildHeaders(options, data);
 
@@ -76,7 +75,17 @@ class HttpClient {
       config.body = data instanceof FormData ? data : JSON.stringify(data);
     }
 
-    const response: Response = await fetch(url, config);
+    console.log('[API] Fetching:', method, url);
+
+    let response: Response;
+    try {
+      response = await fetch(url, config);
+    } catch (networkError) {
+      console.error('[API] Network error:', networkError);
+      console.error('[API] URL:', url);
+      console.error('[API] Config:', config);
+      throw networkError;
+    }
 
     if (!response.ok) {
       try {

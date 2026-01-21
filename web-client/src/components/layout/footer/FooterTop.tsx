@@ -16,7 +16,7 @@ const FooterTop = () => {
         </h2>
 
         <p className="text-[14px] opacity-90 mb-8 max-w-2xl mx-auto">
-          Tham gia nền tảng bất động sản uy tín, giúp bạn bán và cho thuê nhanh
+          Tham gia nền tảng bất động sản uy tín, giúp bạn cho thuê nhanh
           hơn với sự hỗ trợ chuyên nghiệp.
         </p>
 

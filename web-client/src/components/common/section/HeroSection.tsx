@@ -11,8 +11,8 @@ import provinceService from "@/services/province.service";
 import { Province, District, Ward } from "@/types/province.type";
 
 const HeroSection = () => {
-  const [activeTab, setActiveTab] = useState<"rent" | "sale" | "project">(
-    "sale"
+  const [activeTab, setActiveTab] = useState<"rent" | "project">(
+    "rent"
   );
 
   // Location modal states
@@ -40,7 +40,6 @@ const HeroSection = () => {
 
   const tabs = [
     { key: "rent", label: "Cho thuê" },
-    { key: "sale", label: "Mua bán" },
     { key: "project", label: "Dự án" },
   ];
 
@@ -152,9 +151,8 @@ const HeroSection = () => {
 
   return (
     <section
-      className={`py-4 relative w-full ${
-        isLocationModalOpen ? "overflow-visible" : "overflow-hidden"
-      }`}
+      className={`py-4 relative w-full ${isLocationModalOpen ? "overflow-visible" : "overflow-hidden"
+        }`}
       style={{ zIndex: isLocationModalOpen ? 100 : 1 }}
     >
       {/* Background */}
@@ -191,14 +189,13 @@ const HeroSection = () => {
             <button
               key={tab.key}
               onClick={() =>
-                setActiveTab(tab.key as "rent" | "sale" | "project")
+                setActiveTab(tab.key as "rent" | "project")
               }
               className={`px-6 py-2 rounded-full text-sm font-medium transition-all
-            ${
-              activeTab === tab.key
-                ? "bg-white text-orange-600 shadow-md"
-                : "bg-transparent text-white border border-white/50 hover:bg-white/10"
-            }`}
+            ${activeTab === tab.key
+                  ? "bg-white text-red-600 shadow-md"
+                  : "bg-transparent text-white border border-white/50 hover:bg-white/10"
+                }`}
             >
               {tab.label}
             </button>
@@ -215,7 +212,7 @@ const HeroSection = () => {
               size="large"
               placeholder="Tìm bất động sản..."
               prefix={<SearchOutlined className="text-gray-400 text-lg" />}
-              className="w-full shadow-sm h-12 rounded-lg border-gray-200 hover:border-orange-400 focus:border-orange-500"
+              className="w-full shadow-sm h-12 rounded-lg border-gray-200 hover:border-red-400 focus:border-red-500"
             />
           </div>
 
@@ -226,11 +223,11 @@ const HeroSection = () => {
               className="flex items-center justify-between gap-2 
                 w-full md:w-[220px] h-12 px-4
                 bg-white text-gray-700 rounded-lg border border-gray-200
-                hover:border-orange-400 hover:text-orange-600
+                hover:border-red-400 hover:text-red-600
                 transition-all shadow-sm"
             >
               <div className="flex items-center gap-2">
-                <EnvironmentOutlined className="text-orange-500" />
+                <EnvironmentOutlined className="text-red-500" />
                 <span className="text-sm font-medium truncate max-w-[140px]">
                   {getLocationDisplayText()}
                 </span>
@@ -242,12 +239,12 @@ const HeroSection = () => {
             {isLocationModalOpen && (
               <div
                 ref={modalRef}
-                className="absolute top-14 left-0 md:left-auto md:right-0 
+                className="absolute top-14 left-0 md:left-1/2 md:-translate-x-1/2 
                   w-[320px] bg-white rounded-xl shadow-xl 
-                  border border-orange-100 z-[9999]"
+                  border border-red-100 z-[9999]"
               >
                 {/* Header */}
-                <div className="bg-orange-50 px-4 py-3 border-b border-orange-100">
+                <div className="bg-red-50 px-4 py-3 border-b border-red-100">
                   <h3 className="text-center text-base font-semibold text-gray-800">
                     Khu vực
                   </h3>
@@ -352,7 +349,7 @@ const HeroSection = () => {
                     size="large"
                     block
                     onClick={handleApplyLocation}
-                    className="h-12 bg-orange-500 hover:bg-orange-600 
+                    className="h-12 bg-red-500 hover:bg-red-600 
                       border-none rounded-lg font-semibold shadow-md"
                   >
                     Áp dụng
@@ -366,7 +363,7 @@ const HeroSection = () => {
           <Select
             size="large"
             placeholder="Loại hình BĐS"
-            suffixIcon={<AppstoreOutlined className="text-orange-500" />}
+            suffixIcon={<AppstoreOutlined className="text-red-500" />}
             className="w-full md:w-[180px] h-12 shadow-sm"
             options={[
               { value: "apartment", label: "Căn hộ" },
@@ -380,7 +377,7 @@ const HeroSection = () => {
           <Button
             type="primary"
             size="large"
-            className="h-12 px-8 bg-orange-500 hover:bg-orange-600 
+            className="h-12 px-8 bg-red-500 hover:bg-red-600 
               border-none rounded-lg font-semibold"
             style={{ height: "45px" }}
           >
