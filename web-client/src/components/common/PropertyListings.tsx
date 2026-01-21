@@ -61,7 +61,7 @@ const PropertyListings = () => {
           </h2>
           <a
             href="/tin-dang"
-            className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+            className="text-sm text-red-600 hover:text-red-700 font-medium"
           >
             Xem tất cả
           </a>

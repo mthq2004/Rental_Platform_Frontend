@@ -10,20 +10,18 @@ type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 class HttpClient {
   private baseUrl: string;
+  private accessToken: string | null = null;
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl || envConfig.NEXT_PUBLIC_API_ENDPOINT;
   }
 
+  setAccessToken(token: string | null): void {
+    this.accessToken = token;
+  }
+
   private getAccessToken(): string | null {
-    // Chỉ lấy access token khi đang ở client
-    if (typeof window === "undefined") return null;
-    // Kiểm tra localStorage có tồn tại không
-    try {
-      return localStorage.getItem("access_token");
-    } catch {
-      return null;
-    }
+    return this.accessToken;
   }
 
   private buildHeaders(
@@ -59,9 +57,8 @@ class HttpClient {
   ) {
     const url = endpoint.startsWith("http")
       ? endpoint
-      : `${this.baseUrl}/api${
-          endpoint.startsWith("/") ? endpoint : `/${endpoint}`
-        }`;
+      : `${this.baseUrl}/api${endpoint.startsWith("/") ? endpoint : `/${endpoint}`
+      }`;
 
     const headers = this.buildHeaders(options, data);
 
@@ -76,7 +73,17 @@ class HttpClient {
       config.body = data instanceof FormData ? data : JSON.stringify(data);
     }
 
-    const response: Response = await fetch(url, config);
+    console.log('[API] Fetching:', method, url);
+
+    let response: Response;
+    try {
+      response = await fetch(url, config);
+    } catch (networkError) {
+      console.error('[API] Network error:', networkError);
+      console.error('[API] URL:', url);
+      console.error('[API] Config:', config);
+      throw networkError;
+    }
 
     if (!response.ok) {
       try {

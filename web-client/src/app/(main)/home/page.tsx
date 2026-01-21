@@ -1,11 +1,11 @@
 import React from "react";
-import HeroSection from "@/components/common/HeroSection";
 import CategoryCards from "@/components/common/CategoryCards";
-import ServicesSection from "@/components/common/ServicesSection";
 import PropertyListings from "@/components/common/PropertyListings";
-import RegionSection from "@/components/common/RegionSection";
 import PriceReference from "@/components/common/PriceReference";
 import FooterTop from "@/components/layout/footer/FooterTop";
+import HeroSection from "@/components/common/section/HeroSection";
+import ServicesSection from "@/components/common/section/ServicesSection";
+import RegionSection from "@/components/common/section/RegionSection";
 
 const HomePage = () => {
   return (

@@ -3,6 +3,7 @@ import "./globals.css";
 import { ReduxProvider } from "@/stores/provider";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import NextTopLoader from "nextjs-toploader";
+import GoogleAuthProviderWrapper from "@/components/auth/GoogleAuthProvider";
 
 // Suppress Antd React 19 compatibility warning
 if (typeof window !== "undefined") {
@@ -43,7 +44,9 @@ export default function RootLayout({
             easing="ease"
             shadow="0 0 10px #5750F1,0 0 5px #5750F1"
           />
-          <ReduxProvider>{children}</ReduxProvider>
+          <GoogleAuthProviderWrapper>
+            <ReduxProvider>{children}</ReduxProvider>
+          </GoogleAuthProviderWrapper>
         </AntdRegistry>
       </body>
     </html>

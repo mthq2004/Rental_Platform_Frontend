@@ -103,7 +103,7 @@ const PriceReference = () => {
               <Button
                 type="primary"
                 size="large"
-                className="bg-orange-500 hover:bg-orange-600 border-none rounded-lg px-8 font-semibold"
+                className="bg-red-500 hover:bg-red-600 border-none rounded-lg px-8 font-semibold"
               >
                 Xem giá ngay
               </Button>
@@ -111,7 +111,7 @@ const PriceReference = () => {
 
             {/* Right Column - Map Placeholder */}
             <div className="relative">
-              <div className="bg-orange-50 rounded-xl h-[300px] flex items-center justify-center overflow-hidden">
+              <div className="bg-red-50 rounded-xl h-[300px] flex items-center justify-center overflow-hidden">
                 {/* Map Placeholder */}
                 <div className="relative w-full h-full">
                   <img
@@ -121,10 +121,10 @@ const PriceReference = () => {
                   />
                   {/* Location Pin */}
                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
+                    <div className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
                       Bình Thạnh
                     </div>
-                    <div className="w-3 h-3 bg-orange-500 rounded-full mx-auto mt-1 animate-pulse" />
+                    <div className="w-3 h-3 bg-red-500 rounded-full mx-auto mt-1 animate-pulse" />
                   </div>
                 </div>
               </div>

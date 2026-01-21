@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
-import UtilityTools from "./UtilityTools";
-import BrokerServices from "./BrokerServices";
+import UtilityTools from "../UtilityTools";
+import BrokerServices from "../BrokerServices";
 
 const ServicesSection = () => {
   return (

@@ -21,7 +21,7 @@ interface DisplayProvince extends Province {
 }
 
 const RegionSection = () => {
-  const [activeTab, setActiveTab] = useState<"sale" | "rent">("sale");
+  const [activeTab, setActiveTab] = useState<"rent">("rent");
   const [activeCategory, setActiveCategory] = useState<string>("apartment");
   const [provinces, setProvinces] = useState<DisplayProvince[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -142,38 +142,17 @@ const RegionSection = () => {
           {/* Header */}
           <div className="flex flex-wrap items-center gap-4 mb-6">
             <h2 className="text-xl font-bold text-gray-900">
-              Bất động sản theo khu vực
+              Bất động sản cho thuê theo khu vực
             </h2>
 
-            {/* Toggle Tabs */}
-            <div className="flex items-center gap-2">
+            {/* Single Tab - Cho thuê only */}
+            {/* <div className="flex items-center gap-2">
               <button
-                onClick={() => setActiveTab("sale")}
-                className={`
-                  px-5 py-2 rounded-full text-sm font-medium transition-all
-                  ${
-                    activeTab === "sale"
-                      ? "bg-orange-500 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }
-                `}
-              >
-                Mua bán
-              </button>
-              <button
-                onClick={() => setActiveTab("rent")}
-                className={`
-                  px-5 py-2 rounded-full text-sm font-medium transition-all
-                  ${
-                    activeTab === "rent"
-                      ? "bg-orange-500 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }
-                `}
+                className="px-5 py-2 rounded-full text-sm font-medium transition-all bg-red-500 text-white"
               >
                 Cho thuê
               </button>
-            </div>
+            </div> */}
           </div>
 
           {/* Category Tabs */}
@@ -184,10 +163,9 @@ const RegionSection = () => {
                 onClick={() => setActiveCategory(cat.key)}
                 className={`
                   px-4 py-2 text-sm font-medium transition-all rounded-t-lg
-                  ${
-                    activeCategory === cat.key
-                      ? "text-orange-600 border-b-2 border-orange-500"
-                      : "text-gray-600 hover:text-gray-900"
+                  ${activeCategory === cat.key
+                    ? "text-red-600 border-b-2 border-red-500"
+                    : "text-gray-600 hover:text-gray-900"
                   }
                 `}
               >
@@ -217,7 +195,7 @@ const RegionSection = () => {
               <p className="text-red-500 mb-2">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="text-orange-500 hover:text-orange-600 underline"
+                className="text-red-500 hover:text-red-600 underline"
               >
                 Thử lại
               </button>
@@ -238,7 +216,7 @@ const RegionSection = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute bottom-4 left-4 text-white">
                     <h3 className="text-2xl font-bold">{provinces[0].name}</h3>
-                    <p className="text-sm text-orange-300">
+                    <p className="text-sm text-red-300">
                       {formatPostCount(provinces[0].postCount)}
                     </p>
                   </div>
@@ -259,7 +237,7 @@ const RegionSection = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute bottom-3 left-3 text-white">
                     <h3 className="text-lg font-bold">{province.name}</h3>
-                    <p className="text-xs text-orange-300">
+                    <p className="text-xs text-red-300">
                       {formatPostCount(province.postCount)}
                     </p>
                   </div>
@@ -280,7 +258,7 @@ const RegionSection = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute bottom-3 left-3 text-white">
                     <h3 className="text-base font-bold">{province.name}</h3>
-                    <p className="text-xs text-orange-300">
+                    <p className="text-xs text-red-300">
                       {formatPostCount(province.postCount)}
                     </p>
                   </div>
