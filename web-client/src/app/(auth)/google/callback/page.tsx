@@ -5,6 +5,7 @@ import { Spin, message } from "antd";
 import { LoadingOutlined } from "@ant-design/icons";
 import { useAppDispatch } from "@/stores/hooks";
 import { getProfileUser } from "@/stores/slices/auth.slice";
+import http from "@/utils/api";
 
 function GoogleCallbackContent() {
     const router = useRouter();
@@ -27,9 +28,8 @@ function GoogleCallbackContent() {
             }
 
             if (accessToken && refreshToken) {
-                // Save tokens to localStorage
-                localStorage.setItem("access_token", accessToken);
-                localStorage.setItem("refresh_token", refreshToken);
+                // Set token cho http client (không lưu localStorage)
+                http.setAccessToken(accessToken);
                 
                 // Fetch user profile to update Redux state
                 try {

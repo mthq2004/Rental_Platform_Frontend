@@ -10,20 +10,18 @@ type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 class HttpClient {
   private baseUrl: string;
+  private accessToken: string | null = null;
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl || envConfig.NEXT_PUBLIC_API_ENDPOINT;
   }
 
+  setAccessToken(token: string | null): void {
+    this.accessToken = token;
+  }
+
   private getAccessToken(): string | null {
-    // Chỉ lấy access token khi đang ở client
-    if (typeof window === "undefined") return null;
-    // Kiểm tra localStorage có tồn tại không
-    try {
-      return localStorage.getItem("access_token");
-    } catch {
-      return null;
-    }
+    return this.accessToken;
   }
 
   private buildHeaders(

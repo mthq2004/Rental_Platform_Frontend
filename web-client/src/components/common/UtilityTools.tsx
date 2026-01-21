@@ -38,10 +38,7 @@ const UtilityTools = () => {
           <a
             key={index}
             href={item.href}
-            className="group flex flex-col items-center gap-2 p-3 rounded-lg
-              bg-white border border-gray-100
-              hover:bg-red-50 hover:border-red-200 hover:shadow-sm hover:-translate-y-0.5
-              transition-all duration-200"
+            className="group flex flex-col items-center gap-2 p-3 rounded-lg bg-white border border-gray-100 hover:bg-red-50 hover:border-red-200 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200"
           >
             <div className="w-14 h-14 rounded-md flex items-center justify-center">
               <Image

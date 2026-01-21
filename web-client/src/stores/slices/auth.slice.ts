@@ -6,12 +6,16 @@ type initialStateType = {
   loading: boolean;
   isAuth: boolean;
   user: UserType | null;
+  accessToken: string | null;
+  refreshToken: string | null;
 };
 
 const initialState: initialStateType = {
   loading: false,
   isAuth: false,
   user: null,
+  accessToken: null,
+  refreshToken: null,
 };
 
 export const loginUser = createAsyncThunk("auth/login", async (data: any) => {
@@ -40,8 +44,9 @@ export const authSlice = createSlice({
       state.isAuth = false;
       state.user = null;
       state.loading = false;
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
+      state.accessToken = null;
+      state.refreshToken = null;
+      http.setAccessToken(null);
     },
   },
   extraReducers: (builder) => {
@@ -52,9 +57,10 @@ export const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuth = true;
-        localStorage.setItem("access_token", action.payload.data.accessToken);
-        localStorage.setItem("refresh_token", action.payload.data.refreshToken);
+        state.accessToken = action.payload.data.accessToken;
+        state.refreshToken = action.payload.data.refreshToken;
         state.user = action.payload.data.user;
+        http.setAccessToken(action.payload.data.accessToken);
       })
       .addCase(loginUser.rejected, (state) => {
         state.loading = false;
@@ -84,9 +90,10 @@ export const authSlice = createSlice({
       .addCase(loginWithGoogle.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuth = true;
-        localStorage.setItem("access_token", action.payload.data.accessToken);
-        localStorage.setItem("refresh_token", action.payload.data.refreshToken);
+        state.accessToken = action.payload.data.accessToken;
+        state.refreshToken = action.payload.data.refreshToken;
         state.user = action.payload.data.user;
+        http.setAccessToken(action.payload.data.accessToken);
       })
       .addCase(loginWithGoogle.rejected, (state) => {
         state.loading = false;
