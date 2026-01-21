@@ -8,6 +8,8 @@ type initialStateType = {
   user: UserType | null;
   accessToken: string | null;
   refreshToken: string | null;
+  otpSent: boolean;
+  otpVerified: boolean;
 };
 
 const initialState: initialStateType = {
@@ -16,10 +18,12 @@ const initialState: initialStateType = {
   user: null,
   accessToken: null,
   refreshToken: null,
+  otpSent: false,
+  otpVerified: false,
 };
 
 export const loginUser = createAsyncThunk("auth/login", async (data: any) => {
-  const response = await http.post("/auth/user/login", data);
+  const response = await http.post("/estate/auth/user/login", data);
   return response;
 });
 
@@ -36,6 +40,24 @@ export const loginWithGoogle = createAsyncThunk(
   }
 );
 
+// Phone Signup - Step 1: Request OTP
+export const requestPhoneOtp = createAsyncThunk(
+  "auth/requestPhoneOtp",
+  async (phone: string) => {
+    const response = await http.post("/estate/auth/phone/request-otp", { phone });
+    return response;
+  }
+);
+
+// Phone Signup - Step 2: Signup with OTP and password
+export const signupWithPhone = createAsyncThunk(
+  "auth/signupWithPhone",
+  async (data: { phone: string; otp: string; password: string }) => {
+    const response = await http.post("/estate/auth/phone/signup", data);
+    return response;
+  }
+);
+
 export const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -46,7 +68,13 @@ export const authSlice = createSlice({
       state.loading = false;
       state.accessToken = null;
       state.refreshToken = null;
+      state.otpSent = false;
+      state.otpVerified = false;
       http.setAccessToken(null);
+    },
+    resetOtpState: (state) => {
+      state.otpSent = false;
+      state.otpVerified = false;
     },
   },
   extraReducers: (builder) => {
@@ -99,8 +127,41 @@ export const authSlice = createSlice({
         state.loading = false;
         state.isAuth = false;
       });
+
+    // Phone OTP Request
+    builder
+      .addCase(requestPhoneOtp.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(requestPhoneOtp.fulfilled, (state) => {
+        state.loading = false;
+        state.otpSent = true;
+      })
+      .addCase(requestPhoneOtp.rejected, (state) => {
+        state.loading = false;
+        state.otpSent = false;
+      });
+
+    // Phone Signup
+    builder
+      .addCase(signupWithPhone.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(signupWithPhone.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuth = true;
+        state.accessToken = action.payload.data.accessToken;
+        state.refreshToken = action.payload.data.refreshToken;
+        state.user = action.payload.data.user;
+        state.otpSent = false;
+        state.otpVerified = false;
+        http.setAccessToken(action.payload.data.accessToken);
+      })
+      .addCase(signupWithPhone.rejected, (state) => {
+        state.loading = false;
+      });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, resetOtpState } = authSlice.actions;
 export default authSlice.reducer;
