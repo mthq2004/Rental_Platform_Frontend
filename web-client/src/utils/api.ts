@@ -1,5 +1,6 @@
 "use client";
 import envConfig from "@/config";
+import Cookies from "js-cookie";
 
 type HttpOptions = {
   headers?: Record<string, string>;
@@ -14,14 +15,27 @@ class HttpClient {
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl || envConfig.NEXT_PUBLIC_API_ENDPOINT;
+    // Load token from cookie on init
+    this.accessToken = Cookies.get("accessToken") || null;
   }
 
   setAccessToken(token: string | null): void {
     this.accessToken = token;
+    if (token) {
+      // Save to Secure Cookie
+      Cookies.set("accessToken", token, {
+        secure: true, // Only send over HTTPS (requires HTTPS or localhost)
+        sameSite: "strict",
+        expires: 7 // 7 days
+      });
+    } else {
+      Cookies.remove("accessToken");
+    }
   }
 
   private getAccessToken(): string | null {
-    return this.accessToken;
+    // Priority: Memory -> Cookie
+    return this.accessToken || Cookies.get("accessToken") || null;
   }
 
   private buildHeaders(
@@ -73,19 +87,36 @@ class HttpClient {
       config.body = data instanceof FormData ? data : JSON.stringify(data);
     }
 
+    // Timeout implementation using AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    config.signal = controller.signal;
+
     console.log('[API] Fetching:', method, url);
 
     let response: Response;
     try {
       response = await fetch(url, config);
     } catch (networkError) {
+      if (networkError instanceof Error && networkError.name === 'AbortError') {
+        console.error('[API] Request timed out:', url);
+        throw new Error("Request timed out. Please try again.");
+      }
       console.error('[API] Network error:', networkError);
       console.error('[API] URL:', url);
       console.error('[API] Config:', config);
       throw networkError;
+    } finally {
+      clearTimeout(timeoutId);
     }
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired or invalid
+        this.setAccessToken(null);
+        // Optional: Window.location.href = '/login' if strictly needed,
+        // but usually handled by UI state (redux)
+      }
       try {
         const error = await response.json();
         throw new Error(error.message || `HTTP Error: ${response.status}`);

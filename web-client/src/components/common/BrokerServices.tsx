@@ -48,10 +48,7 @@ const BrokerServices = () => {
           <a
             key={index}
             href={item.href}
-            className="group relative flex flex-col items-center gap-2 p-3 rounded-lg
-              bg-white border border-gray-100
-              hover:bg-red-50 hover:border-red-200 hover:shadow-sm hover:-translate-y-0.5
-              transition-all duration-200"
+            className="group relative flex flex-col items-center gap-2 p-3 rounded-lg bg-white border border-gray-100 hover:bg-red-50 hover:border-red-200 hover:shadow-sm hover:-translate-y-0.5 transition-all duration-200"
           >
             {item.badge && (
               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">

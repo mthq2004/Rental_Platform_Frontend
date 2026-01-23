@@ -26,6 +26,8 @@ export const metadata: Metadata = {
   },
 };
 
+import AuthTokenSync from "@/components/auth/AuthTokenSync";
+
 export default function RootLayout({
   children,
 }: {
@@ -45,7 +47,10 @@ export default function RootLayout({
             shadow="0 0 10px #5750F1,0 0 5px #5750F1"
           />
           <GoogleAuthProviderWrapper>
-            <ReduxProvider>{children}</ReduxProvider>
+            <ReduxProvider>
+              <AuthTokenSync />
+              {children}
+            </ReduxProvider>
           </GoogleAuthProviderWrapper>
         </AntdRegistry>
       </body>

@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import http from "../../utils/api";
 import type { UserType } from "../../types/user.type";
+import Cookies from "js-cookie";
 
 type initialStateType = {
   loading: boolean;
@@ -12,11 +13,14 @@ type initialStateType = {
   otpVerified: boolean;
 };
 
+
+const tokenFromCookie = Cookies.get("accessToken") || null;
+
 const initialState: initialStateType = {
   loading: false,
-  isAuth: false,
+  isAuth: !!tokenFromCookie,
   user: null,
-  accessToken: null,
+  accessToken: tokenFromCookie,
   refreshToken: null,
   otpSent: false,
   otpVerified: false,
@@ -34,11 +38,22 @@ export const getProfileUser = createAsyncThunk("auth/getProfile", async () => {
 
 export const loginWithGoogle = createAsyncThunk(
   "auth/loginWithGoogle",
-  async (credential: string) => {
+  async (credential: string, { dispatch }) => {
+    http.setAccessToken(null); // 🔥 QUAN TRỌNG
     const response = await http.post("/estate/auth/google", { credential });
     return response;
   }
 );
+
+export const exchangeGoogleCode = createAsyncThunk(
+  "auth/exchangeGoogleCode",
+  async (code: string) => {
+    http.setAccessToken(null);
+    const response = await http.post("/estate/auth/google/exchange", { code });
+    return response;
+  }
+);
+
 
 // Phone Signup - Step 1: Request OTP
 export const requestPhoneOtp = createAsyncThunk(
@@ -76,6 +91,13 @@ export const authSlice = createSlice({
       state.otpSent = false;
       state.otpVerified = false;
     },
+    setCredentials: (state, action) => {
+      state.accessToken = action.payload.accessToken;
+      state.refreshToken = action.payload.refreshToken;
+      state.isAuth = true;
+      // Also ensure http client is updated if needed, though this is reducer logic
+      // We usually handle side effects elsewhere or relies on the component to call http.setAccessToken
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -103,11 +125,13 @@ export const authSlice = createSlice({
         state.loading = false;
         state.isAuth = true;
         state.user = action.payload.data;
+
       })
       .addCase(getProfileUser.rejected, (state) => {
         state.loading = false;
         state.isAuth = false;
         state.user = null;
+        http.setAccessToken(null);
       });
 
     // Google Login
@@ -124,6 +148,24 @@ export const authSlice = createSlice({
         http.setAccessToken(action.payload.data.accessToken);
       })
       .addCase(loginWithGoogle.rejected, (state) => {
+        state.loading = false;
+        state.isAuth = false;
+      });
+
+    // Exchange Google Code
+    builder
+      .addCase(exchangeGoogleCode.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(exchangeGoogleCode.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuth = true;
+        state.accessToken = action.payload.data.accessToken;
+        state.refreshToken = action.payload.data.refreshToken;
+        state.user = action.payload.data.user;
+        http.setAccessToken(action.payload.data.accessToken);
+      })
+      .addCase(exchangeGoogleCode.rejected, (state) => {
         state.loading = false;
         state.isAuth = false;
       });
@@ -163,5 +205,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { logout, resetOtpState } = authSlice.actions;
+export const { logout, resetOtpState, setCredentials } = authSlice.actions;
 export default authSlice.reducer;

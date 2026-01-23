@@ -37,6 +37,7 @@ const HeroSection = () => {
   const [loadingWards, setLoadingWards] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const tabs = [
     { key: "rent", label: "Cho thuê" },
@@ -111,10 +112,15 @@ const HeroSection = () => {
   /* ===================== CLICK OUTSIDE FIX ===================== */
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        modalRef.current &&
-        !modalRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+      
+      // Bỏ qua nếu click vào button (để button tự handle toggle)
+      if (buttonRef.current && buttonRef.current.contains(target)) {
+        return;
+      }
+      
+      // Đóng modal nếu click bên ngoài modal
+      if (modalRef.current && !modalRef.current.contains(target)) {
         setIsLocationModalOpen(false);
       }
     };
@@ -219,44 +225,54 @@ const HeroSection = () => {
           {/* Location Button */}
           <div className="relative z-[1000]">
             <button
+              ref={buttonRef}
               onClick={() => setIsLocationModalOpen(!isLocationModalOpen)}
               className="flex items-center justify-between gap-2 
                 w-full md:w-[220px] h-12 px-4
                 bg-white text-gray-700 rounded-lg border border-gray-200
-                hover:border-red-400 hover:text-red-600
-                transition-all shadow-sm"
+                hover:border-red-400 hover:text-red-600 hover:shadow-md
+                active:scale-[0.98]
+                transition-all duration-200 ease-out shadow-sm
+                group"
             >
               <div className="flex items-center gap-2">
-                <EnvironmentOutlined className="text-red-500" />
+                <EnvironmentOutlined className="text-red-500 group-hover:scale-110 transition-transform duration-200" />
                 <span className="text-sm font-medium truncate max-w-[140px]">
                   {getLocationDisplayText()}
                 </span>
               </div>
-              <DownOutlined className="text-xs" />
+              <DownOutlined 
+                className={`text-xs transition-transform duration-300 ease-out
+                  ${isLocationModalOpen ? 'rotate-180' : 'rotate-0'}`} 
+              />
             </button>
 
-            {/* Location Modal */}
-            {isLocationModalOpen && (
-              <div
-                ref={modalRef}
-                className="absolute top-14 left-0 md:left-1/2 md:-translate-x-1/2 
-                  w-[320px] bg-white rounded-xl shadow-xl 
-                  border border-red-100 z-[9999]"
-              >
-                {/* Header */}
-                <div className="bg-red-50 px-4 py-3 border-b border-red-100">
-                  <h3 className="text-center text-base font-semibold text-gray-800">
-                    Khu vực
-                  </h3>
-                </div>
+            {/* Location Modal with Animation */}
+            <div
+              ref={modalRef}
+              className={`absolute top-14 left-0 md:left-1/2 md:-translate-x-1/2 
+                w-[320px] bg-white rounded-xl shadow-xl 
+                border border-red-100 z-[9999]
+                transition-all duration-300 ease-out origin-top
+                ${isLocationModalOpen 
+                  ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' 
+                  : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3 border-b border-red-100 rounded-t-xl">
+                <h3 className="text-center text-base font-semibold text-gray-800">
+                  🏠 Khu vực
+                </h3>
+              </div>
 
-                {/* Body */}
-                <div className="p-4 space-y-4">
-                  {/* Province */}
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      Chọn tỉnh thành <span className="text-red-500">*</span>
-                    </label>
+              {/* Body */}
+              <div className="p-4 space-y-4">
+                {/* Province */}
+                <div className={`transition-all duration-300 delay-75
+                  ${isLocationModalOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                  <label className="block text-sm text-gray-600 mb-1 font-medium">
+                    Chọn tỉnh thành <span className="text-red-500">*</span>
+                  </label>
                     <Select
                       size="large"
                       placeholder="Chọn tỉnh thành"
@@ -275,17 +291,18 @@ const HeroSection = () => {
                         value: p.code,
                         label: p.name,
                       }))}
-                      notFoundContent={
-                        loadingProvinces ? <Spin size="small" /> : null
-                      }
-                    />
-                  </div>
+                    notFoundContent={
+                      loadingProvinces ? <Spin size="small" /> : null
+                    }
+                  />
+                </div>
 
-                  {/* District */}
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      Chọn quận huyện <span className="text-red-500">*</span>
-                    </label>
+                {/* District */}
+                <div className={`transition-all duration-300 delay-150
+                  ${isLocationModalOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                  <label className="block text-sm text-gray-600 mb-1 font-medium">
+                    Chọn quận huyện <span className="text-red-500">*</span>
+                  </label>
                     <Select
                       size="large"
                       placeholder="Chọn quận huyện"
@@ -305,17 +322,18 @@ const HeroSection = () => {
                         value: d.code,
                         label: d.name,
                       }))}
-                      notFoundContent={
-                        loadingDistricts ? <Spin size="small" /> : null
-                      }
-                    />
-                  </div>
+                    notFoundContent={
+                      loadingDistricts ? <Spin size="small" /> : null
+                    }
+                  />
+                </div>
 
-                  {/* Ward */}
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">
-                      Chọn phường xã <span className="text-red-500">*</span>
-                    </label>
+                {/* Ward */}
+                <div className={`transition-all duration-300 delay-200
+                  ${isLocationModalOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                  <label className="block text-sm text-gray-600 mb-1 font-medium">
+                    Chọn phường xã <span className="text-red-500">*</span>
+                  </label>
                     <Select
                       size="large"
                       placeholder="Chọn phường xã"
@@ -335,28 +353,32 @@ const HeroSection = () => {
                         value: w.code,
                         label: w.name,
                       }))}
-                      notFoundContent={
-                        loadingWards ? <Spin size="small" /> : null
-                      }
-                    />
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="p-4 pt-0">
-                  <Button
-                    type="primary"
-                    size="large"
-                    block
-                    onClick={handleApplyLocation}
-                    className="h-12 bg-red-500 hover:bg-red-600 
-                      border-none rounded-lg font-semibold shadow-md"
-                  >
-                    Áp dụng
-                  </Button>
+                    notFoundContent={
+                      loadingWards ? <Spin size="small" /> : null
+                    }
+                  />
                 </div>
               </div>
-            )}
+
+              {/* Footer */}
+              <div className={`p-4 pt-0 transition-all duration-300 delay-300
+                ${isLocationModalOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                <Button
+                  type="primary"
+                  size="large"
+                  block
+                  onClick={handleApplyLocation}
+                  className="h-12 bg-gradient-to-r from-red-500 to-orange-500 
+                    hover:from-red-600 hover:to-orange-600
+                    border-none rounded-lg font-semibold shadow-md
+                    hover:shadow-lg hover:scale-[1.02]
+                    active:scale-[0.98]
+                    transition-all duration-200"
+                >
+                  ✓ Áp dụng
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Type Select */}

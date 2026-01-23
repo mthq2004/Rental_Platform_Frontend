@@ -12,7 +12,7 @@ const apiClient = axios.create({
 // Interceptor thêm token vào header
 apiClient.interceptors.request.use(async (config) => {
   // const token = await SecureStore.getItemAsync("token");
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijk2ZTZhZDk0LTgzZmUtNDhiMi1iMjEwLTE4YWI0MTYxNjU2MSIsInJvbGUiOiJhZG1pbiIsInRva2VuVHlwZSI6IkFjY2Vzc1Rva2VuIiwiaWF0IjoxNzY5MDUzNzM1LCJleHAiOjE3NjkxNDAxMzV9.QkZ1TAJFaaKT007fr3uIIkA8q2qSqj6L_zJfV0zq_8A"
+  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImE5Y2JkMzMzLWI4YzEtNGY1NS04MmU5LWY0MDgyYWNiMzc0MiIsInJvbGUiOiJhZG1pbiIsInRva2VuVHlwZSI6IkFjY2Vzc1Rva2VuIiwiaWF0IjoxNzY5MTYxOTk0LCJleHAiOjE3NjkyNDgzOTR9.vDQNOKjD7UBnlnEAVAtPOr9pseRnj8lnZcA4h8iR5pU"
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

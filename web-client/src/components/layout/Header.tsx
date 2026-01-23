@@ -153,7 +153,7 @@ const Header = () => {
             ) : (
               <>
                 {/* Auth buttons - Show when logged out */}
-                <div className="hidden md:flex items-center">
+                <div className="relative">
                   <Button
                     type="text"
                     className="text-gray-700 hover:text-red-600 font-medium px-2 text-sm"
