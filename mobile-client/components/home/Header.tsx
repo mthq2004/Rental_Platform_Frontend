@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { Images } from "@/assets/images";
+import { router } from "expo-router";
 
 const HeaderBanner: React.FC = () => {
     const handleFavorite = () => {
@@ -9,7 +10,7 @@ const HeaderBanner: React.FC = () => {
     };
 
     const handleNotification = () => {
-        console.log('Thông báo của bạn');
+        router.push("/(notification)")
     };
 
     return (

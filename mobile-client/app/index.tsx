@@ -72,7 +72,7 @@ export default function OnboardingScreen() {
 
 
   const handleSkip = () => {
-    router.push('/(tab)');
+    router.replace('/(tab)');
   }
 
   const currentSlide = SLIDES[activeSlide];

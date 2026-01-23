@@ -1,25 +1,30 @@
-import { Tabs } from 'expo-router';
-import { View, StyleSheet, Platform } from 'react-native';
+import { router, Tabs } from 'expo-router';
+import { View, StyleSheet, Platform, useColorScheme } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS } from '@/utils/colors';
+import { COLORS, useThemeColors } from '@/utils/colors';
 
 export default function TabLayout() {
+  const colorScheme = useColorScheme();
+  const colors = useThemeColors();
+  const isDark = colorScheme === 'dark';
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#1F2937',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: colors.current.text,
+        tabBarInactiveTintColor: colors.current.textInactive,
         tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 0,
+          backgroundColor: colors.current.background,
+          borderTopWidth: 1,
+          borderTopColor: colors.current.border,
           height: Platform.OS === 'ios' ? 88 : 65,
           paddingBottom: Platform.OS === 'ios' ? 28 : 8,
           paddingTop: 8,
           elevation: 0,
-          shadowColor: '#000',
+          shadowColor: isDark ? '#000' : '#000',
           shadowOffset: { width: 0, height: -1 },
-          shadowOpacity: 0.05,
+          shadowOpacity: isDark ? 0.3 : 0.05,
           shadowRadius: 3,
         },
         tabBarLabelStyle: {
@@ -42,7 +47,6 @@ export default function TabLayout() {
               />
             </View>
           ),
-          tabBarActiveTintColor: '#1F2937',
         }}
       />
 
@@ -64,12 +68,21 @@ export default function TabLayout() {
 
       <Tabs.Screen
         name="create-post"
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push('/(post)/choose-property-type');
+          },
+        }}
         options={{
           title: 'Đăng tin',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.postButtonContainer}>
-              <View style={styles.postButton}>
-                <Ionicons name="add" size={28} color={focused ? '#000' : color} />
+              <View style={[
+                styles.postButton,
+                { borderColor: colors.current.background }
+              ]}>
+                <Ionicons name="add" size={28} color="#FFFFFF" />
               </View>
             </View>
           ),
@@ -123,24 +136,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     top: -20,
   },
-  // Container cho vòng cung
-  arcContainer: {
-    position: 'absolute',
-    top: -20,
-    width: 70,
-    height: 35,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-  },
-  arcTop: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: '#FFFFFF',
-    position: 'absolute',
-    top: -35,
-    left: 0,
-  },
   postButton: {
     width: 45,
     height: 45,
@@ -154,7 +149,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 8,
     borderWidth: 4,
-    borderColor: '#FFFFFF',
     zIndex: 1,
   },
 });
