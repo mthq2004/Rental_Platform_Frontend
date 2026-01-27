@@ -66,7 +66,7 @@ const StepAmenities = ({ formData, updateFormData, errors, setShowAmenityModal }
                     </Text>
                 </TouchableOpacity>
 
-                {formData.amenities.length > 0 && (
+                {formData?.amenities.length > 0 && (
                     <View className="flex-row flex-wrap -m-1">
                         {formData.amenities.map((amenity, idx) => (
                             <View

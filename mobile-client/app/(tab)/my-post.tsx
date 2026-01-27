@@ -1,10 +1,11 @@
+import { PROPERTY_META } from '@/constants/property.constant';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { getPostStatusCounts, getPropertiesByStatus, getPropertyById } from '@/store/slices/property.slice';
 import { ListingType, PropertyType } from '@/types/property.type';
 import { useThemeColors } from '@/utils/colors';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, ScrollView, StatusBar, ActivityIndicator, useColorScheme } from 'react-native';
 
 export type PostStatus =
@@ -54,27 +55,15 @@ const MyPost = () => {
 
   const tabs = Array.isArray(statusCount) ? statusCount : []
 
-  useEffect(() => {
-    dispatch(getPostStatusCounts())
-  }, [])
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(getPostStatusCounts())
+    }, [dispatch])
+  )
 
   useEffect(() => {
     dispatch(getPropertiesByStatus(activeTab))
   }, [activeTab])
-
-  const getPropertyTypeLabel = (type: PropertyType): string => {
-    const labels: Record<PropertyType, string> = {
-      apartment: 'Căn hộ',
-      house: 'Nhà',
-      villa: 'Biệt thự',
-      room: 'Phòng trọ',
-      office: 'Văn phòng',
-      shop: 'Cửa hàng',
-      warehouse: 'Kho',
-      land: 'Đất'
-    };
-    return labels[type];
-  };
 
   const formatPrice = (price: string): string => {
     const numPrice = parseInt(price);
@@ -91,11 +80,24 @@ const MyPost = () => {
   };
 
   const handlePostDetail = (propertyId: string) => {
-    router.push(`/(tab)/create-post?id=${propertyId}`)
+    router.push({
+      pathname: '/(tab)/create-post',
+      params: {
+        id: propertyId,
+        mode: 'edit',
+      },
+    });
   };
 
+
   const handleContinuePost = (propertyId: string) => {
-    router.push(`/(tab)/create-post?id=${propertyId}`)
+    router.push({
+      pathname: '/(post)/create-post',
+      params: {
+        id: propertyId,
+        mode: 'edit',
+      },
+    });
   };
 
   const handleCreatePost = () => {
@@ -260,7 +262,7 @@ const MyPost = () => {
 
                 <View className="absolute top-2 left-2 bg-blue-500 px-2 py-1 rounded">
                   <Text className="text-xs font-semibold text-white">
-                    {getPropertyTypeLabel(property.propertyType)}
+                    {PROPERTY_META[property.propertyType].label}
                   </Text>
                 </View>
               </TouchableOpacity>

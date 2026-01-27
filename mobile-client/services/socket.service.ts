@@ -8,8 +8,8 @@ class SocketService {
 
     async connect() {
         try {
-            // const token = await SecureStore.getItemAsync("token");
-            const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImE5Y2JkMzMzLWI4YzEtNGY1NS04MmU5LWY0MDgyYWNiMzc0MiIsInJvbGUiOiJhZG1pbiIsInRva2VuVHlwZSI6IkFjY2Vzc1Rva2VuIiwiaWF0IjoxNzY5MTYxOTk0LCJleHAiOjE3NjkyNDgzOTR9.vDQNOKjD7UBnlnEAVAtPOr9pseRnj8lnZcA4h8iR5pU"
+            // const token = await SecureStore.getItemAsync("token")
+            const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjFmM2QxMGJjLThjZjUtNGViMC1hMzFiLTNjZDQ1YzNiNGY3NSIsInJvbGUiOiJhZG1pbiIsInRva2VuVHlwZSI6IkFjY2Vzc1Rva2VuIiwiaWF0IjoxNzY5NDgyODQzLCJleHAiOjE3Njk1NjkyNDN9.dL-ud2Czf2uHrFG70_fsmwgBhWs5OQFhmxh1GM_F3VA"
 
             if (!token) {
                 console.log('❌ No token found')
@@ -22,34 +22,26 @@ class SocketService {
                 auth: {
                     token: token
                 },
-                transports: ['websocket', 'polling'], // ← Thêm polling làm fallback
+                transports: ['websocket', 'polling'],
                 reconnection: true,
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,
             });
 
-            // // Kết nối qua Kong Gateway
-            //     this.socket = io("http://192.168.1.155:8000/api/notification/notification", {
-            //         transports: ["websocket"], // quan trọng khi dùng Kong
-            //         auth: {
-            //             token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Ijk2ZTZhZDk0LTgzZmUtNDhiMi1iMjEwLTE4YWI0MTYxNjU2MSIsInJvbGUiOiJhZG1pbiIsInRva2VuVHlwZSI6IkFjY2Vzc1Rva2VuIiwiaWF0IjoxNzY5MDUzNzM1LCJleHAiOjE3NjkxNDAxMzV9.QkZ1TAJFaaKT007fr3uIIkA8q2qSqj6L_zJfV0zq_8A",
-            //         },
-            //     });
-
             this.socket.on('connect', () => {
-                console.log('✅ Socket connected:', this.socket?.id);
+                console.log('Socket connected:', this.socket?.id);
             });
 
             this.socket.on('disconnect', (reason) => {
-                console.log('❌ Socket disconnected:', reason);
+                console.log('Socket disconnected:', reason);
             });
 
             this.socket.on('connect_error', (error) => {
-                console.log('❌ Connection error:', error.message);
+                console.log('Connection error:', error.message);
             });
 
         } catch (error) {
-            console.error('❌ Socket connection failed:', error);
+            console.error('Socket connection failed:', error);
         }
     }
 
@@ -62,7 +54,6 @@ class SocketService {
         }
     }
 
-    // Lắng nghe sự kiện từ server
     on(event: string, callback: (...args: any[]) => void) {
         if (!this.socket) {
             console.warn('Socket not connected');

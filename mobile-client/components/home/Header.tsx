@@ -3,8 +3,11 @@ import { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { Images } from "@/assets/images";
 import { router } from "expo-router";
+import { useAppSelector } from "@/store/hook";
+import { selectUnreadCount } from "@/store/slices/notification.slice";
 
 const HeaderBanner: React.FC = () => {
+    const unreadCount = useAppSelector(selectUnreadCount);
     const handleFavorite = () => {
         console.log('Danh sách yêu thích');
     };
@@ -43,9 +46,13 @@ const HeaderBanner: React.FC = () => {
                                     size={24}
                                     color="#ffffff"
                                 />
-                                <View className="absolute top-1 right-1 bg-red-500 rounded-full w-5 h-5 items-center justify-center">
-                                    <Text className="text-white text-xs font-bold">3</Text>
-                                </View>
+                                {unreadCount > 0 && (
+                                    <View className="absolute top-1 right-1 bg-red-500 rounded-full w-5 h-5 items-center justify-center">
+                                        <Text className="text-white text-xs font-bold">
+                                            {unreadCount}
+                                        </Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
                         </View>
                     </View>

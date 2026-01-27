@@ -22,7 +22,7 @@ const HeaderPost = ({ formData, showToast }: StepProps) => {
     }
 
     const handleClose = () => {
-        router.replace("/(tab)")
+        router.back()
     }
 
     return (

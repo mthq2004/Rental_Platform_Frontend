@@ -1,16 +1,6 @@
+import { PROPERTY_META } from "@/constants/property.constant";
 import { PropertyFormData, PropertyType, StepProps } from "@/types/property.type";
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
-
-const PROPERTY_TYPES: Record<PropertyType, string> = {
-  apartment: 'Căn hộ',
-  house: 'Nhà riêng',
-  villa: 'Biệt thự',
-  room: 'Phòng trọ',
-  office: 'Văn phòng',
-  shop: 'Cửa hàng',
-  warehouse: 'Kho xưởng',
-  land: 'Đất nền',
-};
 
 const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
     <View className="p-4 space-y-4">
@@ -23,7 +13,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                 showsHorizontalScrollIndicator={false}
                 className="flex-row -mx-1"
             >
-                {Object.entries(PROPERTY_TYPES).map(([key, label]) => (
+                {Object.entries(PROPERTY_META).map(([key, meta]) => (
                     <TouchableOpacity
                         key={key}
                         onPress={() => updateFormData({ propertyType: key as PropertyType })}
@@ -36,7 +26,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                             className={`text-sm font-semibold ${formData.propertyType === key ? 'text-white' : 'text-gray-700'
                                 }`}
                         >
-                            {label}
+                            {meta.label}
                         </Text>
                     </TouchableOpacity>
                 ))}
