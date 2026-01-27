@@ -6,15 +6,23 @@ import axios from 'axios';
 
 export const getNotification = createAsyncThunk(
     "notification/getNotification",
-    async (data: any) => {
-        const res = await apiClient.post("/notification/notification", data)
+    async () => {
+        const res = await apiClient.get("/notification/notification")
         return res.data;
     }
 );
 
+export const markAsRead = createAsyncThunk(
+    "notification/markAsRead",
+    async (id: String) => {
+        const res = await apiClient.patch(`/notification/notification/${id}/read`)
+        return res.data;
+    }
+)
+
 type initialStateType = {
     loading: boolean,
-    notification?: any
+    notifications?: any
 }
 
 const initialState: initialStateType = {
@@ -24,7 +32,14 @@ const initialState: initialStateType = {
 export const notificatinSlice = createSlice({
     name: "notification",
     initialState,
-    reducers: {},
+    reducers: {
+        notificationReadRealtime: (state, action) => {
+            const found = state.notifications.find(
+                (n: any) => n.id === action.payload.notificationId
+            );
+            if (found) found.isRead = true;
+        },
+    },
     extraReducers: (builder) => {
         builder
             .addCase(getNotification.pending, state => {
@@ -32,13 +47,21 @@ export const notificatinSlice = createSlice({
             })
             .addCase(getNotification.fulfilled, (state, action) => {
                 state.loading = false;
-                state.notification = action.payload.data
+                state.notifications = action.payload.data
             })
             .addCase(getNotification.rejected, state => {
                 state.loading = false,
-                state.notification = null
+                    state.notifications = null
             })
+
+        builder
+            .addCase(markAsRead.fulfilled, () => { })
     },
 });
 
+export const { notificationReadRealtime } = notificatinSlice.actions
 export default notificatinSlice.reducer;
+
+export const selectUnreadCount = (state: any) =>
+  state.notification.notifications.filter((n: any) => !n.isRead).length;
+

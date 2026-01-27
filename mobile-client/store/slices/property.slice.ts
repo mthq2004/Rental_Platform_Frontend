@@ -44,6 +44,14 @@ export const getPropertyById = createAsyncThunk(
     }
 )
 
+export const updateProperty = createAsyncThunk(
+    "property/updateProperty", 
+    async (payload: { id: string; data: PropertyFormData }) => {
+        const res = await apiClient.put(`/estate/properties/update/${payload.id}`, payload.data)
+        return res.data
+    }
+)
+
 type initialStateType = {
     loading: boolean,
     loadingPropertyStatus?: boolean
@@ -126,14 +134,14 @@ export const propertySlice = createSlice({
                 state.loading = false;
                 state.message = {
                     type: "success",
-                    message: "Tạo thành công!"
+                    message: "Tạo tin nháp thành công!"
                 }
             })
             .addCase(createPropertySaveDraft.rejected, state => {
                 state.loading = false,
                 state.message = {
                     type: "error",
-                    message: "Tạo thất bại!",
+                    message: "Tạo tin nháp thất bại!",
                 };
             })
 
@@ -148,6 +156,25 @@ export const propertySlice = createSlice({
             .addCase(getPropertyById.rejected, state => {
                 state.loadingProperty = false
                 state.property = null
+            })
+
+        builder
+            .addCase(updateProperty.pending, state => {
+                state.loading = true
+            })
+            .addCase(updateProperty.fulfilled, (state, action) => {
+                state.loading = false;
+                state.message = {
+                    type: "success",
+                    message: "Tạo thành công!"
+                }
+            })
+            .addCase(updateProperty.rejected, state => {
+                state.loading = false,
+                state.message = {
+                    type: "error",
+                    message: "Tạo thất bại!",
+                };
             })
     },
 });

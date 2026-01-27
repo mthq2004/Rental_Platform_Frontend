@@ -1,8 +1,31 @@
-export type PropertyType = 'apartment' | 'house' | 'villa' | 'room' | 'office' | 'shop' | 'warehouse' | 'land';
+export type PropertyType =
+  | 'apartment'
+  | 'house'
+  | 'land'
+  | 'office'
+  | 'room';
+
+export type PropertyField =
+  | 'areaSqm'
+  | 'bedrooms'
+  | 'bathrooms'
+  | 'livingRooms'
+  | 'kitchens'
+  | 'balconies'
+  | 'floorNumber'
+  | 'totalFloors'
+  | 'furnitureStatus'
+  | 'ownershipType'
+  | 'parkingFee'
+  | 'managementFee'
+  | 'electricityCostPerKwh'
+  | 'waterCostPerM3'
+  | 'minimumLeaseMonths';
+
+
 
 export type ListingType = 'rent' | 'sale';
 export type FurnitureStatus = 'empty' | 'basic' | 'full' | 'luxury';
-export type OwnershipType = 'redBook' | 'pinkBook' | 'waitingForBook' | 'saleContract';
 
 export interface PropertyImage {
   id: string;
@@ -41,7 +64,7 @@ export interface PropertyFormData {
 
 
   // Thông tin chi tiết bất động sản
-  maximumLeaseMonths: string;
+  maximumLeaseMonths: number;
   minimumLeaseMonths: string;
   areaSqm: number;
   bedrooms: string;
@@ -52,7 +75,6 @@ export interface PropertyFormData {
   floorNumber: string;
   totalFloors: string;
   furnitureStatus: FurnitureStatus;
-  ownershipType: OwnershipType;
   parkingFee: string;
   managementFee: string;
   electricityCostPerKwh: string;
