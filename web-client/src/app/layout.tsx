@@ -21,9 +21,9 @@ if (typeof window !== "undefined") {
 
 export const metadata: Metadata = {
   title: "Rental Platform",
-  icons: {
-    icon: "/assets/image/logo.png",
-  },
+  icons:{
+    icon: "/assets/logo1.png",
+  }
 };
 
 import AuthTokenSync from "@/components/auth/AuthTokenSync";

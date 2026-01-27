@@ -54,6 +54,15 @@ export const exchangeGoogleCode = createAsyncThunk(
   }
 );
 
+export const exchangeFacebookCode = createAsyncThunk(
+  "auth/exchangeFacebookCode",
+  async (code: string) => {
+    http.setAccessToken(null);
+    const response = await http.post("/estate/auth/facebook/exchange", { code });
+    return response;
+  }
+);
+
 
 // Phone Signup - Step 1: Request OTP
 export const requestPhoneOtp = createAsyncThunk(
@@ -166,6 +175,24 @@ export const authSlice = createSlice({
         http.setAccessToken(action.payload.data.accessToken);
       })
       .addCase(exchangeGoogleCode.rejected, (state) => {
+        state.loading = false;
+        state.isAuth = false;
+      });
+
+    // Exchange Facebook Code
+    builder
+      .addCase(exchangeFacebookCode.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(exchangeFacebookCode.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuth = true;
+        state.accessToken = action.payload.data.accessToken;
+        state.refreshToken = action.payload.data.refreshToken;
+        state.user = action.payload.data.user;
+        http.setAccessToken(action.payload.data.accessToken);
+      })
+      .addCase(exchangeFacebookCode.rejected, (state) => {
         state.loading = false;
         state.isAuth = false;
       });

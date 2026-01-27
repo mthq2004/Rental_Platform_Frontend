@@ -11,6 +11,7 @@ import {
     LoadingOutlined,
     ArrowLeftOutlined,
     SafetyOutlined,
+    FacebookFilled,
 } from "@ant-design/icons";
 import { useAppSelector, useAppDispatch } from "@/stores/hooks";
 import { requestPhoneOtp, signupWithPhone, resetOtpState, loginUser } from "@/stores/slices/auth.slice";
@@ -32,6 +33,7 @@ const AuthModal = ({
     const dispatch = useAppDispatch();
     const [view, setView] = useState<"login" | "register">(initialView);
     const [googleLoading, setGoogleLoading] = useState(false);
+    const [facebookLoading, setFacebookLoading] = useState(false);
     const { loading, isAuth, otpSent } = useAppSelector((state) => state.auth);
 
     // Register flow states
@@ -188,15 +190,32 @@ const AuthModal = ({
 
     // Google Login Handler - Redirect to backend OAuth
     const handleGoogleClick = () => {
-        if (googleLoading || loading) return;
+        if (googleLoading || facebookLoading || loading) return;
         setGoogleLoading(true);
-        
+
         // Save current path to redirect back after login
         localStorage.setItem("redirectAfterLogin", window.location.pathname);
-        
+        // Set provider for AuthExchangeHandler to know which endpoint to call
+        localStorage.setItem("authProvider", "google");
+
         // Redirect to backend Google OAuth endpoint
         const googleAuthUrl = `${envConfig.NEXT_PUBLIC_API_ENDPOINT}/api/estate/auth/google`;
         window.location.href = googleAuthUrl;
+    };
+
+    // Facebook Login Handler - Redirect to backend OAuth
+    const handleFacebookClick = () => {
+        if (facebookLoading || googleLoading || loading) return;
+        setFacebookLoading(true);
+
+        // Save current path to redirect back after login
+        localStorage.setItem("redirectAfterLogin", window.location.pathname);
+        // Set provider for AuthExchangeHandler to know which endpoint to call
+        localStorage.setItem("authProvider", "facebook");
+
+        // Redirect to backend Facebook OAuth endpoint
+        const facebookAuthUrl = `${envConfig.NEXT_PUBLIC_API_ENDPOINT}/api/estate/auth/facebook`;
+        window.location.href = facebookAuthUrl;
     };
 
     return (
@@ -278,8 +297,8 @@ const AuthModal = ({
                             Xin chào bạn
                         </h4>
                         <h2 className="text-2xl font-bold text-gray-900 mb-8">
-                            {view === "login" 
-                                ? "Đăng nhập để tiếp tục" 
+                            {view === "login"
+                                ? "Đăng nhập để tiếp tục"
                                 : registerStep === "phone"
                                     ? "Đăng ký tài khoản mới"
                                     : registerStep === "otp"
@@ -345,8 +364,8 @@ const AuthModal = ({
                                         />
                                     </div>
                                     <div className="flex items-start gap-2">
-                                        <Checkbox 
-                                            className="mt-0.5" 
+                                        <Checkbox
+                                            className="mt-0.5"
                                             checked={agreedToTerms}
                                             onChange={(e) => setAgreedToTerms(e.target.checked)}
                                         />
@@ -479,14 +498,7 @@ const AuthModal = ({
                         {/* Social Logins - Only show on phone step or login */}
                         {(view === "login" || (view === "register" && registerStep === "phone")) && (
                             <div className="space-y-3">
-                                <Button
-                                    size="large"
-                                    block
-                                    icon={<AppleFilled style={{ fontSize: 20 }} />}
-                                    className="h-11 flex items-center justify-center gap-2 font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 rounded-lg"
-                                >
-                                    Đăng nhập với Apple
-                                </Button>
+
 
                                 {/* Google Login Button */}
                                 <Button
@@ -525,10 +537,47 @@ const AuthModal = ({
                                             </svg>
                                         )
                                     }
-                                    className="h-11 flex items-center justify-center gap-2 font-medium border-gray-300 hover:border-gray-400 hover:bg-gray-50 rounded-lg"
+                                    className="h-11
+                                    bg-white
+                                    text-gray-700
+                                    border border-gray-300
+                                    hover:bg-gray-50
+                                    flex items-center justify-center
+                                    gap-2 font-medium rounded-lg
+                                    [&>span]:flex [&>span]:items-center [&>span]:gap-2"
                                 >
                                     {googleLoading ? "Đang xử lý..." : "Đăng nhập với Google"}
                                 </Button>
+                                {/* Facebook Login Button */}
+                                <Button
+                                    type="primary"
+                                    size="large"
+                                    block
+                                    onClick={handleFacebookClick}
+                                    disabled={facebookLoading || googleLoading || loading}
+                                    icon={
+                                        facebookLoading ? (
+                                            <LoadingOutlined style={{ fontSize: 20 }} />
+                                        ) : (
+                                            <FacebookFilled style={{ fontSize: 20 }} />
+                                        )
+                                    }
+                                    className="
+                                        h-11
+                                        !bg-[#1877F2]
+                                        !border-none
+                                        !text-white
+                                        hover:!bg-[#166FE5]
+                                        hover:!text-white
+                                        transition-colors duration-200
+                                        font-medium rounded-lg
+                                        flex items-center justify-center gap-2
+                                        [&>span]:flex [&>span]:items-center [&>span]:gap-2
+                                    "
+                                >
+                                    {facebookLoading ? "Đang xử lý..." : "Đăng nhập với Facebook"}
+                                </Button>
+
                             </div>
                         )}
 
