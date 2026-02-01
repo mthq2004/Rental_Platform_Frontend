@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import socketService from '@/services/socket.service';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { getNotification, notificationReadRealtime } from '@/store/slices/notification.slice';
+import { getAccessToken } from '@/utils/secureStorage';
 
 interface SocketContextType {
   isConnected: boolean;
@@ -20,23 +21,27 @@ export const useSocket = () => useContext(SocketContext);
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const dispatch = useAppDispatch()
   const [isConnected, setIsConnected] = useState(false);
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjFmM2QxMGJjLThjZjUtNGViMC1hMzFiLTNjZDQ1YzNiNGY3NSIsInJvbGUiOiJhZG1pbiIsInRva2VuVHlwZSI6IkFjY2Vzc1Rva2VuIiwiaWF0IjoxNzY5NDg2ODE0LCJleHAiOjE3Njk1NzMyMTR9.mbtMVqP0lFQ7zaDUBDH-g95-6NPlt03L_99IAsCvAT4"
 
   useEffect(() => {
-    if (token) {
-      handleConnect();
-    }
+    const initializeSocket = async () => {
+      const accessToken = await getAccessToken();
+      if (accessToken) {
+        handleConnect();
+      }
+    };
+
+    initializeSocket();
 
     return () => {
       socketService.disconnect();
     };
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     if (!isConnected) return;
 
     const onNotification = (data: any) => {
-      console.log('📩 Notification nhận:', data);
+      console.log('Notification nhận:', data);
       dispatch(getNotification())
     };
 
@@ -55,9 +60,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!isConnected) return;
 
     const onNotificationRead = (payload: any) => {
-      console.log('====================================');
-      console.log("jnkmlkmkl: ", payload);
-      console.log('====================================');
       dispatch(notificationReadRealtime({
         notificationId: payload.notificationId,
       }));

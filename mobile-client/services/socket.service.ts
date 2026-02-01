@@ -1,23 +1,21 @@
 import { io, Socket } from 'socket.io-client';
-import * as SecureStore from "expo-secure-store";
+import { getAccessToken } from '@/utils/secureStorage';
 
 class SocketService {
     private socket: Socket | null = null;
     private listeners: Map<string, Function[]> = new Map();
 
-
     async connect() {
         try {
-            // const token = await SecureStore.getItemAsync("token")
-            const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjFmM2QxMGJjLThjZjUtNGViMC1hMzFiLTNjZDQ1YzNiNGY3NSIsInJvbGUiOiJhZG1pbiIsInRva2VuVHlwZSI6IkFjY2Vzc1Rva2VuIiwiaWF0IjoxNzY5NDgyODQzLCJleHAiOjE3Njk1NjkyNDN9.dL-ud2Czf2uHrFG70_fsmwgBhWs5OQFhmxh1GM_F3VA"
-
+            const token = await getAccessToken();
+            
             if (!token) {
-                console.log('❌ No token found')
+                console.log('Không có token, không thể kết nối socket');
                 return;
             }
 
             // Kết nối qua Kong Gateway
-            this.socket = io('http://192.168.1.155:8000/notification', {
+            this.socket = io(`${process.env.EXPO_PUBLIC_SOCKET_URL}/notification`, {
                 path: "/api/notification/socket.io",
                 auth: {
                     token: token

@@ -13,6 +13,9 @@ import TenantDetailPage from "../pages/tenants/TenantDetailPage";
 import OwnerListPage from "../pages/owners/OwnerListPage";
 import { PublicRoute } from "../components/auth/PublicRoute";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
+import PropertyPendingPage from "../pages/properties/PropertyPendingPage";
+import PropertyApprovedPage from "../pages/properties/PropertyApprovedPage";
+import PropertyRejectPage from "../pages/properties/PropertyRejectPage";
 
 const router = createBrowserRouter([
   {
@@ -53,6 +56,18 @@ const router = createBrowserRouter([
           {
             path: "properties",
             element: <PropertyListPage />,
+          },
+          {
+            path: "properties/pending",
+            element: <PropertyPendingPage />,
+          },
+          {
+            path: "properties/approved",
+            element: <PropertyApprovedPage />,
+          },
+          {
+            path: "properties/rejected",
+            element: <PropertyRejectPage />,
           },
           {
             path: "properties/:id",

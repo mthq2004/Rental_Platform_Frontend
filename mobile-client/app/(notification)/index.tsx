@@ -4,14 +4,15 @@ import {
   TouchableOpacity,
   FlatList,
 } from 'react-native';
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { markAsRead } from '@/store/slices/notification.slice';
+import { getNotification, markAsRead, selectUnreadCount } from '@/store/slices/notification.slice';
 
 const NotificationScreen = () => {
   const router = useRouter();
+  const unreadCount = useAppSelector(selectUnreadCount);
   const { notifications } = useAppSelector(
     state => state.notification
   );
@@ -97,14 +98,16 @@ const NotificationScreen = () => {
     );
   }
 
-  const unreadCount = notifications.filter(
-    (n: any) => !n.isRead
-  ).length;
-
   const handleClickNotification = (id: string, isRead: boolean) => {
     if (isRead) return;
     dispatch(markAsRead(id));
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(getNotification())
+    }, [])
+  );
 
 
   const filteredNotification =

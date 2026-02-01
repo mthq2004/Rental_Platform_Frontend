@@ -1,3 +1,4 @@
+import AuthGuard from '@/components/AuthGuard';
 import { PROPERTY_META } from '@/constants/property.constant';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { getPostStatusCounts, getPropertiesByStatus, getPropertyById } from '@/store/slices/property.slice';
@@ -105,6 +106,7 @@ const MyPost = () => {
   };
 
   return (
+    <AuthGuard>
     <View className="flex-1 bg-background dark:bg-background-dark">
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
@@ -271,6 +273,7 @@ const MyPost = () => {
         )}
       </ScrollView>
     </View>
+  </AuthGuard>
   );
 };
 

@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import {
   Heart,
@@ -25,11 +26,13 @@ import ProfileAvatar from '@/components/profile/ProfileAvatar';
 import SectionHeader from '@/components/SectionHeader';
 import VerificationCard from '@/components/profile/VerificationCard';
 import MenuItem from '@/components/profile/MenuItem';
+import { useAppSelector } from '@/store/hook';
 
 const ProfileScreen = () => {
   const [verificationStatus, setVerificationStatus] = useState<'verified' | 'pending' | 'unverified'>('unverified');
   const [isDark, setIsDark] = useState(false);
   const { alert, showAlert, hideAlert } = useCustomAlert();
+  const { error, isAuth, loading, user } = useAppSelector(state => state.auth)
 
   const handleEdit = () => {
     Alert.alert('Chỉnh sửa ảnh đại diện', 'Chọn ảnh mới từ thư viện');
@@ -57,82 +60,82 @@ const ProfileScreen = () => {
   };
 
   const ACTIVITY_MENU = [
-  {
-    icon: Heart,
-    title: 'Tin đăng đã lưu',
-    onPress: () => Alert.alert('Tin đăng đã lưu'),
-    iconBgColor: 'bg-red-100',
-    iconColor: '#ef4444',
-  },
-  {
-    icon: Bookmark,
-    title: 'Tìm kiếm đã lưu',
-    onPress: () => Alert.alert('Tìm kiếm đã lưu'),
-    iconBgColor: 'bg-purple-100',
-    iconColor: '#a855f7',
-  },
-  {
-    icon: Clock,
-    title: 'Lịch sử xem tin',
-    onPress: () => Alert.alert('Lịch sử xem tin'),
-    iconBgColor: 'bg-indigo-100',
-    iconColor: '#6366f1',
-  },
-  {
-    icon: Star,
-    title: 'Đánh giá từ tôi',
-    onPress: () => Alert.alert('Đánh giá từ tôi'),
-    iconBgColor: 'bg-amber-100',
-    iconColor: '#f59e0b',
-  },
-];
+    {
+      icon: Heart,
+      title: 'Tin đăng đã lưu',
+      onPress: () => Alert.alert('Tin đăng đã lưu'),
+      iconBgColor: 'bg-red-100',
+      iconColor: '#ef4444',
+    },
+    {
+      icon: Bookmark,
+      title: 'Tìm kiếm đã lưu',
+      onPress: () => Alert.alert('Tìm kiếm đã lưu'),
+      iconBgColor: 'bg-purple-100',
+      iconColor: '#a855f7',
+    },
+    {
+      icon: Clock,
+      title: 'Lịch sử xem tin',
+      onPress: () => Alert.alert('Lịch sử xem tin'),
+      iconBgColor: 'bg-indigo-100',
+      iconColor: '#6366f1',
+    },
+    {
+      icon: Star,
+      title: 'Đánh giá từ tôi',
+      onPress: () => Alert.alert('Đánh giá từ tôi'),
+      iconBgColor: 'bg-amber-100',
+      iconColor: '#f59e0b',
+    },
+  ];
 
-const SETTING_MENU = [
-  {
-    icon: Settings,
-    title: 'Cài đặt tài khoản',
-    subtitle: "Quyền riêng tư, bảo mật",
-    onPress: () => Alert.alert('Cài đặt tài khoản'),
-    iconBgColor: 'bg-red-100',
-    iconColor: '#ef4444',
-  },
-  {
-    icon: Bell,
-    title: 'Thông báo',
-    subtitle: "Quản lý thông báo",
-    onPress: () => Alert.alert('Thông báo'),
-    iconBgColor: 'bg-purple-100',
-    iconColor: '#a855f7',
-    showBadge: true
-  },
-  {
-    icon: Lock,
-    title: 'Bảo mật',
-    subtitle: "Mật khẩu, xác thực 2 lớp",
-    onPress: handleLogout,
-    iconBgColor: 'bg-green-100',
-    iconColor: '#10b981',
-  },
-];
+  const SETTING_MENU = [
+    {
+      icon: Settings,
+      title: 'Cài đặt tài khoản',
+      subtitle: "Quyền riêng tư, bảo mật",
+      onPress: () => Alert.alert('Cài đặt tài khoản'),
+      iconBgColor: 'bg-red-100',
+      iconColor: '#ef4444',
+    },
+    {
+      icon: Bell,
+      title: 'Thông báo',
+      subtitle: "Quản lý thông báo",
+      onPress: () => Alert.alert('Thông báo'),
+      iconBgColor: 'bg-purple-100',
+      iconColor: '#a855f7',
+      showBadge: true
+    },
+    {
+      icon: Lock,
+      title: 'Bảo mật',
+      subtitle: "Mật khẩu, xác thực 2 lớp",
+      onPress: handleLogout,
+      iconBgColor: 'bg-green-100',
+      iconColor: '#10b981',
+    },
+  ];
 
-const OTHER_MENU = [
-  {
-    icon: HelpCircle,
-    title: 'Trợ giúp & Hỗ trợ',
-    subtitle: "Câu hỏi thường gặp, liên hệ",
-    onPress: () => Alert.alert('Trợ giúp'),
-    iconBgColor: 'bg-cyan-100',
-    iconColor: '#06b6d4'
-  },
-  {
-    icon: LogOut,
-    title: 'Đăng xuất',
-    onPress: () => Alert.alert('Đăng xuất'),
-    iconBgColor: 'bg-red-100',
-    iconColor: '#ef4444',
-    rightElement: null
-  }
-];
+  const OTHER_MENU = [
+    {
+      icon: HelpCircle,
+      title: 'Trợ giúp & Hỗ trợ',
+      subtitle: "Câu hỏi thường gặp, liên hệ",
+      onPress: () => Alert.alert('Trợ giúp'),
+      iconBgColor: 'bg-cyan-100',
+      iconColor: '#06b6d4'
+    },
+    {
+      icon: LogOut,
+      title: 'Đăng xuất',
+      onPress: () => Alert.alert('Đăng xuất'),
+      iconBgColor: 'bg-red-100',
+      iconColor: '#ef4444',
+      rightElement: null
+    }
+  ];
 
   return (
     <View className="flex-1 bg-background dark:bg-background-dark">
@@ -141,34 +144,82 @@ const OTHER_MENU = [
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        <View className="bg-background dark:bg-background-dark pt-16 pb-8">
-          <ProfileAvatar
-            imageUrl="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400"
-            onEdit={handleEdit}
-            isVerified={verificationStatus === 'verified'}
-          />
-          <Text className="text-center text-2xl font-bold text-foreground dark:text-foreground-dark mb-1">
-            Xuân Mạch
-          </Text>
-          <Text className="text-center text-gray-500 text-sm mb-4">
-            ID: V0888306036605
-          </Text>
+        {
+          isAuth ? (
+            <View className="bg-background dark:bg-background-dark pt-16 pb-8">
+              <ProfileAvatar
+                imageUrl="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400"
+                onEdit={handleEdit}
+                isVerified={verificationStatus === 'verified'}
+              />
+              <Text className="text-center text-2xl font-bold text-foreground dark:text-foreground-dark mb-1">
+                {
+                  user?.fullName
+                }
+              </Text>
+              <Text className="text-center text-gray-500 text-sm mb-4">
+                ID: { user?.id}
+              </Text>
 
-          <View className="flex-row justify-center gap-8 mb-6 px-4">
-            <View className="items-center">
-              <Text className="text-foreground dark:text-foreground-dark text-xl font-bold">0</Text>
-              <Text className="text-foreground dark:text-foreground-dark text-xs mt-1">Tin đăng</Text>
+              <View className="flex-row justify-center gap-8 mb-6 px-4">
+                <View className="items-center">
+                  <Text className="text-foreground dark:text-foreground-dark text-xl font-bold">0</Text>
+                  <Text className="text-foreground dark:text-foreground-dark text-xs mt-1">Tin đăng</Text>
+                </View>
+                <View className="items-center">
+                  <Text className="text-foreground dark:text-foreground-dark text-xl font-bold">0</Text>
+                  <Text className="text-foreground dark:text-foreground-dark text-xs mt-1">Người theo dõi</Text>
+                </View>
+                <View className="items-center">
+                  <Text className="text-foreground dark:text-foreground-dark text-xl font-bold">0</Text>
+                  <Text className="text-foreground dark:text-foreground-dark text-xs mt-1">Đang theo dõi</Text>
+                </View>
+              </View>
             </View>
-            <View className="items-center">
-              <Text className="text-foreground dark:text-foreground-dark text-xl font-bold">0</Text>
-              <Text className="text-foreground dark:text-foreground-dark text-xs mt-1">Người theo dõi</Text>
+          ) : (
+            <View className="bg-background dark:bg-background-dark pt-16 pb-10 px-6 items-center">
+              <ProfileAvatar
+                imageUrl=""
+                onEdit={handleEdit}
+                isVerified={false}
+              />
+
+              <Text className="text-center text-2xl font-bold text-foreground dark:text-foreground-dark mt-4">
+                Chào bạn 👋
+              </Text>
+
+              <Text className="text-center text-gray-500 text-sm mt-2 mb-1">
+                Mua thì hời, bán thì lời
+              </Text>
+
+              <Text className="text-center text-gray-400 text-sm mb-6">
+                Đăng nhập cái đã, rồi mình đi tiếp nha 😉
+              </Text>
+
+              <TouchableOpacity
+                className="w-full bg-blue-500 py-4 rounded-2xl mb-3"
+                activeOpacity={0.85}
+                onPress={() => console.log('Đi tới đăng nhập')}
+              >
+                <Text className="text-white text-center font-semibold text-base">
+                  Đăng nhập
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="w-full border border-blue-500 py-4 rounded-2xl"
+                activeOpacity={0.85}
+                onPress={() => console.log('Đi tới đăng ký')}
+              >
+                <Text className="text-blue-500 text-center font-semibold text-base">
+                  Tạo tài khoản
+                </Text>
+              </TouchableOpacity>
             </View>
-            <View className="items-center">
-              <Text className="text-foreground dark:text-foreground-dark text-xl font-bold">0</Text>
-              <Text className="text-foreground dark:text-foreground-dark text-xs mt-1">Đang theo dõi</Text>
-            </View>
-          </View>
-        </View>
+
+          )
+        }
+
 
         <View className="mt-4">
           <VerificationCard status={verificationStatus} onVerify={handleVerification} />

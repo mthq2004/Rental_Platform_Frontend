@@ -40,9 +40,9 @@ export default function TabLayout() {
           title: 'Trang chủ',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.iconContainer}>
-              <Ionicons 
-                name="home" 
-                size={24} 
+              <Ionicons
+                name="home"
+                size={24}
                 color={focused ? COLORS.primary : color}
               />
             </View>
@@ -51,14 +51,14 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="my-post"
+        name="(protected)/my-post"
         options={{
           title: 'Quản lý tin',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.iconContainer}>
-              <MaterialCommunityIcons 
-                name="bookmark-outline" 
-                size={24} 
+              <MaterialCommunityIcons
+                name="bookmark-outline"
+                size={24}
                 color={focused ? COLORS.primary : color}
               />
             </View>
@@ -67,7 +67,7 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="create-post"
+        name="(protected)/create-post"
         listeners={{
           tabPress: (e) => {
             e.preventDefault();
@@ -91,14 +91,14 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="chat"
+        name="(protected)/chat"
         options={{
           title: 'Chat',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.iconContainer}>
-              <Ionicons 
-                name="chatbubble-ellipses-outline" 
-                size={24} 
+              <Ionicons
+                name="chatbubble-ellipses-outline"
+                size={24}
                 color={focused ? COLORS.primary : color}
               />
             </View>
@@ -112,9 +112,9 @@ export default function TabLayout() {
           title: 'Tài khoản',
           tabBarIcon: ({ color, focused }) => (
             <View style={styles.iconContainer}>
-              <Ionicons 
-                name="person-circle-outline" 
-                size={24} 
+              <Ionicons
+                name="person-circle-outline"
+                size={24}
                 color={focused ? COLORS.primary : color}
               />
             </View>

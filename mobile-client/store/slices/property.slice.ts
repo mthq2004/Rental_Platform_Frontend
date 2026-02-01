@@ -1,4 +1,4 @@
-import { PropertyData } from "@/app/(tab)/my-post";
+import { PropertyData } from "@/app/(tab)/(protected)/my-post";
 import { PropertyFormData } from "@/types/property.type";
 import apiClient from "@/utils/api";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
