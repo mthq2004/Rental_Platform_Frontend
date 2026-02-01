@@ -2,13 +2,15 @@ import { configureStore } from "@reduxjs/toolkit";
 import locationReducer from "./slices/location.slice"
 import propertyReducer from "./slices/property.slice"
 import notificationReduer from "./slices/notification.slice"
+import authReducer from "./slices/auth.slice"
 
 export const makeStore = () => {
   return configureStore({
     reducer: {
       location: locationReducer,
       property: propertyReducer,
-      notification: notificationReduer
+      notification: notificationReduer,
+      auth: authReducer
     },
   });
 };

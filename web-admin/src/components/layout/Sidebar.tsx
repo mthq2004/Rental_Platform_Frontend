@@ -49,7 +49,9 @@ const Sidebar: React.FC = () => {
   ========================= */
   const getSelectedKey = () => {
     const path = location.pathname;
-    if (path.includes("/properties")) return "properties";
+    if (path.includes("/properties/pending")) return "pending";
+    if (path.includes("/properties/approved")) return "approved";
+    if (path.includes("/properties/rejected")) return "rejected";
     if (path.includes("/owners")) return "owners";
     if (path.includes("/tenants")) return "tenants";
     if (path.includes("/contracts")) return "contracts";
@@ -64,8 +66,12 @@ const Sidebar: React.FC = () => {
     const path = location.pathname;
     const items = [{ title: "Ứng dụng" }];
 
-    if (path.includes("/properties")) {
-      items.push({ title: "Quản lý Bất động sản" });
+    if (path.includes("/properties/pending")) {
+      items.push({ title: "Bất động sản Chờ duyệt" });
+    } else if (path.includes("/properties/approved")) {
+      items.push({ title: "Bất động sản Đã duyệt" });
+    } else if (path.includes("/properties/rejected")) {
+      items.push({ title: "Bất động sản Bị từ chối" });
     } else if (path.includes("/owners")) {
       items.push({ title: "Quản lý Chủ sở hữu" });
     } else if (path.includes("/tenants")) {
@@ -96,8 +102,7 @@ const Sidebar: React.FC = () => {
       onClick: () => navigate("/dashboard/settings"),
     },
     {
-      type: "divider",
-      // children: [],
+      type: "divider" as const,
     },
     {
       key: "logout",
@@ -120,7 +125,23 @@ const Sidebar: React.FC = () => {
       key: "properties",
       icon: <HomeOutlined />,
       label: "Bất động sản",
-      onClick: () => navigate("/dashboard/properties"),
+      children: [
+        {
+          key: "pending",
+          label: "Chờ duyệt",
+          onClick: () => navigate("/dashboard/properties/pending"),
+        },
+        {
+          key: "approved",
+          label: "Đã duyệt",
+          onClick: () => navigate("/dashboard/properties/approved"),
+        },
+        {
+          key: "rejected",
+          label: "Từ chối",
+          onClick: () => navigate("/dashboard/properties/rejected"),
+        }
+      ],
     },
     {
       key: "users",
@@ -174,12 +195,18 @@ const Sidebar: React.FC = () => {
         trigger={null}
         collapsible
         collapsed={collapsed}
-        width={280}
+        width={250}
         style={{
           background: "#fff",
-          position: "relative",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          height: "100vh",
+          zIndex: 100,
         }}
       >
+
         {/* =========================
            LOGO
         ========================= */}
@@ -267,17 +294,32 @@ const Sidebar: React.FC = () => {
       {/* =========================
          CONTENT
       ========================= */}
-      <Layout>
+      <Layout
+        style={{
+          marginLeft: collapsed ? 80 : 250,
+          transition: "all 0.3s",
+          minHeight: "100vh",
+        }}
+      >
+
         <Header
           style={{
+            position: "fixed",
+            top: 0,
+            right: 0,
+            left: collapsed ? 80 : 250,
+            height: 64,
             padding: "0 24px",
             background: colorBgContainer,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+            zIndex: 99,
+            transition: "all 0.3s",
           }}
         >
+
           {/* LEFT SECTION */}
           <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
             <Button
@@ -363,15 +405,17 @@ const Sidebar: React.FC = () => {
 
         <Content
           style={{
-            margin: "24px 16px",
+            marginTop: 64,
             padding: 24,
-            minHeight: 280,
+            height: "calc(100vh - 64px)",
+            overflow: "auto",
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
           }}
         >
           <Outlet />
         </Content>
+
       </Layout>
     </Layout>
   );
