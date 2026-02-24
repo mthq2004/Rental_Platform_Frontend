@@ -25,19 +25,126 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Notification Tabs Styles */
 .notification-tabs .ant-tabs-nav::before {
   border-bottom: none !important;
 }
+
 .notification-tabs .ant-tabs-tab {
   padding: 12px 0 !important;
   margin: 0 16px 0 0 !important;
   font-size: 14px !important;
 }
+
 .notification-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
   color: #111827 !important;
   font-weight: 600 !important;
 }
+
 .notification-tabs .ant-tabs-ink-bar {
   background: #111827 !important;
+}
+
+/* Manage Posts Tabs */
+.manage-post-tabs .ant-tabs-nav::before {
+  border-bottom: none !important;
+}
+
+.manage-post-tabs .ant-tabs-tab {
+  padding: 16px 0 !important;
+  margin: 0 24px 0 0 !important;
+  font-size: 14px !important;
+  color: #6b7280 !important;
+}
+
+.manage-post-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #ea580c !important;
+  font-weight: 600 !important;
+}
+
+.manage-post-tabs .ant-tabs-ink-bar {
+  background: #ea580c !important;
+}
+
+/* Manage Posts Table */
+.manage-posts-table .ant-table-thead>tr>th {
+  background: #f9fafb !important;
+  font-weight: 600 !important;
+  color: #374151 !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.manage-posts-table .ant-table-tbody>tr:hover>td {
+  background: #fff7ed !important;
+}
+
+/* Category Modal */
+.category-modal .ant-modal-content {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.category-modal .ant-modal-body {
+  padding: 16px 24px 24px !important;
+}
+
+/* Chat Page Styles */
+.chat-message-input .ant-input {
+  border-radius: 24px !important;
+}
+
+/* AI Generate Button Animation */
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 20px rgba(118, 75, 162, 0.7);
+  }
+}
+
+/* AI Preview Modal */
+.ai-preview-modal .ant-modal-content {
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.ai-preview-modal .ant-modal-body {
+  padding: 24px !important;
+}
+
+/* Shimmer effect for AI button on hover */
+.ai-generate-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent);
+  transition: 0.5s;
+}
+
+.ai-generate-btn:hover::before {
+  left: 100%;
 }

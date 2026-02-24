@@ -1,4 +1,5 @@
 import React from "react";
+import { useRouter } from "next/router";
 import { Input, Button, Divider } from "antd";
 import {
   GlobalOutlined,
@@ -8,6 +9,7 @@ import {
 } from "@ant-design/icons";
 
 const FooterBottom = () => {
+  // const router = useRouter();
   const footerSections = [
     {
       title: "Công ty",
@@ -31,15 +33,22 @@ const FooterBottom = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-14">
           {/* BRAND */}
           <div className="flex flex-col gap-5">
-            <div className="flex items-center gap-3 cursor-pointer">
-              <img src="/logo.png" alt="Logo" className="h-9" />
-              <div className="leading-tight">
-                <p className="text-[15px] font-bold text-gray-900">Group33</p>
-                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
-                  Property Platform
-                </span>
-              </div>
+           {/* ===== LEFT: LOGO ===== */}
+          <div
+            className="flex items-center gap-2 cursor-pointer shrink-0"
+            // onClick={() => router.push("/")}
+          >
+            <img src="/logo.png" alt="Logo" className="h-10" />
+            <div className="leading-tight hidden sm:block">
+              <p className="text-sm font-bold text-red-600">
+                Real Estate
+                <span className="text-[10px] text-gray-600 align-top">.com.vn</span>
+              </p>
+              <span className="text-[9px] font-medium text-gray-400 tracking-tight">
+                by PropertyGuru
+              </span>
             </div>
+          </div>
 
             <p className="text-[13px] leading-relaxed max-w-xs text-gray-600">
               Nền tảng bất động sản đáng tin cậy, kết nối chủ nhà và người thuê

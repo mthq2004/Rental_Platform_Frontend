@@ -1,9 +1,14 @@
 import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/auth.slice";
+import propertyReducer from "./slices/property.slice";
+import notificationReducer from "./slices/notification.slice";
+
 export const makeStore = () => {
   return configureStore({
     reducer: {
       auth: authReducer,
+      property: propertyReducer,
+      notification: notificationReducer,
     },
   });
 };
@@ -14,3 +19,4 @@ export type AppStore = ReturnType<typeof makeStore>;
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<AppStore["getState"]>;
 export type AppDispatch = AppStore["dispatch"];
+

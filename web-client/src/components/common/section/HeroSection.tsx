@@ -261,7 +261,7 @@ const HeroSection = () => {
               {/* Header */}
               <div className="bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3 border-b border-red-100 rounded-t-xl">
                 <h3 className="text-center text-base font-semibold text-gray-800">
-                  🏠 Khu vực
+                  Khu vực
                 </h3>
               </div>
 
@@ -375,7 +375,7 @@ const HeroSection = () => {
                     active:scale-[0.98]
                     transition-all duration-200"
                 >
-                  ✓ Áp dụng
+                  Áp dụng
                 </Button>
               </div>
             </div>

@@ -5,11 +5,11 @@ import { Province } from "@/types/province.type";
 
 // Mapping tỉnh thành với hình ảnh mặc định
 const provinceImages: Record<string, string> = {
-  thanh_pho_ho_chi_minh: "/assets/image/region-hcm.jpg",
-  thanh_pho_ha_noi: "/assets/image/region-hanoi.jpg",
-  thanh_pho_da_nang: "/assets/image/region-danang.jpg",
-  thanh_pho_can_tho: "/assets/image/region-cantho.jpg",
-  tinh_binh_duong: "/assets/image/region-binhduong.jpg",
+  thanh_pho_ho_chi_minh: "/assets/image/ho-chi-minh-city.jpg",
+  thanh_pho_ha_noi: "/assets/image/ha-noi-city.jpg",
+  thanh_pho_da_nang: "/assets/image/da-nang-city.jpg",
+  thanh_pho_can_tho: "/assets/image/can-tho-city.jpg",
+  tinh_binh_duong: "/assets/image/binh-duong-city.jpg",
 };
 
 // Danh sách mã tỉnh thành ưu tiên hiển thị (theo thứ tự)

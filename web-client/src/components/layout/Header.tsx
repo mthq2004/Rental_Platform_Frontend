@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
-import { Button, Space, Dropdown } from "antd";
-import { HeartOutlined } from "@ant-design/icons";
+import { Button, Space, Dropdown, Tooltip } from "antd";
+import { HeartOutlined, MessageOutlined, AppstoreOutlined } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 
 import AuthModal from "@/components/auth/AuthModal";
@@ -28,10 +28,10 @@ const Header = () => {
   const handleLogout = async () => {
     console.log("Logout clicked");
     setIsLoggingOut(true);
-    
+
     // Delay để hiển thị animation
     await new Promise(resolve => setTimeout(resolve, 800));
-    
+
     dispatch(logout());
     setIsLoggingOut(false);
     router.push("/");
@@ -48,11 +48,8 @@ const Header = () => {
 
   const navLinks = [
     { key: "rent", label: "Nhà đất cho thuê" },
-    { key: "project", label: "Dự án" },
     { key: "news", label: "Tin tức" },
-    { key: "wiki", label: "Wiki BDS" },
     { key: "analysis", label: "Phân tích đánh giá" },
-    { key: "directory", label: "Danh bạ" },
   ];
 
   const handleNavClick = (key: string) => {
@@ -62,31 +59,26 @@ const Header = () => {
       case "rent":
         router.push("/rent");
         break;
-      case "project":
-        router.push("/projects");
+
         break;
       case "news":
         router.push("/news");
         break;
-      case "wiki":
-        router.push("/wiki");
-        break;
+
       case "analysis":
         router.push("/analysis");
         break;
-      case "directory":
-        router.push("/directory");
-        break;
+
     }
   };
 
   return (
     <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div className="mx-auto max-w-[1440px] px-4 lg:px-6">
-        <div className="flex h-[56px] items-center justify-between">
+      <div className="mx-auto max-w-360 px-4 lg:px-6">
+        <div className="flex h-14 items-center justify-between">
           {/* ===== LEFT: LOGO ===== */}
           <div
-            className="flex items-center gap-2 cursor-pointer flex-shrink-0"
+            className="flex items-center gap-2 cursor-pointer shrink-0"
             onClick={() => router.push("/")}
           >
             <img src="/logo.png" alt="Logo" className="h-10" />
@@ -126,23 +118,57 @@ const Header = () => {
               Tải ứng dụng
             </Button>
 
-            {/* Favorite */}
-            <Button
-              type="text"
-              icon={<HeartOutlined style={{ fontSize: 18 }} />}
-              className="text-gray-600 hover:text-red-600"
-              onClick={() => {
-                console.log("Favorites clicked");
-                router.push("/favorites");
-              }}
-            />
-
             {isAuth ? (
               <>
+                {/* Favorite - Only show when logged in */}
+                <Tooltip title="Tin đã lưu">
+                  <button
+                    className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
+                    onClick={() => {
+                      console.log("Favorites clicked");
+                      router.push("/favorites");
+                    }}
+                  >
+                    <HeartOutlined style={{ fontSize: 18 }} />
+                  </button>
+                </Tooltip>
+
+                {/* Chat - Only show when logged in */}
+                <Tooltip title="Tin nhắn">
+                  <button
+                    className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
+                    onClick={() => {
+                      console.log("Chat clicked");
+                      router.push("/chat");
+                    }}
+                  >
+                    <MessageOutlined style={{ fontSize: 18 }} />
+                  </button>
+                </Tooltip>
+
                 {/* Notification - Only show when logged in */}
                 <NotificationDropdown />
 
-                {/* User Dropdown */}
+                {/* Manage Posts Button - Only show when logged in */}
+                <Button
+                  size="middle"
+                  icon={<AppstoreOutlined />}
+                  className="hidden md:flex items-center gap-2 border border-gray-800 text-gray-800 hover:border-gray-600 hover:text-gray-600 font-medium px-4 rounded-full text-sm"
+                  onClick={() => router.push("/dashboard/posts")}
+                >
+                  Quản lý tin
+                </Button>
+
+                {/* Post button - Before User Avatar */}
+                <Button
+                  size="middle"
+                  className="bg-gray-900 text-white border-none hover:bg-gray-800 font-semibold px-4 lg:px-6 rounded-full shadow-sm text-sm"
+                  onClick={handlePostClick}
+                >
+                  Đăng tin
+                </Button>
+
+                {/* User Dropdown - Only show when logged in */}
                 <UserDropdown
                   userName={user?.fullName || 'User'}
                   avatarUrl={user?.avatarUrl}
@@ -152,6 +178,15 @@ const Header = () => {
               </>
             ) : (
               <>
+                {/* Post button - Before Auth buttons */}
+                <Button
+                  size="middle"
+                  className="bg-gray-900 text-white border-none hover:bg-gray-800 font-semibold px-4 lg:px-6 rounded-full shadow-sm text-sm"
+                  onClick={handlePostClick}
+                >
+                  Đăng tin
+                </Button>
+
                 {/* Auth buttons - Show when logged out */}
                 <div className="relative">
                   <Button
@@ -172,15 +207,6 @@ const Header = () => {
                 </div>
               </>
             )}
-
-            {/* Post button */}
-            <Button
-              size="middle"
-              className="bg-red-600 text-white border-none hover:bg-red-700 font-semibold px-4 lg:px-6 rounded-lg shadow-sm text-sm ml-2"
-              onClick={handlePostClick}
-            >
-              Đăng tin
-            </Button>
           </div>
         </div>
       </div>

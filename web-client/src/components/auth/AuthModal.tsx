@@ -400,24 +400,56 @@ const AuthModal = ({
                                     <p className="text-sm text-gray-600 mb-4">
                                         Mã OTP đã được gửi đến số <strong>{phone}</strong>
                                     </p>
-                                    <div>
-                                        <Input
-                                            size="large"
-                                            prefix={<SafetyOutlined className="text-gray-400 mr-2" />}
-                                            placeholder="Nhập mã OTP 6 số"
-                                            value={otp}
-                                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                            maxLength={6}
-                                            className="h-12 rounded-lg border-gray-300 hover:border-red-500 focus:border-red-500 text-center tracking-widest text-xl"
-                                        />
+                                    <div className="flex justify-center gap-2">
+                                        {[0, 1, 2, 3, 4, 5].map((index) => (
+                                            <input
+                                                key={index}
+                                                id={`otp-input-${index}`}
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={1}
+                                                value={otp[index] || ""}
+                                                onChange={(e) => {
+                                                    const value = e.target.value.replace(/\D/g, "");
+                                                    if (value.length <= 1) {
+                                                        const newOtp = otp.split("");
+                                                        newOtp[index] = value;
+                                                        setOtp(newOtp.join(""));
+                                                        // Auto focus next input
+                                                        if (value && index < 5) {
+                                                            const nextInput = document.getElementById(`otp-input-${index + 1}`);
+                                                            nextInput?.focus();
+                                                        }
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    // Handle backspace - go to previous input
+                                                    if (e.key === "Backspace" && !otp[index] && index > 0) {
+                                                        const prevInput = document.getElementById(`otp-input-${index - 1}`);
+                                                        prevInput?.focus();
+                                                    }
+                                                }}
+                                                onPaste={(e) => {
+                                                    e.preventDefault();
+                                                    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+                                                    setOtp(pastedData);
+                                                    // Focus on the last filled input or the next empty one
+                                                    const focusIndex = Math.min(pastedData.length, 5);
+                                                    const targetInput = document.getElementById(`otp-input-${focusIndex}`);
+                                                    targetInput?.focus();
+                                                }}
+                                                onFocus={(e) => e.target.select()}
+                                                className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-100 outline-none transition-all duration-200 bg-gray-50 hover:bg-white"
+                                            />
+                                        ))}
                                     </div>
-                                    <div className="text-center text-sm text-gray-500">
+                                    <div className="text-center text-sm text-gray-500 mt-4">
                                         {countdown > 0 ? (
-                                            <span>Gửi lại OTP sau {countdown}s</span>
+                                            <span>Gửi lại OTP sau <span className="text-red-500 font-semibold">{countdown}s</span></span>
                                         ) : (
                                             <button
                                                 onClick={handleResendOtp}
-                                                className="text-red-600 hover:underline bg-transparent border-none cursor-pointer"
+                                                className="text-red-600 hover:underline bg-transparent border-none cursor-pointer font-medium"
                                             >
                                                 Gửi lại OTP
                                             </button>
@@ -430,7 +462,7 @@ const AuthModal = ({
                                         loading={loading}
                                         onClick={handleVerifyOtp}
                                         disabled={otp.length !== 6}
-                                        className="h-12 bg-red-500 hover:bg-red-600 border-none font-semibold text-base rounded-lg shadow-sm mt-2"
+                                        className="h-12 bg-red-500 hover:bg-red-600 border-none font-semibold text-base rounded-lg shadow-sm mt-4"
                                     >
                                         Xác nhận OTP
                                     </Button>

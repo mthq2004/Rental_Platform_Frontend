@@ -3,13 +3,9 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
     AppstoreOutlined,
-    FileTextOutlined,
-    TeamOutlined,
     ContactsOutlined,
     UserOutlined,
     LockOutlined,
-    BankOutlined,
-    CreditCardOutlined,
     LogoutOutlined,
     DownOutlined,
 } from "@ant-design/icons";
@@ -87,23 +83,14 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
             case "posts":
                 router.push("/dashboard/posts");
                 break;
-            case "membership":
-                router.push("/dashboard/membership");
-                break;
             case "customers":
                 router.push("/dashboard/customers");
                 break;
             case "profile":
                 router.push("/dashboard/profile");
                 break;
-            case "password":
-                router.push("/dashboard/password");
-                break;
-            case "broker":
-                router.push("/dashboard/broker");
-                break;
-            case "deposit":
-                router.push("/dashboard/deposit");
+            case "change-password":
+                router.push("/dashboard/change-password");
                 break;
             case "logout":
                 onLogout();
@@ -122,18 +109,6 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
             badgeColor: "bg-red-500",
         },
         {
-            key: "posts",
-            icon: <FileTextOutlined />,
-            label: "Quản lý tin đăng",
-        },
-        {
-            key: "membership",
-            icon: <TeamOutlined />,
-            label: "Gói hội viên",
-            badge: "Tiết kiệm đến -39%",
-            badgeColor: "text-red-500",
-        },
-        {
             key: "customers",
             icon: <ContactsOutlined />,
             label: "Quản lý khách hàng",
@@ -144,22 +119,11 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
             label: "Thay đổi thông tin cá nhân",
         },
         {
-            key: "password",
+            key: "change-password",
             icon: <LockOutlined />,
             label: "Thay đổi mật khẩu",
         },
-        {
-            key: "broker",
-            icon: <BankOutlined />,
-            label: "Môi giới chuyên nghiệp",
-            badge: "Mới",
-            badgeColor: "bg-red-500",
-        },
-        {
-            key: "deposit",
-            icon: <CreditCardOutlined />,
-            label: "Nạp tiền",
-        },
+
     ];
 
     return (
@@ -192,7 +156,7 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
                         />
                     ) : (
                         <div className={`
-                            w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-600
+                            w-9 h-9 rounded-full bg-linear-to-br from-red-500 to-red-600
                             flex items-center justify-center text-white font-semibold text-sm
                             ring-2 ring-transparent
                             transition-all duration-300 shadow-md
@@ -205,7 +169,7 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
                     {/* Online indicator */}
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
                 </div>
-                <span className="text-sm font-medium text-gray-700 min-w-0 block md:hidden lg:block truncate sm:max-w-[80px] md:max-w-none">
+                <span className="text-sm font-medium text-gray-700 min-w-0 block md:hidden lg:block truncate sm:max-w-20 md:max-w-none">
                     {userName}
                 </span>
                 <DownOutlined className={`
@@ -232,7 +196,6 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
                     <div className={`
                         absolute right-0 top-full mt-3
                         w-screen sm:w-80 md:w-96 lg:w-80 max-w-[calc(100vw-16px)]
-                        -right-4 sm:right-0
                         bg-white rounded-2xl shadow-2xl border border-gray-100/50 z-50 
                         overflow-hidden backdrop-blur-xl
                         transition-all duration-200 ease-out origin-top-right
@@ -241,52 +204,7 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
                             : 'opacity-0 scale-95 -translate-y-2'
                         }
                     `}>
-                        {/* Membership Banner with gradient animation */}
-                        <div
-                            className="relative px-5 py-5 overflow-hidden group/banner cursor-pointer"
-                            onClick={() => handleMenuClick("membership")}
-                            style={{
-                                background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%)",
-                            }}
-                        >
-                            {/* Decorative trees with float animation */}
-                            <div className="absolute right-0 top-0 bottom-0 w-32 opacity-30 transition-transform duration-500 group-hover/banner:translate-x-2">
-                                <svg viewBox="0 0 100 120" className="h-full w-full">
-                                    <path
-                                        d="M50 10 L80 50 L65 50 L90 90 L10 90 L35 50 L20 50 Z"
-                                        fill="#f87171"
-                                    />
-                                    <path
-                                        d="M70 20 L95 55 L82 55 L100 85 L40 85 L58 55 L45 55 Z"
-                                        fill="#fca5a5"
-                                    />
-                                </svg>
-                            </div>
-
-                            {/* Shimmer effect */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/banner:translate-x-full transition-transform duration-1000" />
-
-                            <div className="relative z-10">
-                                <h3 className="text-xl font-bold text-white mb-1 transition-transform duration-300 group-hover/banner:translate-x-1">
-                                    Gói Hội viên
-                                </h3>
-                                <p className="text-white/90 text-sm mb-3">
-                                    Tiết kiệm đến <span className="font-bold animate-pulse">39%</span> chi phí
-                                    so với
-                                    <br />
-                                    đăng tin/đẩy tin lẻ
-                                </p>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleMenuClick("membership"); }}
-                                    className="bg-white text-gray-900 px-4 py-2 rounded-lg text-sm font-semibold 
-                                        hover:bg-gray-100 hover:shadow-lg hover:scale-105
-                                        active:scale-95 transition-all duration-200"
-                                >
-                                    Tìm hiểu thêm
-                                </button>
-                            </div>
-                        </div>
-
+                        
                         {/* Menu Items with stagger animation */}
                         <div className="py-2">
                             {menuItems.map((item, index) => (

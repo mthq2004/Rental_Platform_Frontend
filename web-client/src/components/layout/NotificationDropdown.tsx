@@ -100,10 +100,10 @@ const NotificationDropdown = () => {
             {/* Bell Icon Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors"
+                className="relative w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
             >
                 <Badge count={unreadCount} size="small" offset={[-2, 2]}>
-                    <BellOutlined style={{ fontSize: 20 }} />
+                    <BellOutlined style={{ fontSize: 18 }} />
                 </Badge>
             </button>
 

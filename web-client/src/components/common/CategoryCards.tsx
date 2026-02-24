@@ -32,17 +32,17 @@ const CategoryCards = () => {
 
   return (
     <section className="w-full bg-white py-6">
-      <div className="mx-auto max-w-[1200px] px-4">
+      <div className="mx-auto max-w-300 px-4">
         {/* Category Cards - Horizontal layout matching reference */}
         <div className="flex flex-wrap justify-center gap-4 md:gap-6">
           {categories.map((cat, index) => (
             <a
               key={index}
               href={cat.href}
-              className="flex items-center gap-4 bg-white rounded-xl px-6 py-4 min-w-[200px] md:min-w-[240px] border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200 group cursor-pointer"
+              className="flex items-center gap-4 bg-white rounded-xl px-6 py-4 min-w-50 md:min-w-60 border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-200 group cursor-pointer"
             >
               {/* Icon */}
-              <div className="w-14 h-14 flex-shrink-0">
+              <div className="w-14 h-14 shrink-0">
                 <img
                   src={cat.icon}
                   alt={cat.title}
