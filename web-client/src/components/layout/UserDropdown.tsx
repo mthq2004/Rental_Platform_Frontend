@@ -15,6 +15,7 @@ interface UserDropdownProps {
     avatarUrl?: string;
     onLogout: () => void;
     isLoggingOut?: boolean;
+    isDashboard?: boolean;
 }
 
 interface MenuItem {
@@ -26,7 +27,7 @@ interface MenuItem {
     onClick?: () => void;
 }
 
-const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: UserDropdownProps) => {
+const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isDashboard = false }: UserDropdownProps) => {
     const router = useRouter();
     const [isOpen, setIsOpen] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
@@ -47,6 +48,8 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
     };
 
     const toggleDropdown = () => {
+        if (isDashboard) return; // Không cho mở dropdown trong dashboard
+
         if (isOpen) {
             closeDropdown();
         } else {
@@ -100,31 +103,32 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
         }
     };
 
-    const menuItems: MenuItem[] = [
-        {
-            key: "overview",
-            icon: <AppstoreOutlined />,
-            label: "Tổng quan",
-            badge: "Mới",
-            badgeColor: "bg-red-500",
-        },
-        {
-            key: "customers",
-            icon: <ContactsOutlined />,
-            label: "Quản lý khách hàng",
-        },
-        {
-            key: "profile",
-            icon: <UserOutlined />,
-            label: "Thay đổi thông tin cá nhân",
-        },
-        {
-            key: "change-password",
-            icon: <LockOutlined />,
-            label: "Thay đổi mật khẩu",
-        },
-
-    ];
+    const menuItems: MenuItem[] = isDashboard
+        ? []
+        : [
+            {
+                key: "overview",
+                icon: <AppstoreOutlined />,
+                label: "Tổng quan",
+                badge: "Mới",
+                badgeColor: "bg-red-500",
+            },
+            {
+                key: "customers",
+                icon: <ContactsOutlined />,
+                label: "Quản lý khách hàng",
+            },
+            {
+                key: "profile",
+                icon: <UserOutlined />,
+                label: "Thay đổi thông tin cá nhân",
+            },
+            {
+                key: "change-password",
+                icon: <LockOutlined />,
+                label: "Thay đổi mật khẩu",
+            },
+        ];
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -134,8 +138,7 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
                 className={`
                     flex items-center gap-2 px-3 py-2 rounded-xl
                     transition-all duration-300 ease-out
-                    hover:bg-gray-50 
-                    ${isOpen ? ' ' : ''}
+                    ${isDashboard ? "cursor-default opacity-90" : "cursor-pointer hover:bg-gray-50"}
                     group
                 `}
             >
@@ -172,11 +175,13 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false }: U
                 <span className="text-sm font-medium text-gray-700 min-w-0 block md:hidden lg:block truncate sm:max-w-20 md:max-w-none">
                     {userName}
                 </span>
-                <DownOutlined className={`
-                    text-xs text-gray-400 block md:hidden lg:block
-                    transition-transform duration-300 ease-out
-                    ${isOpen ? 'rotate-180 text-red-500' : ''}
-                `} />
+                {!isDashboard && (
+                    <DownOutlined className={`
+                        text-xs text-gray-400 block md:hidden lg:block
+                        transition-transform duration-300 ease-out
+                        ${isOpen ? 'rotate-180 text-red-500' : ''}
+                    `} />
+                )}
             </button>
 
             {/* Dropdown Panel with animations */}

@@ -16,12 +16,12 @@ const CategoryCards = () => {
       count: "41.418 tin cho thuê",
       href: "/cho-thue",
     },
-    {
-      icon: "/assets/image/catgories/du-an.png",
-      title: "Dự án",
-      count: "5.204 Dự án",
-      href: "/du-an",
-    },
+    // {
+    //   icon: "/assets/image/catgories/du-an.png",
+    //   title: "Dự án",
+    //   count: "5.204 Dự án",
+    //   href: "/du-an",
+    // },
     {
       icon: "/assets/image/catgories/moi-gioi.png",
       title: "Môi giới",

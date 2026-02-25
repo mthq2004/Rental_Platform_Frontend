@@ -1,8 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, Space, Dropdown, Tooltip } from "antd";
 import { HeartOutlined, MessageOutlined, AppstoreOutlined } from "@ant-design/icons";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 import AuthModal from "@/components/auth/AuthModal";
 import NotificationDropdown from "@/components/layout/NotificationDropdown";
@@ -10,12 +10,19 @@ import UserDropdown from "@/components/layout/UserDropdown";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { logout } from "@/stores/slices/auth.slice";
 
+
 const Header = () => {
   const router = useRouter();
+  const pathname = usePathname();
+  const [isDashboard, setIsDashboard] = useState(false);
   const dispatch = useAppDispatch();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authView, setAuthView] = useState<"login" | "register">("login");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  useEffect(() => {
+    setIsDashboard(pathname.startsWith("/dashboard"));
+  }, [pathname]);
 
   // Get auth state from Redux
   const { isAuth, user } = useAppSelector((state) => state.auth);
@@ -120,44 +127,48 @@ const Header = () => {
 
             {isAuth ? (
               <>
-                {/* Favorite - Only show when logged in */}
-                <Tooltip title="Tin đã lưu">
-                  <button
-                    className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
-                    onClick={() => {
-                      console.log("Favorites clicked");
-                      router.push("/favorites");
-                    }}
-                  >
-                    <HeartOutlined style={{ fontSize: 18 }} />
-                  </button>
-                </Tooltip>
+                {!isDashboard && (
+                  <>
+                    {/* Favorite - Only show when logged in */}
+                    <Tooltip title="Tin đã lưu">
+                      <button
+                        className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
+                        onClick={() => {
+                          console.log("Favorites clicked");
+                          router.push("/favorites");
+                        }}
+                      >
+                        <HeartOutlined style={{ fontSize: 18 }} />
+                      </button>
+                    </Tooltip>
 
-                {/* Chat - Only show when logged in */}
-                <Tooltip title="Tin nhắn">
-                  <button
-                    className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
-                    onClick={() => {
-                      console.log("Chat clicked");
-                      router.push("/chat");
-                    }}
-                  >
-                    <MessageOutlined style={{ fontSize: 18 }} />
-                  </button>
-                </Tooltip>
+                    {/* Chat - Only show when logged in */}
+                    <Tooltip title="Tin nhắn">
+                      <button
+                        className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
+                        onClick={() => {
+                          console.log("Chat clicked");
+                          router.push("/chat");
+                        }}
+                      >
+                        <MessageOutlined style={{ fontSize: 18 }} />
+                      </button>
+                    </Tooltip>
 
-                {/* Notification - Only show when logged in */}
-                <NotificationDropdown />
+                    {/* Notification - Only show when logged in */}
+                    <NotificationDropdown />
 
-                {/* Manage Posts Button - Only show when logged in */}
-                <Button
-                  size="middle"
-                  icon={<AppstoreOutlined />}
-                  className="hidden md:flex items-center gap-2 border border-gray-800 text-gray-800 hover:border-gray-600 hover:text-gray-600 font-medium px-4 rounded-full text-sm"
-                  onClick={() => router.push("/dashboard/posts")}
-                >
-                  Quản lý tin
-                </Button>
+                    {/* Manage Posts Button - Only show when logged in */}
+                    <Button
+                      size="middle"
+                      icon={<AppstoreOutlined />}
+                      className="hidden md:flex items-center gap-2 border border-gray-800 text-gray-800 hover:border-gray-600 hover:text-gray-600 font-medium px-4 rounded-full text-sm"
+                      onClick={() => router.push("/dashboard/posts")}
+                    >
+                      Quản lý tin
+                    </Button>
+                  </>
+                )}
 
                 {/* Post button - Before User Avatar */}
                 <Button
@@ -168,12 +179,13 @@ const Header = () => {
                   Đăng tin
                 </Button>
 
-                {/* User Dropdown - Only show when logged in */}
+                {/* User Dropdown - Always show when logged in, passes isDashboard to disable dropdown */}
                 <UserDropdown
                   userName={user?.fullName || 'User'}
                   avatarUrl={user?.avatarUrl}
                   onLogout={handleLogout}
                   isLoggingOut={isLoggingOut}
+                  isDashboard={isDashboard}
                 />
               </>
             ) : (

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Layout, Menu, Button, Avatar, Space, theme, Input, Badge } from "antd";
+import { Layout, Menu, Button, Space, theme } from "antd";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -11,11 +11,12 @@ import {
   LockOutlined,
   AppstoreOutlined,
   BarChartOutlined,
-  SearchOutlined,
-  BellOutlined,
+  LogoutOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import type { MenuProps } from "antd";
+import { useAppDispatch } from "@/stores/hooks";
+import { logout } from "@/stores/slices/auth.slice";
 
 const { Header, Sider, Content } = Layout;
 
@@ -27,7 +28,8 @@ export default function DashboardLayout({
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-
+  const dispatch = useAppDispatch();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const {
     token: { borderRadiusLG },
   } = theme.useToken();
@@ -42,10 +44,20 @@ export default function DashboardLayout({
     { key: "/dashboard/change-password", icon: <LockOutlined />, label: "Đổi mật khẩu" },
   ];
 
+  const handleLogout = async () => {
+      console.log("Logout clicked");
+      setIsLoggingOut(true);
+  
+      // Delay để hiển thị animation
+      await new Promise(resolve => setTimeout(resolve, 800));
+  
+      dispatch(logout());
+      setIsLoggingOut(false);
+      router.push("/");
+    };
   return (
-    // Bọc toàn bộ trong một container 100vh và ẩn scroll ngoài cùng
-    <Layout style={{ minHeight: "100vh" }}>
-      {/* Sidebar - Cố định bên trái */}
+    <div className="flex h-[calc(100vh-64px)] overflow-hidden">
+      {/* Sidebar */}
       <Sider
         trigger={null}
         collapsible
@@ -53,91 +65,77 @@ export default function DashboardLayout({
         width={260}
         theme="light"
         style={{
-            height: "100vh",
-            position: "fixed",
-            left: 0,
-            top: 0,
-            bottom: 0,
-            borderRight: "1px solid #e6f7ff",
-            zIndex: 100,
-            transition: "all 0.2s", // Đảm bảo Sider cũng có transition đồng bộ
+          height: "calc(100vh - 64px)",
+          position: "fixed",
+          left: 0,
+          top: 64,
+          borderRight: "1px solid #e6f7ff",
         }}
-        >
-        <div style={{ 
-            height: 64, 
-            display: 'flex', 
-            alignItems: 'center', 
-            borderBottom: '1px solid #f0f0f0',
-            padding: '0 20px',
-            overflow: 'hidden', // Quan trọng: Để chữ không bị tràn ra ngoài khi đang thu nhỏ
-        }}>
-            <div
-            className="flex items-center cursor-pointer"
-            style={{ gap: collapsed ? 0 : 12, transition: 'all 0.2s' }}
-            onClick={() => router.push("/")}
-            >
-            {/* LOGO ICON */}
-            <img 
-                src="/logo.png" 
-                alt="Logo" 
-                style={{ 
-                height: 32, 
-                width: 32, 
-                minWidth: 32, // Giữ kích thước cố định để không bị méo
-                objectFit: 'contain',
-                }} 
-            />
-            
-            {/* WRAPPER CHỮ: Dùng width và opacity để tạo hiệu ứng mượt */}
-            <div style={{ 
-                opacity: collapsed ? 0 : 1,
-                width: collapsed ? 0 : 'auto',
-                transform: collapsed ? 'translateX(-10px)' : 'translateX(0)',
-                transition: 'all 0.3s ease', // Animation cho chữ
-                whiteSpace: 'nowrap',
-                pointerEvents: collapsed ? 'none' : 'auto',
-            }}>
-                <p className="text-sm font-bold text-red-600 m-0">
-                Real Estate
-                <span className="text-[10px] text-gray-600 align-top">.com.vn</span>
-                </p>
-                <span className="text-[9px] font-medium text-gray-400 tracking-tight block">
-                by PropertyGuru
-                </span>
-            </div>
-            </div>
-        </div>
-        
+      >
+        {/* Menu */}
         <Menu
-            mode="inline"
-            selectedKeys={[pathname]}
-            items={menuItems}
-            onClick={(e) => router.push(e.key)}
-            style={{ borderRight: 0, marginTop: 8 }}
+          mode="inline"
+          selectedKeys={[pathname]}
+          items={menuItems}
+          onClick={(e) => router.push(e.key)}
+          style={{ borderRight: 0, marginTop: 8 }}
         />
-        </Sider>
 
-      {/* Main Layout - Đẩy sang phải để không bị đè */}
-      <Layout style={{ 
-        marginLeft: collapsed ? 80 : 260, 
-        transition: 'all 0.2s',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        {/* Header - Sticky phía trên */}
+       {/* Logout bottom */}
+        <div
+  style={{
+    position: "absolute",
+    bottom: 10,
+    width: "100%",
+    // Đảm bảo container này có chiều cao đủ để thấy sự căn giữa
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center" 
+  }}
+>
+  <Menu
+    mode="inline"
+    onClick={handleLogout}
+    className="
+      !bg-transparent
+      [&_.ant-menu-item]:!m-0
+      [&_.ant-menu-item]:!text-black
+      [&_.ant-menu-item:hover]:!text-red-500
+      [&_.ant-menu-item]:!flex
+      [&_.ant-menu-item]:!items-center
+    "
+    items={[
+      { 
+        type: "divider", 
+        className: "!mb-2" // Tạo khoảng cách dưới Divider
+      },
+      {
+        key: "logout",
+        icon: <LogoutOutlined />,
+        label: "Đăng xuất",
+        danger: true,
+        style: { height: '40px' } // Tăng chiều cao item để thấy rõ việc căn giữa hàng dọc
+      },
+    ]}
+  />
+</div>
+      </Sider>
+
+      {/* Main */}
+      <Layout
+        style={{
+          marginLeft: collapsed ? 80 : 260,
+          transition: "all 0.2s",
+          width: "100%",
+        }}
+      >
         <Header
           style={{
             padding: "0 24px",
             background: "#ffffff",
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
             borderBottom: "1px solid #f0f0f0",
-            position: 'sticky',
-            top: 0,
-            zIndex: 99,
-            width: '100%',
             height: 64,
           }}
         >
@@ -146,34 +144,32 @@ export default function DashboardLayout({
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
-              style={{ fontSize: 18, color: '#1890ff' }}
+              style={{ fontSize: 18, color: "#1890ff" }}
             />
           </Space>
-
-          
         </Header>
 
-        {/* Content - Nơi duy nhất chứa Scroll */}
         <Content
           style={{
-            flex: 1, // Tự động lấp đầy khoảng trống còn lại
+            flex: 1,
             padding: 24,
             background: "#f0f5ff",
-            overflowY: "auto", // Kích hoạt scroll dọc tại đây
-            height: "calc(100vh - 64px)", // Chiều cao thực tế sau khi trừ Header
+            overflowY: "auto",
           }}
         >
-          <div style={{ 
-            minHeight: '100%',
-            padding: 24,
-            background: '#ffffff',
-            borderRadius: borderRadiusLG,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-          }}>
+          <div
+            style={{
+              minHeight: "100%",
+              padding: 24,
+              background: "#ffffff",
+              borderRadius: borderRadiusLG,
+              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+            }}
+          >
             {children}
           </div>
         </Content>
       </Layout>
-    </Layout>
+    </div>
   );
 }

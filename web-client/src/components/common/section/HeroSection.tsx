@@ -39,10 +39,7 @@ const HeroSection = () => {
   const modalRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const tabs = [
-    { key: "rent", label: "Cho thuê" },
-    { key: "project", label: "Dự án" },
-  ];
+
 
   /* ===================== FETCH DATA ===================== */
 
@@ -183,30 +180,13 @@ const HeroSection = () => {
       </div> */}
 
       {/* Content */}
-      <div className="relative z-10 mx-auto max-w-300 px-4 py-8 md:py-12">
+      <div className="relative z-10 mx-auto max-w-300 px-8 py-14 md:py-12">
         {/* Slogan */}
-        <h1 className="text-center text-2xl md:text-4xl font-bold text-white mb-6 italic">
-          Nhà vừa ý, giá hợp lý!
+        <h1 className="text-center text-2xl md:text-4xl font-bold text-white mt-10 mb-10 italic">
+          Cho thuê vừa ý, giá hợp lý!
         </h1>
 
-        {/* Tabs */}
-        <div className="flex justify-center gap-2 mb-6">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() =>
-                setActiveTab(tab.key as "rent" | "project")
-              }
-              className={`px-6 py-2 rounded-full text-sm font-medium transition-all
-            ${activeTab === tab.key
-                  ? "bg-white text-red-600 shadow-md"
-                  : "bg-transparent text-white border border-white/50 hover:bg-white/10"
-                }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        
       </div>
 
       {/* Search Box */}
