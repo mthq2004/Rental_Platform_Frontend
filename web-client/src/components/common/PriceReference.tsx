@@ -6,7 +6,7 @@ import { Province } from "@/types/province.type";
 
 const PriceReference = () => {
   const [activeCategory, setActiveCategory] = useState<string>("apartment");
-  const [selectedProvince, setSelectedProvince] = useState<number | null>(null);
+  const [selectedProvince, setSelectedProvince] = useState<number>(79);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [loadingProvinces, setLoadingProvinces] = useState(false);
 
@@ -86,6 +86,7 @@ const PriceReference = () => {
                       .toLowerCase()
                       .includes(input.toLowerCase())
                   }
+                  virtual={false}
                   loading={loadingProvinces}
                   value={selectedProvince}
                   onChange={(value) => setSelectedProvince(value)}

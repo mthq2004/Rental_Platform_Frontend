@@ -19,6 +19,11 @@ const Header = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authView, setAuthView] = useState<"login" | "register">("login");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setIsDashboard(pathname.startsWith("/dashboard"));
@@ -125,7 +130,7 @@ const Header = () => {
               Tải ứng dụng
             </Button>
 
-            {isAuth ? (
+            {mounted && isAuth ? (
               <>
                 {!isDashboard && (
                   <>
@@ -188,7 +193,7 @@ const Header = () => {
                   isDashboard={isDashboard}
                 />
               </>
-            ) : (
+            ) : mounted ? (
               <>
                 {/* Post button - Before Auth buttons */}
                 <Button
@@ -218,7 +223,7 @@ const Header = () => {
                   </Button>
                 </div>
               </>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
