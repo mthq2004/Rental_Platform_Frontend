@@ -7,13 +7,17 @@ import {
   AppstoreOutlined,
   DownOutlined,
 } from "@ant-design/icons";
+import { useRouter } from "next/navigation";
 import provinceService from "@/services/province.service";
 import { Province, District, Ward } from "@/types/province.type";
 
 const HeroSection = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"rent" | "project">(
     "rent"
   );
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [selectedPropertyType, setSelectedPropertyType] = useState<string | undefined>(undefined);
 
   // Location modal states
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -150,6 +154,16 @@ const HeroSection = () => {
     return "Chọn khu vực";
   };
 
+  const handleSearchNavigate = () => {
+    const params = new URLSearchParams();
+    if (searchKeyword.trim()) params.set("keyword", searchKeyword.trim());
+    if (selectedPropertyType) params.set("propertyType", selectedPropertyType);
+    if (appliedProvince) params.set("city", appliedProvince.name);
+    if (appliedDistrict) params.set("district", appliedDistrict.name);
+    const queryString = params.toString();
+    router.push(`/search${queryString ? `?${queryString}` : ""}`);
+  };
+
   /* ===================== RENDER ===================== */
 
   return (
@@ -199,6 +213,9 @@ const HeroSection = () => {
               placeholder="Tìm bất động sản..."
               prefix={<SearchOutlined className="text-gray-400 text-lg" />}
               className="w-full shadow-sm h-12 rounded-lg border-gray-200 hover:border-red-400 focus:border-red-500"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              onPressEnter={handleSearchNavigate}
             />
           </div>
 
@@ -367,12 +384,16 @@ const HeroSection = () => {
             placeholder="Loại hình BĐS"
             suffixIcon={<AppstoreOutlined className="text-red-500" />}
             className="w-full md:w-[180px] h-12 shadow-sm"
+            value={selectedPropertyType}
+            onChange={(value) => setSelectedPropertyType(value)}
             options={[
               { value: "apartment", label: "Căn hộ" },
               { value: "house", label: "Nhà ở" },
               { value: "land", label: "Đất nền" },
               { value: "office", label: "Văn phòng" },
+              { value: "room", label: "Phòng trọ" },
             ]}
+            allowClear
           />
 
           {/* Search Button */}
@@ -382,6 +403,7 @@ const HeroSection = () => {
             className="h-12 px-8 bg-red-500 hover:bg-red-600 
               border-none rounded-lg font-semibold"
             style={{ height: "45px" }}
+            onClick={handleSearchNavigate}
           >
             Tìm nhà
           </Button>

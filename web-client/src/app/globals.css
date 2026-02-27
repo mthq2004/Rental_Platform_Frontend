@@ -148,3 +148,20 @@ body {
 .ai-generate-btn:hover::before {
   left: 100%;
 }
+
+/* Search Page Styles */
+.search-pagination .ant-pagination-item-active {
+  border-color: #3b82f6 !important;
+}
+
+.search-pagination .ant-pagination-item-active a {
+  color: #3b82f6 !important;
+}
+
+.search-pagination .ant-pagination-item:hover {
+  border-color: #3b82f6 !important;
+}
+
+.search-pagination .ant-pagination-item:hover a {
+  color: #3b82f6 !important;
+}

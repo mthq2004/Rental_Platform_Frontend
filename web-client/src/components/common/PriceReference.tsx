@@ -103,30 +103,35 @@ const PriceReference = () => {
               <Button
                 type="primary"
                 size="large"
-                className="bg-red-500 hover:bg-red-600 border-none rounded-lg px-8 font-semibold"
+                className="bg-blue-500 hover:bg-blue-600 border-none rounded-lg px-8 font-semibold"
               >
                 Xem giá ngay
               </Button>
             </div>
 
-            {/* Right Column - Map Placeholder */}
+            {/* Right Column - Map */}
             <div className="relative">
-              <div className="bg-red-50 rounded-xl h-[300px] flex items-center justify-center overflow-hidden">
-                {/* Map Placeholder */}
-                <div className="relative w-full h-full">
-                  <img
-                    src="/assets/image/vietnam-map.png"
-                    alt="Vietnam Map"
-                    className="w-full h-full object-contain opacity-80"
-                  />
-                  {/* Location Pin */}
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-medium shadow-lg">
-                      Bình Thạnh
-                    </div>
-                    <div className="w-3 h-3 bg-red-500 rounded-full mx-auto mt-1 animate-pulse" />
-                  </div>
-                </div>
+              <div className="rounded-xl h-[300px] overflow-hidden border border-gray-200 shadow-sm">
+                <iframe
+                  title="Bản đồ tham khảo giá"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  src={`https://www.google.com/maps?q=${
+                    selectedProvince === 79
+                      ? "10.8231,106.6297"
+                      : selectedProvince === 1
+                      ? "21.0285,105.8542"
+                      : selectedProvince === 48
+                      ? "16.0544,108.2022"
+                      : selectedProvince === 92
+                      ? "10.0452,105.7469"
+                      : selectedProvince === 74
+                      ? "11.3254,106.477"
+                      : "14.0583,108.2772"
+                  }&z=12&output=embed`}
+                />
               </div>
             </div>
           </div>

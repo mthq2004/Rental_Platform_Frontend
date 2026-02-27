@@ -8,7 +8,7 @@ interface PriceSuggestion {
   label: string;
 }
 
-interface SmartPriceInputProps {
+export interface SmartPriceInputProps {
   value: number;
   onChange: (value: number) => void;
   placeholder?: string;

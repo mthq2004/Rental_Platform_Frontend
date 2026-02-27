@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 import {
   HeartOutlined,
   HeartFilled,
@@ -27,8 +28,13 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   isFavorite = false,
   onToggleFavorite,
 }) => {
+  const router = useRouter();
+
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow group cursor-pointer">
+    <div
+      onClick={() => router.push(`/property/${id}`)}
+      className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow group cursor-pointer"
+    >
       {/* Image */}
       <div className="relative aspect-[4/3] overflow-hidden">
         <img

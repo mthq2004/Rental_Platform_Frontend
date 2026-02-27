@@ -6,6 +6,7 @@ import FooterTop from "@/components/layout/footer/FooterTop";
 import HeroSection from "@/components/common/section/HeroSection";
 import ServicesSection from "@/components/common/section/ServicesSection";
 import RegionSection from "@/components/common/section/RegionSection";
+import MapSection from "@/components/common/section/MapSection";
 import AuthExchangeHandler from "@/components/common/AuthExchangeHandler";
 
 const HomePage = () => {
@@ -29,6 +30,9 @@ const HomePage = () => {
 
       {/* Real Estate by Region */}
       <RegionSection />
+
+      {/* Map Section */}
+      <MapSection />
 
       {/* Price Reference */}
       <PriceReference />

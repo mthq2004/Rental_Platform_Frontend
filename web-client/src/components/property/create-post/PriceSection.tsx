@@ -41,8 +41,6 @@ export default function PriceSection({
                         value={formData.pricePerMonth}
                         onChange={(value: number) => updateFormData("pricePerMonth", value)}
                         placeholder="Nhập giá (VD: 9, 15, 50)"
-                        label=""
-                        currency="VND"
                     />
                 </div>
 
@@ -52,8 +50,6 @@ export default function PriceSection({
                         value={formData.depositAmount as number}
                         onChange={(value: number) => updateFormData("depositAmount", value)}
                         placeholder="Nhập tiền cọc (VD: 5, 10, 15)"
-                        label=""
-                        currency="VND"
                     />
                 </div>
 
