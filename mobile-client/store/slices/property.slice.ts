@@ -45,9 +45,25 @@ export const getPropertyById = createAsyncThunk(
 )
 
 export const updateProperty = createAsyncThunk(
-    "property/updateProperty", 
+    "property/updateProperty",
     async (payload: { id: string; data: PropertyFormData }) => {
         const res = await apiClient.put(`/estate/properties/update/${payload.id}`, payload.data)
+        return res.data
+    }
+)
+
+export const getAllproperty = createAsyncThunk(
+    "property/getAllproperty",
+    async () => {
+        const res = await apiClient.get("/estate/booking/properties")
+        return res.data
+    }
+)
+
+export const getPropertyDetail = createAsyncThunk(
+    "booking/getPropertyDetail",
+    async (propertyId: any) => {
+        const res = await apiClient.get(`/estate/booking/property-details/${propertyId}`)
         return res.data
     }
 )
@@ -64,6 +80,8 @@ type initialStateType = {
         lable: string,
         count: number
     } | null
+    propertyTemp?: any | [],
+    propertyDetail?: any | []
 }
 
 const initialState: initialStateType = {
@@ -94,10 +112,10 @@ export const propertySlice = createSlice({
             })
             .addCase(createProperty.rejected, state => {
                 state.loading = false,
-                state.message = {
-                    type: "error",
-                    message: "Tạo thất bại!",
-                };
+                    state.message = {
+                        type: "error",
+                        message: "Tạo thất bại!",
+                    };
             })
 
         builder
@@ -139,10 +157,10 @@ export const propertySlice = createSlice({
             })
             .addCase(createPropertySaveDraft.rejected, state => {
                 state.loading = false,
-                state.message = {
-                    type: "error",
-                    message: "Tạo tin nháp thất bại!",
-                };
+                    state.message = {
+                        type: "error",
+                        message: "Tạo tin nháp thất bại!",
+                    };
             })
 
         builder
@@ -171,10 +189,35 @@ export const propertySlice = createSlice({
             })
             .addCase(updateProperty.rejected, state => {
                 state.loading = false,
-                state.message = {
-                    type: "error",
-                    message: "Tạo thất bại!",
-                };
+                    state.message = {
+                        type: "error",
+                        message: "Tạo thất bại!",
+                    };
+            })
+
+        builder
+            .addCase(getAllproperty.pending, state => {
+                state.loading = true
+            })
+            .addCase(getAllproperty.fulfilled, (state, action) => {
+                state.loading = false;
+                state.propertyTemp = action.payload.data
+            })
+            .addCase(getAllproperty.rejected, state => {
+                state.loading = false;
+                state.propertyTemp = []
+            })
+        builder
+            .addCase(getPropertyDetail.pending, state => {
+                state.loading = true
+            })
+            .addCase(getPropertyDetail.fulfilled, (state, action) => {
+                state.loading = false,
+                state.propertyDetail = action.payload.data
+            })
+            .addCase(getPropertyDetail.rejected, state => {
+                state.loading = false,
+                state.propertyDetail = null
             })
     },
 });

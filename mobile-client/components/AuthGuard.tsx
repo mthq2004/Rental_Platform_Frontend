@@ -8,11 +8,9 @@ const AuthGuard = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (!isAuth) {
-      // Dùng replace - thay thế tab bị chặn bằng màn login
-      // Khi back sẽ quay về màn hình trước tab bị chặn
       router.replace('/(auth)/login');
     }
-  }, [isAuth]);
+  }, [isAuth, router]);
 
   if (!isAuth) {
     return null;

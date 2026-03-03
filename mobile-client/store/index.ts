@@ -3,6 +3,10 @@ import locationReducer from "./slices/location.slice"
 import propertyReducer from "./slices/property.slice"
 import notificationReduer from "./slices/notification.slice"
 import authReducer from "./slices/auth.slice"
+import bookingReducer from './slices/booking.slice'
+import conversationReducer from './slices/conversation.slice'
+import messageReducer from "./slices/message.slice"
+import customerCategoryReducer from "./slices/customer-category.slice"
 
 export const makeStore = () => {
   return configureStore({
@@ -10,7 +14,11 @@ export const makeStore = () => {
       location: locationReducer,
       property: propertyReducer,
       notification: notificationReduer,
-      auth: authReducer
+      auth: authReducer,
+      booking: bookingReducer,
+      conversation: conversationReducer,
+      message: messageReducer,
+      customerCategory: customerCategoryReducer
     },
   });
 };
