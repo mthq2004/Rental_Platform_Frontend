@@ -202,7 +202,7 @@ const CreatePost = () => {
       setErrors({});
       progressAnim.setValue(0);
       setTimeout(() => {
-        router.replace('/(tab)/my-post')
+        router.replace('/(tab)/(protected)/my-post')
       }, 500);
     }
 

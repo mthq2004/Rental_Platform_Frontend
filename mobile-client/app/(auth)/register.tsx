@@ -22,7 +22,7 @@ import ValidationItem from '@/components/ValidationItem';
 import Header from '@/components/auth/Header';
 import OTPInput from '@/components/auth/OTPInput';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { otpVerified, register, requestOtp } from '@/store/slices/auth.slice';
+import { otpVerified, register, requestOtp, resetMessage } from '@/store/slices/auth.slice';
 import { Toast } from '@/components/Notification';
 import { router } from 'expo-router';
 
@@ -234,6 +234,7 @@ const RegisterFlow: React.FC = () => {
     if (message.type === 'error') {
       showToast(message.message, 'error');
     }
+    dispatch(resetMessage())
   }, [message, verified]);
 
   useEffect(() => {

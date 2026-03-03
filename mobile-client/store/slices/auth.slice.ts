@@ -2,7 +2,6 @@ import { LoginUser, User } from "@/types/user.type";
 import apiClient from "@/utils/api";
 import { clearAuthStorage, saveAccessToken, saveRefreshToken } from "@/utils/secureStorage";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { resetMessage } from "./property.slice";
 
 export const login = createAsyncThunk(
     "auth/login",
@@ -120,7 +119,7 @@ export const authSlice = createSlice({
             clearAuthStorage();
         },
         resetMessage: (state) => {
-            state.message = undefined;
+            state.message = null;
         }
     },
     extraReducers: (builder) => {
@@ -136,7 +135,7 @@ export const authSlice = createSlice({
                 state.isAuth = true;
                 state.user = user;
                 state.message = {
-                    type: "success",
+                    type: "success_login",
                     message: "Đăng nhập thành công!",
                 }
 
@@ -146,7 +145,7 @@ export const authSlice = createSlice({
             .addCase(login.rejected, (state, action) => {
                 state.loading = false;
                 state.message = {
-                    type: "error",
+                    type: "error_login",
                     message: "Đăng nhập thất bại!",
                 }
                 clearAuthStorage();
@@ -199,6 +198,7 @@ export const authSlice = createSlice({
         builder
             .addCase(otpVerified.pending, (state) => {
                 state.loadingOtp = true;
+                state.verified = false;
                 state.error = null;
             })
             .addCase(otpVerified.fulfilled, (state, action) => {
@@ -234,6 +234,6 @@ export const authSlice = createSlice({
 });
 
 
-export const { logout } = authSlice.actions;
+export const { logout, resetMessage } = authSlice.actions;
 export default authSlice.reducer;
 

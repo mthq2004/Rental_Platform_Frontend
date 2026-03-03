@@ -19,8 +19,7 @@ import { router } from 'expo-router';
 import PrimaryButton from '@/components/PrimaryButton';
 import Header from '@/components/auth/Header';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { login } from '@/store/slices/auth.slice';
-import { resetMessage } from '@/store/slices/property.slice';
+import { login, resetMessage } from '@/store/slices/auth.slice';
 import { Toast } from '@/components/Notification';
 
 const LoginScreen = () => {
@@ -113,25 +112,26 @@ const LoginScreen = () => {
 
 
   useEffect(() => {
-    if (!message) return;
+  if (!message) return;
 
-    if (message.type === "success") {
-      showToast(message.message, 'success')
+  if (message.type === "success_login") {
+    showToast(message.message, 'success');
 
-      setErrors({});
-      setPassword('');
-      setPhoneNumber('');
-      setTimeout(() => {
-        router.replace('/(tab)')
-      }, 500);
-    }
+    setErrors({});
+    setPassword('');
+    setPhoneNumber('');
 
-    if (message.type === "error") {
-      showToast(message.message, 'error')
-    }
+    setTimeout(() => {
+      router.replace('/(tab)');
+    }, 500);
 
-    dispatch(resetMessage())
-  }, [message]);
+  } else if (message.type === "eerror_loginr") {
+    showToast(message.message, 'error');
+  }
+
+  dispatch(resetMessage());
+}, [message, dispatch]);
+
 
   return (
     <>
