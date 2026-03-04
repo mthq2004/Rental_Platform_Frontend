@@ -24,6 +24,8 @@ import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { Conversation } from '@/types/conversation.type';
 import { FlatList } from 'react-native-gesture-handler';
 import { markAsRead, setCurrentConversation } from '@/store/slices/conversation.slice';
+import * as ImagePicker from 'expo-image-picker';
+import { uploadToCloudinary } from '@/utils/uploadToCloudinary';
 
 const ChatDetail = () => {
   const params = useLocalSearchParams<{
@@ -39,6 +41,7 @@ const ChatDetail = () => {
   const { onlineUsers } = useAppSelector(state => state.conversation)
   const { user } = useAppSelector(state => state.auth)
   const [replyingMessage, setReplyingMessage] = useState<Message | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const isOnline =
     params.participantId
@@ -94,26 +97,46 @@ const ChatDetail = () => {
     'Có thể xem nhà không?',
   ];
 
-  const handleSendMessage = (text: string) => {
-    if (!user?.id) return;
+  const handleSendMessage = async (text: string) => {
+  if (!user?.id) return;
 
-    console.log("jklml: ", {
-      conversationId: conversation.id,
-      content: text,
-      messageType: "TEXT",
-      replyToId: replyingMessage?.id || null,
-    });
+  try {
+    if (selectedImage) {
+      const uploadData = await uploadToCloudinary({
+        uri: selectedImage,
+        fileName: "image.jpg",
+        mimeType: "image/jpeg",
+        resourceType: "image",
+      })
 
+      dispatch(sendMessage({
+        conversationId: conversation.id,
+        messageType: "IMAGE",
+        fileUrl: uploadData.fileUrl,
+        fileName: uploadData.fileName,
+        fileSize: uploadData.fileSize,
+        mimeType: uploadData.mimeType,
+        width: uploadData.width,
+        height: uploadData.height,
+        replyToId: replyingMessage?.id,
+      }))
+    } 
+    else if (text.trim()) {
+      dispatch(sendMessage({
+        conversationId: conversation.id,
+        content: text.trim(),
+        messageType: "TEXT",
+        replyToId: replyingMessage?.id,
+      }))
+    }
 
-    dispatch(sendMessage({
-      conversationId: conversation.id,
-      content: text,
-      messageType: "TEXT",
-      replyToId: replyingMessage?.id,
-    }));
+    setSelectedImage(null)
+    setReplyingMessage(null)
 
-    setReplyingMessage(null);
-  };
+  } catch (error) {
+    console.log("Send message error:", error)
+  }
+}
 
   const handleAction = (messageId: string, action: string) => {
     if (action === 'reply') {
@@ -124,8 +147,16 @@ const ChatDetail = () => {
     }
   }
 
-  const handleSendImage = () =>
-    Alert.alert('Gửi hình ảnh', 'Chức năng đang phát triển');
+  const handleSendImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  }
 
   const handleSendLocation = () =>
     Alert.alert('Gửi vị trí', 'Chức năng đang phát triển');
@@ -258,11 +289,24 @@ const ChatDetail = () => {
             </View>
           )}
 
+          {selectedImage && (
+            <View className="mx-4 mb-2">
+              <Image
+                source={{ uri: selectedImage }}
+                className="w-24 h-24 rounded-lg"
+              />
+              <TouchableOpacity onPress={() => setSelectedImage(null)}>
+                <Ionicons name="close" size={18} />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <ChatInputBar
             onSendMessage={handleSendMessage}
             onSendImage={handleSendImage}
             onSendLocation={handleSendLocation}
             onShowAttachments={handleShowAttachments}
+            canSend={!!selectedImage}
           />
 
         </View>
