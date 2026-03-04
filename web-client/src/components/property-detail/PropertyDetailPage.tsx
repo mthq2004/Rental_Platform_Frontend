@@ -2,14 +2,16 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { extractIdFromSlug } from "@/utils/slug";
+
+import type { PropertyDetailData } from "./types";
+import StickyHeader from "./StickyHeader";
 import ImageGallery from "./ImageGallery";
 import PropertyInfo from "./PropertyInfo";
 import PropertyTabs from "./PropertyTabs";
-import OwnerSidebar from "./OwnerSidebar";
-import StickyHeader from "./StickyHeader";
 import SimilarListings from "./SimilarListings";
+import OwnerSidebar from "./OwnerSidebar";
 import CommentSection from "./CommentSection";
-import type { PropertyDetailData } from "./types";
 
 // Sample data – replace with API call
 const SAMPLE_PROPERTY: PropertyDetailData = {
@@ -85,11 +87,12 @@ const SAMPLE_PROPERTY: PropertyDetailData = {
 };
 
 interface PropertyDetailPageProps {
-  propertyId: string;
+  slug: string;
 }
 
-export default function PropertyDetailPage({ propertyId }: PropertyDetailPageProps) {
+export default function PropertyDetailPage({ slug }: PropertyDetailPageProps) {
   const router = useRouter();
+  const propertyId = extractIdFromSlug(slug) || slug;
   const [property, setProperty] = useState<PropertyDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showStickyHeader, setShowStickyHeader] = useState(false);

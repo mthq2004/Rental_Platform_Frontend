@@ -9,6 +9,7 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { propertySlug } from "@/utils/slug";
 
 interface SimilarProperty {
   id: string;
@@ -126,7 +127,7 @@ export default function SimilarListings({ currentPropertyId, city }: SimilarList
         {SAMPLE_SIMILAR.map((item) => (
           <div
             key={item.id}
-            onClick={() => router.push(`/property/${item.id}`)}
+            onClick={() => router.push(`/property/${propertySlug(item.title, item.id)}`)}
             className="w-[220px] shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 
               overflow-hidden cursor-pointer hover:shadow-md transition-shadow group"
           >

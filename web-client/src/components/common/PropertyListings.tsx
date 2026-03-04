@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import PropertyCard from "@/components/property/PropertyCard";
+import { DownOutlined } from "@ant-design/icons";
 
 const PropertyListings = () => {
   const router = useRouter();
@@ -222,14 +223,7 @@ const PropertyListings = () => {
               className="group flex items-center gap-2 px-8 py-2.5 border border-gray-300 rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-all font-medium text-sm shadow-sm"
             >
               Mở rộng
-              <svg 
-                className="w-4 h-4 text-gray-400 group-hover:translate-y-0.5 transition-transform" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="19 9l-7 7-7-7" />
-              </svg>
+              <DownOutlined className="text-gray-400 group-hover:translate-y-0.5 transition-transform" />
             </button>
           ) : (
             <button

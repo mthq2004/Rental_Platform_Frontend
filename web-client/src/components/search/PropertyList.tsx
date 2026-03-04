@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import PropertySearchCard from "./PropertySearchCard";
 import { Pagination, Select, Skeleton } from "antd";
 import { SortAscendingOutlined } from "@ant-design/icons";
 import type { SearchFilters } from "./SearchPage";
 import http from "@/utils/api";
+import PropertySearchCard from "./PropertySearchCard";
 
 interface PropertyListProps {
   filters: SearchFilters;

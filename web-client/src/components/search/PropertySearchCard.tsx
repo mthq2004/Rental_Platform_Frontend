@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { propertySlug } from "@/utils/slug";
 import {
   HeartOutlined,
   HeartFilled,
@@ -100,7 +101,7 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
 
   return (
     <div
-      onClick={() => router.push(`/property/${property.id}`)}
+      onClick={() => router.push(`/property/${propertySlug(property.title, property.id)}`)}
       className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 group cursor-pointer border border-gray-100"
     >  <div className="flex flex-col sm:flex-row">
         {/* === Image Gallery === */}

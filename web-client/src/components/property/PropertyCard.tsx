@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
+import { propertySlug } from "@/utils/slug";
 import {
   HeartOutlined,
   HeartFilled,
@@ -32,7 +33,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
   return (
     <div
-      onClick={() => router.push(`/property/${id}`)}
+      onClick={() => router.push(`/property/${propertySlug(title, id)}`)}
       className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow group cursor-pointer"
     >
       {/* Image */}
