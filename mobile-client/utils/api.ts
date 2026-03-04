@@ -4,7 +4,6 @@ import { clearAuthStorage, getAccessToken } from "./secureStorage";
 
 console.log("EXPO_PUBLIC_API_URL: ", process.env.EXPO_PUBLIC_API_URL);
 
-
 const apiClient = axios.create({
   baseURL: process.env.EXPO_PUBLIC_API_URL,
   timeout: 10000,

@@ -7,6 +7,7 @@ interface ChatInputBarProps {
   onSendImage?: () => void;
   onSendLocation?: () => void;
   onShowAttachments?: () => void;
+  canSend?: boolean
 }
 
 const ChatInputBar: React.FC<ChatInputBarProps> = ({
@@ -14,14 +15,15 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   onSendImage,
   onSendLocation,
   onShowAttachments,
+  canSend = false
 }) => {
   const [message, setMessage] = useState('');
 
   const handleSend = () => {
-    if (message.trim()) {
-      onSendMessage(message.trim());
-      setMessage('');
-    }
+    if (!canSend && !message.trim()) return;
+
+    onSendMessage(message.trim());
+    setMessage('');
   };
 
   return (
@@ -61,7 +63,11 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
         </View>
 
         <TouchableOpacity
-          className="bg-blue-500 rounded-full w-10 h-10 items-center justify-center"
+          disabled={!message.trim() && !canSend}
+          className={`rounded-full w-10 h-10 items-center justify-center ${message.trim() || canSend
+              ? 'bg-blue-500'
+              : 'bg-gray-300'
+            }`}
           onPress={handleSend}
         >
           <Ionicons name="send" size={20} color="white" />
