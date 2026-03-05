@@ -2,6 +2,21 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import apiClient from "@/utils/api";
 import { GetMessagesResponse, Message } from "@/types/message.type";
 
+type SendMessagePayload = {
+  conversationId: string;
+  content?: string;
+  messageType: "TEXT" | "IMAGE" | "VIDEO" | "FILE";
+  fileUrl?: string;
+  fileName?: string;
+  fileSize?: number;
+  mimeType?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
+  thumbnailUrl?: string;
+  replyToId?: string | null;
+};
+
 type MessageState = {
   loading: boolean;
   error: string | null;
@@ -52,12 +67,7 @@ export const fetchMessages = createAsyncThunk<
 
 export const sendMessage = createAsyncThunk<
   Message,
-  {
-    conversationId: string;
-    content: string;
-    messageType: "TEXT" | "IMAGE" | "VIDEO" | "FILE";
-    replyToId?: string | null
-  },
+  SendMessagePayload,
   { rejectValue: string }
 >("message/send", async (body, { rejectWithValue }) => {
   try {

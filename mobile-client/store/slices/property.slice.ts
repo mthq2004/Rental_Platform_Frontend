@@ -1,6 +1,7 @@
 import { PropertyData } from "@/app/(tab)/(protected)/my-post";
 import { PropertyFormData } from "@/types/property.type";
 import apiClient from "@/utils/api";
+import { uploadToCloudinary } from "@/utils/uploadToCloudinary";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from 'axios';
 
