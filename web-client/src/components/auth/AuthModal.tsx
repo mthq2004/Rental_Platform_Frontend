@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Modal, Input, Button, Checkbox, message } from "antd";
+import { Modal, Input, Button, Checkbox, App } from "antd";
 import {
     AppleFilled,
     CloseOutlined,
@@ -30,6 +30,7 @@ const AuthModal = ({
     onClose,
     initialView = "login",
 }: AuthModalProps) => {
+    const { message } = App.useApp();
     const dispatch = useAppDispatch();
     const [view, setView] = useState<"login" | "register">(initialView);
     const [googleLoading, setGoogleLoading] = useState(false);

@@ -47,6 +47,56 @@ function getAuthToken(): string | null {
 }
 
 /**
+ * Parse upload response - handles multiple response formats from backend
+ * Backend wraps all responses: { statusCode, timestamp, message, data: <controller return> }
+ * Upload controller returns: { success: true, data: { publicId, secureUrl, ... } }
+ * So full response is: { statusCode, ..., data: { success: true, data: { publicId, ... } } }
+ */
+function parseUploadResponse(response: any): UploadedMedia | UploadedMedia[] | null {
+    // Unwrap backend ResponseInterceptor wrapper: { statusCode, data: <inner> }
+    let inner = response;
+    if (response.statusCode !== undefined && response.data) {
+        inner = response.data;
+    }
+
+    // Unwrap upload controller wrapper: { success: true, data: <media> }
+    if (inner.success && inner.data) {
+        return inner.data;
+    }
+
+    // Format: { data: {...} } or { data: [...] }
+    if (inner.data && (typeof inner.data === 'object' || Array.isArray(inner.data))) {
+        return inner.data;
+    }
+
+    // Direct media object
+    if (inner.publicId && inner.secureUrl) {
+        return inner;
+    }
+
+    // Array of media objects
+    if (Array.isArray(inner) && inner.length > 0 && inner[0].publicId) {
+        return inner;
+    }
+
+    return null;
+}
+
+/**
+ * Parse error response from XHR
+ */
+function parseErrorResponse(xhr: XMLHttpRequest, context: string): Error {
+    try {
+        const errorResponse = JSON.parse(xhr.responseText);
+        console.error(`[${context}] Error response:`, errorResponse);
+        return new Error(errorResponse.message || `Upload thất bại (HTTP ${xhr.status})`);
+    } catch (e) {
+        console.error(`[${context}] Failed to parse error response:`, xhr.responseText);
+        return new Error(`Upload thất bại (HTTP ${xhr.status}: ${xhr.statusText})`);
+    }
+}
+
+/**
  * Upload a single image
  */
 export async function uploadImage(
@@ -58,9 +108,9 @@ export async function uploadImage(
         formData.append("file", file);
 
         const xhr = new XMLHttpRequest();
-        
-        // Enable credentials for cross-origin requests
-        xhr.withCredentials = true;
+
+        // Timeout: 60s for images
+        xhr.timeout = 60000;
 
         // Track upload progress
         xhr.upload.addEventListener("progress", (event) => {
@@ -78,53 +128,33 @@ export async function uploadImage(
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     const response = JSON.parse(xhr.responseText);
-                    console.log('[Upload] Response:', response);
-                    
-                    // Handle multiple response formats from backend
-                    // Format 1: { success: true, data: {...} }
-                    if (response.success && response.data) {
-                        resolve(response.data);
-                        return;
+                    const data = parseUploadResponse(response);
+                    if (data) {
+                        resolve(data as UploadedMedia);
+                    } else {
+                        const errorMsg = response.message || response.error || "Upload failed - invalid response format";
+                        console.error('[Upload] Invalid response format:', response);
+                        reject(new Error(errorMsg));
                     }
-                    
-                    // Format 2: { data: {...} } (success field not required)
-                    if (response.data && typeof response.data === 'object') {
-                        resolve(response.data);
-                        return;
-                    }
-                    
-                    // Format 3: Direct response is the media object
-                    if (response.publicId && response.secureUrl) {
-                        resolve(response);
-                        return;
-                    }
-                    
-                    // If none of the above, treat as error
-                    const errorMsg = response.message || response.error || "Upload failed - invalid response format";
-                    console.error('[Upload] Invalid response format:', response);
-                    reject(new Error(errorMsg));
                 } catch (e) {
                     console.error('[Upload] Failed to parse response:', xhr.responseText, e);
                     reject(new Error("Failed to parse response: " + (e as Error).message));
                 }
             } else {
-                try {
-                    const errorResponse = JSON.parse(xhr.responseText);
-                    console.error('[Upload] Error response:', errorResponse);
-                    reject(new Error(errorResponse.message || `Upload failed with status ${xhr.status}`));
-                } catch (e) {
-                    console.error('[Upload] Failed to parse error response:', xhr.responseText);
-                    reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
-                }
+                reject(parseErrorResponse(xhr, 'Upload'));
             }
         });
 
         xhr.addEventListener("error", () => {
-            reject(new Error("Network error during upload"));
+            reject(new Error("Lỗi mạng khi tải ảnh lên. Vui lòng kiểm tra kết nối."));
+        });
+
+        xhr.addEventListener("timeout", () => {
+            reject(new Error("Upload ảnh quá thời gian. Vui lòng thử lại."));
         });
 
         xhr.addEventListener("abort", () => {
-            reject(new Error("Upload was aborted"));
+            reject(new Error("Upload đã bị hủy"));
         });
 
         xhr.open("POST", `${API_ENDPOINT}/api/estate/upload/image`, true);
@@ -155,9 +185,9 @@ export async function uploadImages(
         });
 
         const xhr = new XMLHttpRequest();
-        
-        // Enable credentials for cross-origin requests
-        xhr.withCredentials = true;
+
+        // Timeout: 120s for multiple images
+        xhr.timeout = 120000;
 
         xhr.upload.addEventListener("progress", (event) => {
             if (event.lengthComputable && onProgress) {
@@ -166,7 +196,6 @@ export async function uploadImages(
                     total: event.total,
                     percentage: Math.round((event.loaded / event.total) * 100),
                 };
-                // Report progress for all files combined
                 onProgress(0, progress);
             }
         });
@@ -175,49 +204,33 @@ export async function uploadImages(
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     const response = JSON.parse(xhr.responseText);
-                    console.log('[Upload Multiple] Response:', response);
-                    
-                    // Handle multiple response formats from backend
-                    if (response.success && Array.isArray(response.data)) {
-                        resolve(response.data);
-                        return;
+                    const data = parseUploadResponse(response);
+                    if (data) {
+                        resolve(Array.isArray(data) ? data : [data]);
+                    } else {
+                        const errorMsg = response.message || response.error || "Upload failed - invalid response format";
+                        console.error('[Upload Multiple] Invalid response format:', response);
+                        reject(new Error(errorMsg));
                     }
-                    
-                    if (Array.isArray(response.data)) {
-                        resolve(response.data);
-                        return;
-                    }
-                    
-                    if (Array.isArray(response)) {
-                        resolve(response);
-                        return;
-                    }
-                    
-                    const errorMsg = response.message || response.error || "Upload failed - invalid response format";
-                    console.error('[Upload Multiple] Invalid response format:', response);
-                    reject(new Error(errorMsg));
                 } catch (e) {
                     console.error('[Upload Multiple] Failed to parse response:', xhr.responseText, e);
                     reject(new Error("Failed to parse response: " + (e as Error).message));
                 }
             } else {
-                try {
-                    const errorResponse = JSON.parse(xhr.responseText);
-                    console.error('[Upload Multiple] Error response:', errorResponse);
-                    reject(new Error(errorResponse.message || `Upload failed with status ${xhr.status}`));
-                } catch (e) {
-                    console.error('[Upload Multiple] Failed to parse error response:', xhr.responseText);
-                    reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
-                }
+                reject(parseErrorResponse(xhr, 'Upload Multiple'));
             }
         });
 
         xhr.addEventListener("error", () => {
-            reject(new Error("Network error during upload"));
+            reject(new Error("Lỗi mạng khi tải ảnh lên. Vui lòng kiểm tra kết nối."));
+        });
+
+        xhr.addEventListener("timeout", () => {
+            reject(new Error("Upload ảnh quá thời gian. Vui lòng thử lại."));
         });
 
         xhr.addEventListener("abort", () => {
-            reject(new Error("Upload was aborted"));
+            reject(new Error("Upload đã bị hủy"));
         });
 
         xhr.open("POST", `${API_ENDPOINT}/api/estate/upload/images`, true);
@@ -243,9 +256,9 @@ export async function uploadVideo(
         formData.append("file", file);
 
         const xhr = new XMLHttpRequest();
-        
-        // Enable credentials for cross-origin requests
-        xhr.withCredentials = true;
+
+        // Timeout: 5 minutes for video uploads (large files)
+        xhr.timeout = 300000;
 
         xhr.upload.addEventListener("progress", (event) => {
             if (event.lengthComputable && onProgress) {
@@ -262,49 +275,33 @@ export async function uploadVideo(
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     const response = JSON.parse(xhr.responseText);
-                    console.log('[Video Upload] Response:', response);
-                    
-                    // Handle multiple response formats from backend
-                    if (response.success && response.data) {
-                        resolve(response.data);
-                        return;
+                    const data = parseUploadResponse(response);
+                    if (data) {
+                        resolve(data as UploadedMedia);
+                    } else {
+                        const errorMsg = response.message || response.error || "Upload failed - invalid response format";
+                        console.error('[Video Upload] Invalid response format:', response);
+                        reject(new Error(errorMsg));
                     }
-                    
-                    if (response.data && typeof response.data === 'object') {
-                        resolve(response.data);
-                        return;
-                    }
-                    
-                    if (response.publicId && response.secureUrl) {
-                        resolve(response);
-                        return;
-                    }
-                    
-                    const errorMsg = response.message || response.error || "Upload failed - invalid response format";
-                    console.error('[Video Upload] Invalid response format:', response);
-                    reject(new Error(errorMsg));
                 } catch (e) {
                     console.error('[Video Upload] Failed to parse response:', xhr.responseText, e);
                     reject(new Error("Failed to parse response: " + (e as Error).message));
                 }
             } else {
-                try {
-                    const errorResponse = JSON.parse(xhr.responseText);
-                    console.error('[Video Upload] Error response:', errorResponse);
-                    reject(new Error(errorResponse.message || `Upload failed with status ${xhr.status}`));
-                } catch (e) {
-                    console.error('[Video Upload] Failed to parse error response:', xhr.responseText);
-                    reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
-                }
+                reject(parseErrorResponse(xhr, 'Video Upload'));
             }
         });
 
         xhr.addEventListener("error", () => {
-            reject(new Error("Network error during upload"));
+            reject(new Error("Lỗi mạng khi tải video lên. Vui lòng kiểm tra kết nối."));
+        });
+
+        xhr.addEventListener("timeout", () => {
+            reject(new Error("Upload video quá thời gian (>5 phút). Vui lòng thử file nhỏ hơn."));
         });
 
         xhr.addEventListener("abort", () => {
-            reject(new Error("Upload was aborted"));
+            reject(new Error("Upload đã bị hủy"));
         });
 
         xhr.open("POST", `${API_ENDPOINT}/api/estate/upload/video`, true);
@@ -332,9 +329,9 @@ export async function uploadVideos(
         });
 
         const xhr = new XMLHttpRequest();
-        
-        // Enable credentials for cross-origin requests
-        xhr.withCredentials = true;
+
+        // Timeout: 10 minutes for multiple video uploads
+        xhr.timeout = 600000;
 
         xhr.upload.addEventListener("progress", (event) => {
             if (event.lengthComputable && onProgress) {
@@ -351,49 +348,33 @@ export async function uploadVideos(
             if (xhr.status >= 200 && xhr.status < 300) {
                 try {
                     const response = JSON.parse(xhr.responseText);
-                    console.log('[Video Upload Multiple] Response:', response);
-                    
-                    // Handle multiple response formats from backend
-                    if (response.success && Array.isArray(response.data)) {
-                        resolve(response.data);
-                        return;
+                    const data = parseUploadResponse(response);
+                    if (data) {
+                        resolve(Array.isArray(data) ? data : [data]);
+                    } else {
+                        const errorMsg = response.message || response.error || "Upload failed - invalid response format";
+                        console.error('[Video Upload Multiple] Invalid response format:', response);
+                        reject(new Error(errorMsg));
                     }
-                    
-                    if (Array.isArray(response.data)) {
-                        resolve(response.data);
-                        return;
-                    }
-                    
-                    if (Array.isArray(response)) {
-                        resolve(response);
-                        return;
-                    }
-                    
-                    const errorMsg = response.message || response.error || "Upload failed - invalid response format";
-                    console.error('[Video Upload Multiple] Invalid response format:', response);
-                    reject(new Error(errorMsg));
                 } catch (e) {
                     console.error('[Video Upload Multiple] Failed to parse response:', xhr.responseText, e);
                     reject(new Error("Failed to parse response: " + (e as Error).message));
                 }
             } else {
-                try {
-                    const errorResponse = JSON.parse(xhr.responseText);
-                    console.error('[Video Upload Multiple] Error response:', errorResponse);
-                    reject(new Error(errorResponse.message || `Upload failed with status ${xhr.status}`));
-                } catch (e) {
-                    console.error('[Video Upload Multiple] Failed to parse error response:', xhr.responseText);
-                    reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
-                }
+                reject(parseErrorResponse(xhr, 'Video Upload Multiple'));
             }
         });
 
         xhr.addEventListener("error", () => {
-            reject(new Error("Network error during upload"));
+            reject(new Error("Lỗi mạng khi tải video lên. Vui lòng kiểm tra kết nối."));
+        });
+
+        xhr.addEventListener("timeout", () => {
+            reject(new Error("Upload video quá thời gian. Vui lòng thử file nhỏ hơn."));
         });
 
         xhr.addEventListener("abort", () => {
-            reject(new Error("Upload was aborted"));
+            reject(new Error("Upload đã bị hủy"));
         });
 
         xhr.open("POST", `${API_ENDPOINT}/api/estate/upload/videos`, true);

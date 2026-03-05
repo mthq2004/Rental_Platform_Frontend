@@ -3,9 +3,10 @@ import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAppDispatch } from "@/stores/hooks";
 import { exchangeGoogleCode, exchangeFacebookCode } from "@/stores/slices/auth.slice";
-import { message } from "antd";
+import { App } from "antd";
 
 const AuthExchangeHandler = () => {
+    const { message } = App.useApp();
     const searchParams = useSearchParams();
     const router = useRouter();
     const dispatch = useAppDispatch();

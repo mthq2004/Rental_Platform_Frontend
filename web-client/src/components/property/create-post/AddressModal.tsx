@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Modal, Select, Input, Spin, message } from "antd";
+import { Modal, Select, Input, Spin, App } from "antd";
 import { EnvironmentOutlined } from "@ant-design/icons";
 
 import provinceService from "@/services/province.service";
@@ -21,6 +21,7 @@ export default function AddressModal({
   onClose,
   onConfirm,
 }: AddressModalProps) {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
 
   const [provinces, setProvinces] = useState<Province[]>([]);

@@ -92,19 +92,25 @@ class HttpClient {
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
     config.signal = controller.signal;
 
-    console.log('[API] Fetching:', method, url);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[API] Fetching:', method, url);
+    }
 
     let response: Response;
     try {
       response = await fetch(url, config);
     } catch (networkError) {
       if (networkError instanceof Error && networkError.name === 'AbortError') {
-        console.error('[API] Request timed out:', url);
+        // Only log timeout in development mode
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[API] Request timed out:', url);
+        }
         throw new Error("Request timed out. Please try again.");
       }
-      console.error('[API] Network error:', networkError);
-      console.error('[API] URL:', url);
-      console.error('[API] Config:', config);
+      // Only log network errors in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.error('[API] Network error:', networkError);
+      }
       throw networkError;
     } finally {
       clearTimeout(timeoutId);

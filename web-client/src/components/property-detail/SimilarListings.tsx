@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   HeartOutlined,
   LeftOutlined,
@@ -10,92 +10,48 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import { propertySlug } from "@/utils/slug";
-
-interface SimilarProperty {
-  id: string;
-  title: string;
-  image: string;
-  imageCount: number;
-  price: string;
-  bedrooms: number;
-  propertyType: string;
-  location: string;
-  daysAgo: number;
-}
-
-const SAMPLE_SIMILAR: SimilarProperty[] = [
-  {
-    id: "s1",
-    title: "BÁN NHÀ 290M2 VỊ TRÍ 2 ĐƯỜNG ĐỒNG KHỞI MẶ...",
-    image: "/assets/image/property-1.jpg",
-    imageCount: 4,
-    price: "9 triệu/tháng",
-    bedrooms: 9,
-    propertyType: "Nhà ngõ, hẻm",
-    location: "Biên Hòa, Đồng Nai",
-    daysAgo: 20,
-  },
-  {
-    id: "s2",
-    title: "NHÀ 1 TRỆT 1 LẦU GẦN CỔNG 11 - SỔ HỒNG HO...",
-    image: "/assets/image/property-2.jpg",
-    imageCount: 6,
-    price: "5 triệu/tháng",
-    bedrooms: 3,
-    propertyType: "Nhà mặt phố, mặt tiền",
-    location: "Biên Hòa, Đồng Nai",
-    daysAgo: 1,
-  },
-  {
-    id: "s3",
-    title: "BÁN NHÀ MẶT TIỀN ĐƯỜNG HƯNG ĐẠO...",
-    image: "/assets/image/property-3.jpg",
-    imageCount: 9,
-    price: "12 triệu/tháng",
-    bedrooms: 2,
-    propertyType: "Nhà ngõ, hẻm",
-    location: "Biên Hòa, Đồng Nai",
-    daysAgo: 4,
-  },
-  {
-    id: "s4",
-    title: "Bán nhà 1 trệt 3 lầu mặt tiền công viên đường F2 k...",
-    image: "/assets/image/property-4.jpg",
-    imageCount: 5,
-    price: "15 triệu/tháng",
-    bedrooms: 4,
-    propertyType: "Nhà ngõ, hẻm",
-    location: "Biên Hòa, Đồng Nai",
-    daysAgo: 2,
-  },
-  {
-    id: "s5",
-    title: "Bán nhà thổ 1 trệt 2 lầu khu dân cư Bửu Long 3, Tr...",
-    image: "/assets/image/property-5.jpg",
-    imageCount: 5,
-    price: "8 triệu/tháng",
-    bedrooms: 5,
-    propertyType: "Nhà phố liên kế",
-    location: "Biên Hòa, Đồng Nai",
-    daysAgo: 1,
-  },
-];
+import { useAppDispatch, useAppSelector } from "@/stores/hooks";
+import { fetchSimilarPropertiesThunk } from "@/stores/slices/estate.slice";
 
 interface SimilarListingsProps {
   currentPropertyId: string;
   city: string;
 }
 
+function formatPrice(price: number): string {
+  if (price >= 1000000) {
+    const m = price / 1000000;
+    return `${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)} triệu/tháng`;
+  }
+  return `${price.toLocaleString("vi-VN")} đ/tháng`;
+}
+
+function formatDaysAgo(dateStr: string): string {
+  const diffDays = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
+  if (diffDays === 0) return "Hôm nay";
+  if (diffDays === 1) return "1 ngày trước";
+  if (diffDays < 30) return `${diffDays} ngày trước`;
+  return `${Math.floor(diffDays / 30)} tháng trước`;
+}
+
 export default function SimilarListings({ currentPropertyId, city }: SimilarListingsProps) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const dispatch = useAppDispatch();
+  const { data: allItems } = useAppSelector((state) => state.estate.similar);
+  const items = allItems.filter((p) => p.id !== currentPropertyId).slice(0, 8);
+
+  useEffect(() => {
+    dispatch(fetchSimilarPropertiesThunk({ city, limit: 10, sortBy: "newest" }));
+  }, [dispatch, city]);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const amount = direction === "left" ? -300 : 300;
-      scrollRef.current.scrollBy({ left: amount, behavior: "smooth" });
+      scrollRef.current.scrollBy({ left: direction === "left" ? -300 : 300, behavior: "smooth" });
     }
   };
+
+  if (items.length === 0) return null;
 
   return (
     <div className="mt-6">
@@ -124,64 +80,60 @@ export default function SimilarListings({ currentPropertyId, city }: SimilarList
         className="flex gap-4 overflow-x-auto pb-4"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {SAMPLE_SIMILAR.map((item) => (
-          <div
-            key={item.id}
-            onClick={() => router.push(`/property/${propertySlug(item.title, item.id)}`)}
-            className="w-[220px] shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 
-              overflow-hidden cursor-pointer hover:shadow-md transition-shadow group"
-          >
-            {/* Image */}
-            <div className="relative aspect-[4/3] overflow-hidden">
-              <img
-                src={item.image}
-                alt={item.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
+        {items.map((item) => {
+          const primaryImage = item.images.find((i) => i.isPrimary) || item.images[0];
+          return (
+            <div
+              key={item.id}
+              onClick={() => router.push(`/property/${propertySlug(item.title, item.id)}`)}
+              className="w-[220px] shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 
+                overflow-hidden cursor-pointer hover:shadow-md transition-shadow group"
+            >
+              {/* Image */}
+              <div className="relative aspect-[4/3] overflow-hidden">
+                <img
+                  src={primaryImage?.uri || "/assets/image/property-1.jpg"}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-2 right-2 w-7 h-7 bg-white/80 rounded-full 
+                    flex items-center justify-center hover:bg-white transition-colors"
+                >
+                  <HeartOutlined className="text-gray-500 text-sm" />
+                </button>
+                <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                  <span className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded flex items-center gap-1">
+                    <ClockCircleOutlined />
+                    {formatDaysAgo(item.createdAt)}
+                  </span>
+                  {item.images.length > 1 && (
+                    <span className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded flex items-center gap-1">
+                      <PictureOutlined />
+                      {item.images.length}
+                    </span>
+                  )}
+                </div>
+              </div>
 
-              {/* Heart */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // TODO: toggle favorite
-                }}
-                className="absolute top-2 right-2 w-7 h-7 bg-white/80 rounded-full 
-                  flex items-center justify-center hover:bg-white transition-colors"
-              >
-                <HeartOutlined className="text-gray-500 text-sm" />
-              </button>
-
-              {/* Bottom badges */}
-              <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                <span className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded flex items-center gap-1">
-                  <ClockCircleOutlined />
-                  {item.daysAgo === 0 ? "Hôm nay" : `${item.daysAgo} ngày trước`}
-                </span>
-                <span className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded flex items-center gap-1">
-                  <PictureOutlined />
-                  {item.imageCount}
-                </span>
+              {/* Content */}
+              <div className="p-3">
+                <h4 className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug min-h-[36px]">
+                  {item.title}
+                </h4>
+                <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-500">
+                  {item.bedrooms > 0 && <><span>{item.bedrooms} PN</span><span className="text-gray-300">·</span></>}
+                  <span>{item.propertyType}</span>
+                </div>
+                <p className="text-blue-600 font-bold text-sm mt-1.5">{formatPrice(item.pricePerMonth)}</p>
+                <p className="text-xs text-gray-400 mt-1">{item.district}, {item.city}</p>
               </div>
             </div>
-
-            {/* Content */}
-            <div className="p-3">
-              <h4 className="text-sm font-medium text-gray-900 line-clamp-2 leading-snug min-h-[36px]">
-                {item.title}
-              </h4>
-              <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-500">
-                <span>{item.bedrooms} PN</span>
-                <span className="text-gray-300">·</span>
-                <span>{item.propertyType}</span>
-              </div>
-              <p className="text-blue-600 font-bold text-sm mt-1.5">{item.price}</p>
-              <p className="text-xs text-gray-400 mt-1">{item.location}</p>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* View more */}
       <div className="text-center mt-2">
         <button
           onClick={() => router.push(`/search?city=${encodeURIComponent(city)}`)}
@@ -194,3 +146,4 @@ export default function SimilarListings({ currentPropertyId, city }: SimilarList
     </div>
   );
 }
+

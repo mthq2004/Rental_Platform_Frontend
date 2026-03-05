@@ -14,7 +14,7 @@ import { logout } from "@/stores/slices/auth.slice";
 const Header = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const [isDashboard, setIsDashboard] = useState(false);
+  const isDashboard = pathname?.startsWith("/dashboard") ?? false;
   const dispatch = useAppDispatch();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authView, setAuthView] = useState<"login" | "register">("login");
@@ -24,10 +24,6 @@ const Header = () => {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    setIsDashboard(pathname.startsWith("/dashboard"));
-  }, [pathname]);
 
   // Get auth state from Redux
   const { isAuth, user } = useAppSelector((state) => state.auth);

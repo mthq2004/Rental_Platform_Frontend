@@ -7,6 +7,11 @@ export interface PropertyData extends PropertyFormData {
     id: string;
     createdAt: string;
     updatedAt: string;
+    viewCount?: number;
+    favoriteCount?: number;
+    contactCount?: number;
+    bookingCount?: number;
+    rejectionReason?: string;
 }
 
 export interface StatusCount {
@@ -50,7 +55,7 @@ export const createProperty = createAsyncThunk(
             const res = await apiClient.post("/estate/properties", data);
             return res.data;
         } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || "Tạo bài đăng thất bại");
+            return rejectWithValue(error.message || "Tạo bài đăng thất bại");
         }
     }
 );
@@ -62,7 +67,7 @@ export const createPropertySaveDraft = createAsyncThunk(
             const res = await apiClient.post("/estate/properties/draft", data);
             return res.data;
         } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || "Lưu nháp thất bại");
+            return rejectWithValue(error.message || "Lưu nháp thất bại");
         }
     }
 );
@@ -74,7 +79,7 @@ export const getPostStatusCounts = createAsyncThunk(
             const res = await apiClient.get("/estate/properties/status-count");
             return res.data;
         } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || "Lấy số lượng trạng thái thất bại");
+            return rejectWithValue(error.message || "Lấy số lượng trạng thái thất bại");
         }
     }
 );
@@ -86,7 +91,7 @@ export const getPropertiesByStatus = createAsyncThunk(
             const res = await apiClient.get(`/estate/properties/status?status=${status}`);
             return res.data;
         } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || "Lấy danh sách bài đăng thất bại");
+            return rejectWithValue(error.message || "Lấy danh sách bài đăng thất bại");
         }
     }
 );
@@ -98,7 +103,7 @@ export const getPropertyById = createAsyncThunk(
             const res = await apiClient.get(`/estate/properties/${id}`);
             return res.data;
         } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || "Lấy chi tiết bài đăng thất bại");
+            return rejectWithValue(error.message || "Lấy chi tiết bài đăng thất bại");
         }
     }
 );
@@ -110,7 +115,7 @@ export const updateProperty = createAsyncThunk(
             const res = await apiClient.put(`/estate/properties/update/${payload.id}`, payload.data);
             return res.data;
         } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || "Cập nhật bài đăng thất bại");
+            return rejectWithValue(error.message || "Cập nhật bài đăng thất bại");
         }
     }
 );
@@ -159,7 +164,7 @@ export const propertySlice = createSlice({
             })
             .addCase(getPostStatusCounts.fulfilled, (state, action) => {
                 state.loading = false;
-                state.statusCount = action.payload?.data || null;
+                state.statusCount = action.payload || null;
             })
             .addCase(getPostStatusCounts.rejected, (state) => {
                 state.loading = false;
@@ -173,7 +178,7 @@ export const propertySlice = createSlice({
             })
             .addCase(getPropertiesByStatus.fulfilled, (state, action) => {
                 state.loadingPropertyStatus = false;
-                state.properties = action.payload.data || [];
+                state.properties = action.payload || [];
             })
             .addCase(getPropertiesByStatus.rejected, (state) => {
                 state.loadingPropertyStatus = false;
@@ -208,7 +213,7 @@ export const propertySlice = createSlice({
             })
             .addCase(getPropertyById.fulfilled, (state, action) => {
                 state.loadingProperty = false;
-                state.property = action.payload?.data || null;
+                state.property = action.payload || null;
             })
             .addCase(getPropertyById.rejected, (state) => {
                 state.loadingProperty = false;

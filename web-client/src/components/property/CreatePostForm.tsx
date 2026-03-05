@@ -125,7 +125,7 @@ export default function CreatePostForm() {
     if (propertyMessage.type === "success") {
       message.success(propertyMessage.message);
       if (propertyMessage.message.includes("Tạo bài đăng")) {
-        router.push("/post/manage");
+        router.push("/dashboard/posts");
       }
     } else {
       message.error(propertyMessage.message);
@@ -179,7 +179,18 @@ export default function CreatePostForm() {
       latitude: formData.latitude,
       longitude: formData.longitude,
       areaSqm: formData.areaSqm,
+      bedrooms: formData.bedrooms,
+      bathrooms: formData.bathrooms,
+      floorNumber: formData.floorNumber || undefined,
+      totalFloors: formData.totalFloors || undefined,
       furnitureStatus: formData.furnitureStatus,
+      parkingFee: formData.parkingFee || undefined,
+      managementFee: formData.managementFee || undefined,
+      electricityCostPerKwh: formData.electricityCostPerKwh || undefined,
+      waterCostPerM3: formData.waterCostPerM3 || undefined,
+      minimumLeaseMonths: formData.minimumLeaseMonths || undefined,
+      maximumLeaseMonths: formData.maximumLeaseMonths || undefined,
+      availableFrom: formData.availableFrom || undefined,
       hasFireCertificate: formData.hasFireCertificate,
       amenities: formData.amenities,
       images: imageData,
