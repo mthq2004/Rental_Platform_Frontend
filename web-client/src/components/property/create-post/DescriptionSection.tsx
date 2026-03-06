@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Input, Button, Modal, Popover, Switch, Tooltip, message } from "antd";
+import { Input, Button, Modal, Popover, Switch, Tooltip, App } from "antd";
 import {
     BulbOutlined,
     LoadingOutlined,
@@ -31,6 +31,7 @@ export default function DescriptionSection({
     formData,
     updateFormData,
 }: DescriptionSectionProps) {
+    const { message } = App.useApp();
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
     const [showAISettings, setShowAISettings] = useState(false);
     const [aiTone, setAiTone] = useState("professional");

@@ -62,10 +62,7 @@ const FooterBottom = () => {
                     key={idx}
                     shape="circle"
                     icon={<Icon />}
-                    className="
-                      bg-gray-100 border border-gray-200 text-gray-600
-                      hover:bg-red-600 hover:text-white hover:border-red-600
-                    "
+                    className="bg-gray-100 border border-gray-200 text-gray-600 hover:bg-red-600 hover:text-white hover:border-red-600"
                   />
                 )
               )}
@@ -105,30 +102,13 @@ const FooterBottom = () => {
             <div className="flex items-stretch">
               <Input
                 placeholder="Nhập email của bạn"
-                className="
-                  bg-white
-                  border border-gray-300
-                  text-gray-900
-                  rounded-l-lg rounded-r-none
-                  placeholder:text-gray-400
-                  focus:border-red-600
-                  focus:ring-1 focus:ring-red-600
-                "
+                className="bg-white border border-gray-300 text-gray-900 rounded-l-lg rounded-r-none placeholder:text-gray-400 focus:border-red-600 focus:ring-1 focus:ring-red-600"
               />
 
               <Button
                 type="primary"
                 icon={<SendOutlined />}
-                className="
-                  
-                  min-w-[44px]
-                  bg-red-600
-                  border border-red-600
-                  rounded-r-lg rounded-l-none
-                  px-5
-                  flex items-center justify-center
-                  hover:bg-red-700
-                "
+                className="min-w-[44px] bg-red-600 border border-red-600 rounded-r-lg rounded-l-none px-5 flex items-center justify-center hover:bg-red-700"
               />
             </div>
           </div>

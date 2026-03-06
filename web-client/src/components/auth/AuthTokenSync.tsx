@@ -5,9 +5,10 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useAppDispatch } from "@/stores/hooks";
 import { getProfileUser, setCredentials } from "@/stores/slices/auth.slice";
 import http from "@/utils/api";
-import { message } from "antd";
+import { App } from "antd";
 
 function AuthTokenSyncContent() {
+    const { message } = App.useApp();
     const searchParams = useSearchParams();
     const dispatch = useAppDispatch();
     const router = useRouter();

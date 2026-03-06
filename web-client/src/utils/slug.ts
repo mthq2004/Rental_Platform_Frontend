@@ -28,8 +28,10 @@ export function propertySlug(title: string, id: string): string {
 /**
  * Extract property ID from a slug.
  * "tong-hop-quy-can-gia-tot-cho-thue-pr123" → "123"
+ * Also handles UUID IDs: "ten-bai-dang-pr2516002d-41d9-4067-8bbb-6b6bd2d42eca"
  */
 export function extractIdFromSlug(slug: string): string | null {
-  const match = slug.match(/-pr(\w+)$/);
+  // Match -pr followed by the ID (supports plain IDs and UUID with hyphens)
+  const match = slug.match(/-pr([\w-]+)$/);
   return match ? match[1] : null;
 }

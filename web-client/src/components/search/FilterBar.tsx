@@ -10,6 +10,7 @@ import {
   DownOutlined,
   CheckOutlined,
   CloseOutlined,
+  SortAscendingOutlined,
 } from "@ant-design/icons";
 import { Switch } from "antd";
 import type { SearchFilters } from "./SearchPage";
@@ -53,7 +54,16 @@ const AREA_RANGES = [
   { label: "Trên 250 m²", min: 250, max: null },
 ];
 
-type DropdownType = "propertyType" | "price" | "area" | null;
+type DropdownType = "propertyType" | "price" | "area" | "sort" | null;
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Mới nhất" },
+  { value: "oldest", label: "Cũ nhất" },
+  { value: "price_asc", label: "Giá tăng dần" },
+  { value: "price_desc", label: "Giá giảm dần" },
+  { value: "area_asc", label: "Diện tích tăng" },
+  { value: "area_desc", label: "Diện tích giảm" },
+];
 
 export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<DropdownType>(null);
@@ -89,6 +99,10 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       (r) => r.min === filters.areaMin && r.max === filters.areaMax
     );
     return match && match.min !== null ? match.label : "Diện tích";
+  };
+
+  const getSortLabel = () => {
+    return SORT_OPTIONS.find((o) => o.value === filters.sortBy)?.label ?? "Sắp xếp";
   };
 
   const getTypeLabel = () => {
@@ -259,6 +273,41 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
           Xóa bộ lọc
         </button>
       )}
+
+      {/* Sort dropdown */}
+      <div className="relative ml-auto">
+        <button
+          onClick={() => toggleDropdown("sort")}
+          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white 
+            hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium
+            ${openDropdown === "sort" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
+        >
+          <SortAscendingOutlined />
+          {getSortLabel()}
+          <DownOutlined className="text-xs ml-1" />
+        </button>
+
+        {openDropdown === "sort" && (
+          <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+            {SORT_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  onFilterChange({ sortBy: opt.value });
+                  setOpenDropdown(null);
+                }}
+                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between
+                  ${filters.sortBy === opt.value ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
+              >
+                {opt.label}
+                {filters.sortBy === opt.value && (
+                  <CheckOutlined className="text-blue-500 text-xs" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

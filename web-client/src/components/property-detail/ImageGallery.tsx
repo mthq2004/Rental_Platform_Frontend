@@ -8,19 +8,31 @@ import {
   EllipsisOutlined,
   PictureOutlined,
 } from "@ant-design/icons";
-import type { PropertyImage } from "@/types/property.type";
+import { PlayCircleOutlined } from "@ant-design/icons";
+import type { PropertyImage, PropertyVideo } from "@/types/property.type";
+
+type MediaItem =
+  | { kind: "image"; id: string; uri: string }
+  | { kind: "video"; id: string; uri: string; thumbnail?: string };
 
 interface ImageGalleryProps {
   images: PropertyImage[];
+  videos?: PropertyVideo[];
   title: string;
 }
 
-export default function ImageGallery({ images, title }: ImageGalleryProps) {
+export default function ImageGallery({ images, videos = [], title }: ImageGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const thumbnailRef = useRef<HTMLDivElement>(null);
 
-  const total = images.length;
+  // Merge: images first, then videos
+  const media: MediaItem[] = [
+    ...images.map((img) => ({ kind: "image" as const, id: img.id, uri: img.uri })),
+    ...videos.map((v) => ({ kind: "video" as const, id: v.id, uri: v.uri, thumbnail: v.thumbnail })),
+  ];
+
+  const total = media.length;
 
   const goTo = (index: number) => {
     if (index < 0) setCurrentIndex(total - 1);
@@ -60,16 +72,26 @@ export default function ImageGallery({ images, title }: ImageGalleryProps) {
     <>
       {/* Main Gallery */}
       <div className="relative">
-        {/* Main image */}
+        {/* Main media */}
         <div
           className="relative w-full h-[450px] bg-gray-900 rounded-xl overflow-hidden cursor-pointer group"
-          onClick={() => setIsFullscreen(true)}
+          onClick={() => media[currentIndex]?.kind === "image" && setIsFullscreen(true)}
         >
-          <img
-            src={images[currentIndex]?.uri || "/assets/image/property-1.jpg"}
-            alt={`${title} - Ảnh ${currentIndex + 1}`}
-            className="w-full h-full object-contain"
-          />
+          {media[currentIndex]?.kind === "video" ? (
+            <video
+              key={media[currentIndex].uri}
+              src={media[currentIndex].uri}
+              controls
+              className="w-full h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={media[currentIndex]?.uri || "/assets/image/property-1.jpg"}
+              alt={`${title} - Ảnh ${currentIndex + 1}`}
+              className="w-full h-full object-contain"
+            />
+          )}
 
           {/* Navigation arrows */}
           <button
@@ -106,9 +128,9 @@ export default function ImageGallery({ images, title }: ImageGalleryProps) {
             </button>
           </div>
 
-          {/* Image counter */}
+          {/* Media counter */}
           <div className="absolute bottom-3 right-3 bg-black/60 text-white text-sm px-3 py-1 rounded-full flex items-center gap-1.5">
-            <PictureOutlined />
+            {media[currentIndex]?.kind === "video" ? <PlayCircleOutlined /> : <PictureOutlined />}
             {currentIndex + 1} / {total}
           </div>
         </div>
@@ -120,21 +142,34 @@ export default function ImageGallery({ images, title }: ImageGalleryProps) {
             className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
-            {images.map((img, idx) => (
+            {media.map((item, idx) => (
               <button
-                key={img.id}
+                key={item.id}
                 onClick={() => setCurrentIndex(idx)}
-                className={`w-20 h-16 shrink-0 rounded-lg overflow-hidden border-2 transition-all
+                className={`relative w-20 h-16 shrink-0 rounded-lg overflow-hidden border-2 transition-all
                   ${idx === currentIndex
                     ? "border-blue-500 shadow-md scale-105"
                     : "border-transparent hover:border-gray-300 opacity-70 hover:opacity-100"
                   }`}
               >
-                <img
-                  src={img.uri}
-                  alt={`Thumbnail ${idx + 1}`}
-                  className="w-full h-full object-cover"
-                />
+                {item.kind === "video" ? (
+                  <>
+                    <img
+                      src={item.thumbnail || "/assets/image/property-1.jpg"}
+                      alt={`Video ${idx + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <PlayCircleOutlined className="text-white text-2xl" />
+                    </div>
+                  </>
+                ) : (
+                  <img
+                    src={item.uri}
+                    alt={`Thumbnail ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -180,12 +215,22 @@ export default function ImageGallery({ images, title }: ImageGalleryProps) {
             <LeftOutlined className="text-white text-xl" />
           </button>
 
-          <img
-            src={images[currentIndex]?.uri}
-            alt={`${title} - Ảnh ${currentIndex + 1}`}
-            className="max-w-[90vw] max-h-[85vh] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
+          {media[currentIndex]?.kind === "video" ? (
+            <video
+              key={media[currentIndex].uri}
+              src={media[currentIndex].uri}
+              controls
+              className="max-w-[90vw] max-h-[85vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={media[currentIndex]?.uri}
+              alt={`${title} - Ảnh ${currentIndex + 1}`}
+              className="max-w-[90vw] max-h-[85vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          )}
 
           <button
             onClick={(e) => {
