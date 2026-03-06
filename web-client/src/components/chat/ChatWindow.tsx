@@ -1,73 +1,236 @@
 "use client";
-import { Avatar, Button, Space, Typography, Tooltip, Image as AntImage } from "antd";
-import { PhoneOutlined, VideoCameraOutlined, MoreOutlined, FileOutlined } from "@ant-design/icons";
-import MessageInput from "./MessageInput";
-import { MOCK_MESSAGES } from "@/app/(main)/chat/chatData";
+
+import { Avatar, Button, Space, Typography, Tooltip, Image as AntImage, Spin, Badge } from "antd";
+import {
+  PhoneOutlined,
+  VideoCameraOutlined,
+  MoreOutlined,
+  FileOutlined,
+  DeleteOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
+import MessageInput from "@/components/chat/MessageInput";
+import { Message, ReplyMessage } from "@/types/message.type";
+import MessageBubble from "./MessageBubble";
+import { reactMessage, SendMessagePayload } from "@/stores/slices/message.slice";
+import { useEffect, useRef, useState } from "react";
+import { useAppDispatch } from "@/stores/hooks";
+
 const { Text } = Typography;
 
-export default function ChatWindow() {
+
+interface ChatWindowProps {
+  conversationId: string,
+  messages?: Message[];
+  loading?: boolean;
+  currentUserId: string;
+  isLoading?: boolean;
+  hasNextPage?: boolean;
+  onLoadMore?: () => void;
+  onSend?: (payload: SendMessagePayload) => void;
+  participantName?: string;
+  participantAvatar?: string;
+  isOnline?: boolean;
+}
+
+export default function ChatWindow({
+  conversationId,
+  messages = [],
+  loading,
+  currentUserId,
+  isLoading = false,
+  hasNextPage = false,
+  onLoadMore,
+  onSend,
+  participantName = "Người dùng",
+  participantAvatar,
+  isOnline = false,
+}: ChatWindowProps) {
+
+  const dispatch = useAppDispatch()
+  const containerRef = useRef<HTMLDivElement>(null);
+  const previousHeightRef = useRef<number>(0);
+  const isFetchingRef = useRef(false);
+  const isPrependingRef = useRef(false);
+  const isFirstLoadRef = useRef(true);
+
+  const [replyTo, setReplyTo] = useState<{
+    id: string;
+    content: string | null;
+    messageType: import("@/types/message.type").MessageType;
+    senderName: string;
+  } | null>(null);
+
+  const handleReply = (msg: Message) => {
+    setReplyTo({
+      id: msg.id,
+      content: msg.content,
+      messageType: msg.messageType,
+      senderName: msg.senderId === currentUserId ? "Bạn" : participantName ?? "Đối phương",
+    });
+  };
+
+  const handleSend = (payload: SendMessagePayload) => {
+    onSend?.(payload);
+    setReplyTo(null);
+  };
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    if (isFirstLoadRef.current && messages.length > 0) {
+      el.scrollTop = el.scrollHeight;
+      isFirstLoadRef.current = false;
+      return;
+    }
+
+    if (isFetchingRef.current && isPrependingRef.current) {
+      const newHeight = el.scrollHeight;
+
+      el.scrollTop = newHeight - previousHeightRef.current;
+
+      isFetchingRef.current = false;
+      isPrependingRef.current = false;
+      return;
+    }
+
+    const isNearBottom =
+      el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+
+    if (isNearBottom) {
+      el.scrollTop = el.scrollHeight;
+    }
+
+  }, [messages]);
+
+  const handleReact = (messageId: string, emoji: string) => {
+    try {
+      dispatch(reactMessage({ messageId, emoji }))
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (loading) {
+    <div style={{ padding: 20, textAlign: "center" }}>
+      <Spin />
+    </div>
+  }
+
   return (
-    <div style={{ flex: 1, height: "100%", display: "flex", flexDirection: "column", background: "#f9fbff" }}>
-      {/* Header */}
-      <div style={{ height: 70, background: "white", padding: "0 24px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #f0f0f0", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
-        <Space size="middle">
-          <Avatar size={40} src="https://api.dicebear.com/7.x/avataaars/svg?seed=1" />
+    <div
+      style={{
+        flex: 1,
+        height: "90%",
+        display: "flex",
+        flexDirection: "column",
+        background: "#f5f7fb",
+        minWidth: 0,
+      }}
+    >
+      <div
+        style={{
+          height: 68,
+          background: "#fff",
+          padding: "0 20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          borderBottom: "1px solid #f0f0f0",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+          flexShrink: 0,
+        }}
+      >
+        <Space size={12}>
+          <Badge dot color={isOnline ? "#52c41a" : "#d9d9d9"} offset={[-3, 38]}>
+            <Avatar size={42} src={participantAvatar}>
+              {participantName?.charAt(0)}
+            </Avatar>
+          </Badge>
           <div>
-            <Text strong style={{ display: "block" }}>Mai Thành Hải Quân</Text>
-            <Text type="success" style={{ fontSize: 12 }}>● Đang hoạt động</Text>
+            <Text strong style={{ display: "block", fontSize: 15 }}>
+              {participantName}
+            </Text>
+            <Text style={{ fontSize: 12, color: isOnline ? "#52c41a" : "#8c8c8c" }}>
+              {isOnline ? "● Đang hoạt động" : "● Ngoại tuyến"}
+            </Text>
           </div>
         </Space>
+
         <Space>
-          <Tooltip title="Gọi điện"><Button type="text" icon={<PhoneOutlined />} /></Tooltip>
-          <Tooltip title="Gọi Video"><Button type="text" icon={<VideoCameraOutlined />} /></Tooltip>
-          <Button type="text" icon={<MoreOutlined />} />
+          <Tooltip title="Gọi điện">
+            <Button type="text" icon={<PhoneOutlined />} size="large" />
+          </Tooltip>
+          <Tooltip title="Gọi Video">
+            <Button type="text" icon={<VideoCameraOutlined />} size="large" />
+          </Tooltip>
+          <Button type="text" icon={<MoreOutlined />} size="large" />
         </Space>
       </div>
 
-      {/* Message Area */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px", display: "flex", flexDirection: "column", gap: 16 }}>
-        {MOCK_MESSAGES.map((msg) => {
-          const isMe = msg.senderId === 'me';
-          return (
-            <div key={msg.id} style={{ alignSelf: isMe ? "flex-end" : "flex-start", maxWidth: "70%" }}>
-              <div style={{ 
-                padding: msg.type === 'image' ? "4px" : "12px 16px", 
-                background: isMe ? "#1890ff" : "#fff", 
-                color: isMe ? "#fff" : "inherit", 
-                borderRadius: isMe ? "12px 12px 0 12px" : "0 12px 12px 12px", 
-                boxShadow: "0 2px 5px rgba(0,0,0,0.05)" 
-              }}>
-                {/* 1. TEXT */}
-                {msg.type === 'text' && <span>{msg.content}</span>}
+      <div
+        ref={containerRef}
+        onScroll={(e) => {
+          const el = e.currentTarget;
 
-                {/* 2. IMAGE */}
-                {msg.type === 'image' && (
-                  <AntImage src={msg.content} style={{ borderRadius: 8, maxWidth: '100%' }} />
-                )}
+          if (
+            el.scrollTop < 5 &&
+            hasNextPage &&
+            !isFetchingRef.current &&
+            onLoadMore
+          ) {
 
-                {/* 3. FILE */}
-                {msg.type === 'file' && (
-                  <Space style={{ padding: '4px' }}>
-                    <div style={{ background: isMe ? 'rgba(255,255,255,0.2)' : '#f5f5f5', padding: '8px', borderRadius: '8px' }}>
-                      <FileOutlined style={{ fontSize: 24 }} />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 500 }}>{msg.fileName}</div>
-                      <div style={{ fontSize: 11, opacity: 0.8 }}>{msg.fileSize}</div>
-                    </div>
-                  </Space>
-                )}
-              </div>
-              <div style={{ textAlign: isMe ? "right" : "left", marginTop: 4 }}>
-                <Text type="secondary" style={{ fontSize: 10 }}>{msg.timestamp}</Text>
-                {isMe && <Text type="secondary" style={{ fontSize: 10, marginLeft: 8 }}>{msg.status === 'seen' ? 'Đã xem' : 'Đã gửi'}</Text>}
-              </div>
-            </div>
-          );
-        })}
+            isFetchingRef.current = true;
+            isPrependingRef.current = true;
+
+            // Lưu chiều cao trước khi load
+            previousHeightRef.current = el.scrollHeight;
+
+            onLoadMore();
+          }
+        }}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "20px 24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        {hasNextPage && (
+          <div style={{ textAlign: "center", paddingBottom: 8 }}>
+            <Button type="text" icon={<ReloadOutlined />} onClick={onLoadMore} size="small">
+              Tải thêm tin nhắn
+            </Button>
+          </div>
+        )}
+
+        {isLoading && (
+          <div style={{ textAlign: "center", padding: 16 }}>
+            <Spin size="small" />
+          </div>
+        )}
+
+        {[...messages].reverse().map((msg) => (
+          <MessageBubble
+            key={msg.id}
+            msg={msg}
+            currentUserId={currentUserId}
+            onReply={handleReply}
+            onReact={handleReact}
+          />
+        ))}
       </div>
 
-      <MessageInput />
+      <MessageInput
+        conversationId={conversationId}
+        onSend={handleSend}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
+      />
     </div>
   );
 }
+

@@ -6,6 +6,7 @@ import NextTopLoader from "nextjs-toploader";
 import GoogleAuthProviderWrapper from "@/components/auth/GoogleAuthProvider";
 import AntdConfigProvider from "@/components/common/AntdConfigProvider";
 import AuthTokenSync from "@/components/auth/AuthTokenSync";
+import { ChatSocketProvider } from "@/contexts/ChatSocketContext";
 
 // Suppress Antd React 19 compatibility warning and hydration mismatch
 if (typeof window !== "undefined") {
@@ -20,7 +21,7 @@ if (typeof window !== "undefined") {
     }
     // Suppress hydration mismatch warning from Ant Design
     if (
-      typeof args[0] === "string" && 
+      typeof args[0] === "string" &&
       args[0].includes("Hydration failed because the server rendered HTML didn't match the client")
     ) {
       return;
@@ -58,7 +59,9 @@ export default function RootLayout({
             <GoogleAuthProviderWrapper>
               <ReduxProvider>
                 <AuthTokenSync />
-                {children}
+                <ChatSocketProvider>
+                  {children}
+                </ChatSocketProvider>
               </ReduxProvider>
             </GoogleAuthProviderWrapper>
           </AntdConfigProvider>

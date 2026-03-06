@@ -18,7 +18,7 @@ import ChatMessage from '@/components/chat/ChatMessage';
 import QuickMessageBar from '@/components/chat/QuickMessageBar';
 import ChatInputBar from '@/components/chat/ChatInputBar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchMessages, sendMessage } from '@/store/slices/message.slice';
+import { fetchMessages, reactMessage, sendMessage } from '@/store/slices/message.slice';
 import { Message } from '@/types/message.type';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { Conversation } from '@/types/conversation.type';
@@ -147,6 +147,11 @@ const ChatDetail = () => {
     }
   }
 
+  const handleReaction = (messageId: string, action: string) => {
+    console.log("jnj: ", messageId, action);
+    dispatch(reactMessage({ messageId, emoji: action }))
+  }
+
   const handleSendImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -249,6 +254,7 @@ const ChatDetail = () => {
                 isMe={item.senderId === user?.id}
                 time={formatTime(item.createdAt)}
                 onAction={handleAction}
+                onReaction={handleReaction}
               />
             )}
             keyboardShouldPersistTaps="handled"
