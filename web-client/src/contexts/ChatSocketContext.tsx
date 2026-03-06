@@ -1,9 +1,11 @@
+"use client";
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import socketService from '@/services/chat.socket';
-import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { addConversation, setUserOffline, setUserOnline, updateConversationOnNewMessage } from '@/store/slices/conversation.slice';
-import { addRealtimeMessage, updateMessageReaction } from '@/store/slices/message.slice';
-import { store } from '@/store'; // cần để đọc user trực tiếp
+import { addConversation, setUserOffline, setUserOnline, updateConversationOnNewMessage } from '@/stores/slices/conversation.slice';
+import { addRealtimeMessage, updateMessageReaction } from '@/stores/slices/message.slice';
+import { useAppDispatch, useAppSelector } from '@/stores/hooks';
+import { store } from '@/stores/store';
 
 interface SocketContextType {
   isConnected: boolean;

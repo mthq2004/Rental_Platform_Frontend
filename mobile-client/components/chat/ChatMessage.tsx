@@ -109,13 +109,11 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
             className="rounded-xl"
             resizeMode="cover"
           />
-          {/* Play overlay */}
           <View className="absolute inset-0 items-center justify-center">
             <View className="bg-black/40 w-11 h-11 rounded-full items-center justify-center">
               <Text className="text-white text-base ml-0.5">▶</Text>
             </View>
           </View>
-          {/* Duration badge */}
           {message.duration != null && (
             <View className="absolute bottom-2 right-2 bg-black/50 rounded px-1.5 py-0.5">
               <Text className="text-white text-[11px] font-medium">
@@ -133,7 +131,6 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
           className={`flex-row items-center rounded-xl px-3 py-2.5 gap-3 ${isMe ? 'bg-blue-400/25' : 'bg-gray-100'
             }`}
         >
-          {/* File icon */}
           <View
             className={`w-9 h-9 rounded-lg items-center justify-center ${isMe ? 'bg-blue-400/30' : 'bg-white'
               }`}
@@ -141,7 +138,6 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
             <Text className="text-lg">📄</Text>
           </View>
 
-          {/* File info */}
           <View className="flex-1">
             <Text
               numberOfLines={1}
@@ -158,7 +154,6 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
             )}
           </View>
 
-          {/* Download arrow */}
           <Text className={`text-base ${isMe ? 'text-blue-200' : 'text-gray-400'}`}>⬇</Text>
         </View>
       );
@@ -175,27 +170,54 @@ interface ReactionsRowProps {
   isMe: boolean;
 }
 
-const ReactionsRow: React.FC<ReactionsRowProps> = ({ reactions, isMe }) => {
+const ReactionsRow = ({ reactions, isMe }: { reactions?: any[]; isMe?: boolean }) => {
   if (!reactions || reactions.length === 0) return null;
 
+  const grouped = reactions.reduce((acc: Record<string, number>, r) => {
+    acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+    return acc;
+  }, {});
+
+  const entries = Object.entries(grouped) as [string, number][];
+  const totalCount = reactions.length;
+
   return (
-    <View className={`flex-row flex-wrap gap-1 mt-1.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
-      {reactions.map((r, i) => (
-        <View
-          key={i}
-          className="flex-row items-center bg-white border border-gray-200 rounded-full px-2 py-0.5 gap-0.5 shadow-sm"
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        borderRadius: 20,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 4,
+        borderWidth: 0.5,
+        borderColor: 'rgba(0,0,0,0.08)',
+      }}
+    >
+      <Text style={{ fontSize: 13, letterSpacing: -1 }}>
+        {entries.slice(0, 3).map(([emoji]) => emoji).join('')}
+      </Text>
+
+      {totalCount > 0 && (
+        <Text
+          style={{
+            fontSize: 11,
+            color: '#888',
+            fontWeight: '500',
+            marginLeft: 3,
+          }}
         >
-          {/* <Text className="text-sm">{r.emoji}</Text>
-          {r.count > 1 && (
-            <Text className="text-xs text-gray-500 font-medium">{r.count}</Text>
-          )} */}
-        </View>
-      ))}
+          {totalCount}
+        </Text>
+      )}
     </View>
   );
 };
-
-// ─── Message Bubble ───────────────────────────────────────────────────────────
 
 interface MessageBubbleProps {
   message: Message;
@@ -205,30 +227,41 @@ interface MessageBubbleProps {
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMe }) => {
   if (message.isDeleted) return <DeletedBubble />;
 
-  // Media without reply: no padding — image fills edge-to-edge
+  const hasReactions = message.reactions && message.reactions.length > 0;
+
   const isMediaOnly =
     (message.messageType === 'IMAGE' || message.messageType === 'VIDEO') &&
     !message.replyTo;
 
   return (
-    <View
-      className={`max-w-[75%] rounded-2xl overflow-hidden ${isMediaOnly ? '' : 'px-3.5 py-2.5'
-        } ${isMe
-          ? 'bg-blue-500'
-          : 'bg-white border border-gray-200'
-        }`}
-    >
-      {!isMediaOnly && message.replyTo && (
-        <ReplyPreview
-          replyTo={message.replyTo}
-          isMe={isMe}
-          senderId={message.senderId}
-        />
+    <View style={{ position: 'relative', marginBottom: hasReactions ? 10 : 0 }}>
+      <View
+        className={`max-w-[75%] rounded-2xl overflow-hidden ${isMediaOnly ? '' : 'px-3.5 py-2.5'
+          } ${isMe ? 'bg-blue-500' : 'bg-white border border-gray-200'}`}
+      >
+        {!isMediaOnly && message.replyTo && (
+          <ReplyPreview
+            replyTo={message.replyTo}
+            isMe={isMe}
+            senderId={message.senderId}
+          />
+        )}
+        <MessageContent message={message} isMe={isMe} />
+      </View>
+
+      {hasReactions && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: -10,
+            ...(isMe ? { right: 8 } : { left: 8 }),
+            zIndex: 10,
+          }}
+        >
+          {message.reactions && <ReactionsRow reactions={message.reactions} isMe={isMe} />}
+
+        </View>
       )}
-
-      <MessageContent message={message} isMe={isMe} />
-
-      <ReactionsRow reactions={message.reactions} isMe={isMe} />
     </View>
   );
 };

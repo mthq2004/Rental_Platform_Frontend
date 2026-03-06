@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import apiClient from "@/utils/api";
 import { GetMessagesResponse, Message } from "@/types/message.type";
 
-type SendMessagePayload = {
+export type SendMessagePayload = {
   conversationId: string;
   content?: string;
   messageType: "TEXT" | "IMAGE" | "VIDEO" | "FILE";
@@ -46,21 +46,18 @@ export const fetchMessages = createAsyncThunk<
   "message/fetchByConversation",
   async ({ conversationId, cursor, limit = 20 }, { rejectWithValue }) => {
     try {
+      const query = new URLSearchParams({
+        ...(cursor ? { cursor } : {}),
+        limit: String(limit),
+      }).toString();
+
       const res = await apiClient.get(
-        `/chat/messages/conversation/${conversationId}`,
-        {
-          params: {
-            cursor,
-            limit,
-          },
-        }
+        `/chat/messages/conversation/${conversationId}?${query}`
       );
 
-      return res.data.data;
+      return res.data; // vì httpClient trả về JSON trực tiếp
     } catch (err: any) {
-      return rejectWithValue(
-        err.response?.data?.message || "Fetch messages failed"
-      );
+      return rejectWithValue(err.message || "Fetch messages failed");
     }
   }
 );
@@ -72,7 +69,7 @@ export const sendMessage = createAsyncThunk<
 >("message/send", async (body, { rejectWithValue }) => {
   try {
     const res = await apiClient.post("/chat/messages", body);
-    return res.data.data;
+    return res.data;
   } catch (err: any) {
     return rejectWithValue(
       err.response?.data?.message || "Send message failed"
@@ -139,6 +136,7 @@ const messageSlice = createSlice({
         state.messages.unshift(action.payload);
       }
     },
+
     updateMessageReaction: (
       state,
       action: PayloadAction<{ messageId: string; reactions: any[] }>
@@ -212,6 +210,7 @@ const messageSlice = createSlice({
         state.loading = false;
         state.error = action.payload || "Error";
       })
+
       .addCase(reactMessage.fulfilled, (state, action) => {
         const msg = state.messages.find(
           m => m.id === action.payload.messageId

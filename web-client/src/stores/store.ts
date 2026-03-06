@@ -2,6 +2,9 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "./slices/auth.slice";
 import propertyReducer from "./slices/property.slice";
 import notificationReducer from "./slices/notification.slice";
+import conversationReducer from './slices/conversation.slice'
+import messageReducer from "./slices/message.slice"
+import customerCategoryReducer from "./slices/customer-category.slice"
 
 export const makeStore = () => {
   return configureStore({
@@ -9,6 +12,9 @@ export const makeStore = () => {
       auth: authReducer,
       property: propertyReducer,
       notification: notificationReducer,
+      conversation: conversationReducer,
+      message: messageReducer,
+      customerCategory: customerCategoryReducer
     },
   });
 };
