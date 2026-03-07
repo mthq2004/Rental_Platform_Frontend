@@ -54,7 +54,6 @@ export const createRentalRequest = createAsyncThunk(
     ownerId: string;
     startDate: string;
     endDate: string;
-    proposedRent: number;
     message?: string;
   }, { rejectWithValue }) => {
     try {

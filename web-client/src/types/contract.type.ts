@@ -26,6 +26,13 @@ export interface RentalRequest {
   };
 }
 
+export interface ContractTerm {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Contract Types
 export type RentalContractStatus = 
   'draft' | 'pending_tenant' | 'tenant_signed' | 'pending_landlord' | 
@@ -59,6 +66,7 @@ export interface RentalContract {
   contractPdfUrl?: string;
   createdAt: string;
   updatedAt: string;
+  terms?: ContractTerm[];
   signatureLog?: SignatureLog[];
   payments?: Payment[];
   rentalRequest?: RentalRequest;

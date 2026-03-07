@@ -14,7 +14,7 @@ import {
   LockOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { Modal, DatePicker, InputNumber, Input, App } from "antd";
+import { Modal, DatePicker, Input, App } from "antd";
 import dayjs from "dayjs";
 import type { PropertyOwner } from "./types";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
@@ -55,7 +55,6 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   const [rentalModalOpen, setRentalModalOpen] = useState(false);
   const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
   const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
-  const [proposedRent, setProposedRent] = useState<number | null>(pricePerMonth || null);
   const [rentalMessage, setRentalMessage] = useState("");
 
   const visibleQuestions = QUICK_QUESTIONS.slice(questionIdx, questionIdx + 2);
@@ -108,8 +107,8 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   };
 
   const handleSubmitRentalRequest = async () => {
-    if (!startDate || !endDate || !proposedRent) {
-      messageApi.warning("Vui lòng điền đầy đủ ngày bắt đầu, ngày kết thúc và giá đề xuất");
+    if (!startDate || !endDate) {
+      messageApi.warning("Vui lòng điền đầy đủ ngày bắt đầu và ngày kết thúc");
       return;
     }
     if (endDate.isBefore(startDate)) {
@@ -122,14 +121,12 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
         ownerId: owner.id,
         startDate: startDate.format("YYYY-MM-DD"),
         endDate: endDate.format("YYYY-MM-DD"),
-        proposedRent,
         message: rentalMessage || undefined,
       })).unwrap();
       messageApi.success("Gửi yêu cầu thuê nhà thành công!");
       setRentalModalOpen(false);
       setStartDate(null);
       setEndDate(null);
-      setProposedRent(pricePerMonth || null);
       setRentalMessage("");
     } catch (err: any) {
       messageApi.error(typeof err === "string" ? err : "Gửi yêu cầu thất bại");
@@ -444,18 +441,6 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
               placeholder="Chọn ngày kết thúc"
               disabledDate={(d) => d.isBefore(startDate || dayjs(), "day")}
               format="DD/MM/YYYY"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Giá đề xuất (VNĐ/tháng) *</label>
-            <InputNumber
-              value={proposedRent}
-              onChange={(v) => setProposedRent(v)}
-              className="w-full"
-              min={0}
-              formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-              parser={(v) => Number(v?.replace(/,/g, "") || 0)}
-              placeholder="Nhập giá đề xuất"
             />
           </div>
           <div>
