@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { App, Button, Input } from "antd";
+import { App, Button, Input, Spin } from "antd";
 import { RightOutlined, EnvironmentOutlined } from "@ant-design/icons";
 import { useDispatch, useSelector } from "react-redux";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { PROPERTY_META } from "@/constants/property.constant";
 import { PropertyFormData, PropertyType } from "@/types/property.type";
@@ -23,7 +23,12 @@ import {
 import {
   createProperty,
   createPropertySaveDraft,
+  getPropertyById,
+  updateProperty,
+  resetProperty,
+  selectProperty,
   selectPropertyLoading,
+  selectPropertyLoadingDetail,
   selectPropertyMessage,
   resetMessage,
 } from "@/stores/slices/property.slice";
@@ -101,14 +106,22 @@ export default function CreatePostForm() {
   const { message } = App.useApp();
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const editId = searchParams.get("id");
+  const isEditMode = searchParams.get("mode") === "edit" && !!editId;
 
   const isLoading = useSelector(selectPropertyLoading);
+  const isLoadingDetail = useSelector(selectPropertyLoadingDetail);
   const propertyMessage = useSelector(selectPropertyMessage);
+  const existingProperty = useSelector(selectProperty);
 
   const [formData, setFormData] = useState(initialFormData);
   const [images, setImages] = useState<MediaItem[]>([]);
   const [videos, setVideos] = useState<MediaItem[]>([]);
   const [addressData, setAddressData] = useState<AddressData | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [lastAction, setLastAction] = useState<"draft" | "publish" | null>(null);
 
   const [showCategoryModal, setShowCategoryModal] = useState(true);
   const [categorySelected, setCategorySelected] = useState(false);
@@ -119,12 +132,63 @@ export default function CreatePostForm() {
   /* =========================
      Effects
   ========================= */
+  // Load existing property in edit mode
+  useEffect(() => {
+    if (isEditMode && editId) {
+      setShowCategoryModal(false);
+      setCategorySelected(true);
+      dispatch(getPropertyById(editId));
+    }
+    return () => {
+      dispatch(resetProperty());
+    };
+  }, [isEditMode, editId, dispatch]);
+
+  // Populate form when existing property data arrives
+  useEffect(() => {
+    if (!isEditMode || !existingProperty || dataLoaded) return;
+
+    const p = existingProperty;
+    setFormData({ ...initialFormData, ...p });
+
+    if (p.images?.length) {
+      setImages(
+        p.images.map((img) => ({
+          id: img.id,
+          preview: img.uri,
+          uri: img.uri,
+          uploading: false,
+          progress: 100,
+          uploaded: true,
+        }))
+      );
+    }
+
+    if (p.address) {
+      setAddressData({
+        city: p.city,
+        cityCode: 0,
+        district: p.district,
+        districtCode: 0,
+        ward: p.ward,
+        wardCode: 0,
+        streetAddress: p.address,
+        fullAddress: [p.address, p.ward, p.district, p.city].filter(Boolean).join(", "),
+      });
+    }
+
+    setDataLoaded(true);
+  }, [isEditMode, existingProperty, dataLoaded]);
+
   useEffect(() => {
     if (!propertyMessage) return;
 
     if (propertyMessage.type === "success") {
       message.success(propertyMessage.message);
-      if (propertyMessage.message.includes("Tạo bài đăng")) {
+      if (
+        propertyMessage.message.includes("Tạo bài đăng") ||
+        (isEditMode && lastAction === "publish")
+      ) {
         router.push("/dashboard/posts");
       }
     } else {
@@ -132,7 +196,7 @@ export default function CreatePostForm() {
     }
 
     dispatch(resetMessage());
-  }, [propertyMessage, dispatch, message, router]);
+  }, [propertyMessage, dispatch, message, router, isEditMode, lastAction]);
 
   /* =========================
      Helpers
@@ -211,19 +275,37 @@ export default function CreatePostForm() {
       return message.error("Cần ít nhất 3 hình ảnh");
     }
 
-    dispatch(createProperty(prepareSubmitData("pending_approval")));
+    setLastAction("publish");
+    if (isEditMode && editId) {
+      dispatch(updateProperty({ id: editId, data: prepareSubmitData("pending_approval") }));
+    } else {
+      dispatch(createProperty(prepareSubmitData("pending_approval")));
+    }
   };
 
   const handleSaveDraft = () => {
     if (!formData.title) {
       return message.error("Nhập tiêu đề để lưu nháp");
     }
-    dispatch(createPropertySaveDraft(prepareSubmitData("draft")));
+    setLastAction("draft");
+    if (isEditMode && editId) {
+      dispatch(updateProperty({ id: editId, data: prepareSubmitData("draft") }));
+    } else {
+      dispatch(createPropertySaveDraft(prepareSubmitData("draft")));
+    }
   };
 
   /* =========================
      Render
   ========================= */
+  if (isEditMode && isLoadingDetail) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-screen bg-gray-50 pb-24">
       <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-8">

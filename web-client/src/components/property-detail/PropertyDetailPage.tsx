@@ -213,6 +213,7 @@ export default function PropertyDetailPage({ slug }: PropertyDetailPageProps) {
               propertyId={property.id}
               isTenant={isTenant}
               isLoggedIn={!!currentUser}
+              pricePerMonth={property.pricePerMonth}
             />
             <CommentSection propertyId={property.id} />
           </div>

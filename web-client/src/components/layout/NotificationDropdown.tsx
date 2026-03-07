@@ -1,105 +1,82 @@
-"use client";
+﻿"use client";
 import React, { useState } from "react";
 import { Badge, Switch, Tabs } from "antd";
 import {
     BellOutlined,
     CheckOutlined,
     SoundOutlined,
+    HomeOutlined,
 } from "@ant-design/icons";
-
-interface Notification {
-    id: string;
-    title: string;
-    description: string;
-    date: string;
-    isRead: boolean;
-    icon: "megaphone" | "announcement";
-}
+import { useAppDispatch, useAppSelector } from "@/stores/hooks";
+import { markAsRead, getNotification } from "@/stores/slices/notification.slice";
+import type { Notification } from "@/stores/slices/notification.slice";
 
 const NotificationDropdown = () => {
+    const dispatch = useAppDispatch();
+    const { notifications } = useAppSelector((state) => state.notification);
     const [isOpen, setIsOpen] = useState(false);
     const [showUnread, setShowUnread] = useState(false);
     const [activeTab, setActiveTab] = useState("all");
 
-    // Mock notifications data
-    const notifications: Notification[] = [
-        {
-            id: "1",
-            title: "👏 Bạn muốn đăng tin BĐS tại Sài Gòn?",
-            description:
-                "Batdongsan.com.vn có gói hiển thị 15 ngày chỉ từ 1.000đ/ngày rất đáng để thử đó 😉 Tìm hiểu ngay!",
-            date: "19/01/2026",
-            isRead: false,
-            icon: "megaphone",
-        },
-        {
-            id: "2",
-            title: "Giúp bạn tìm nhà thuê dễ hơn",
-            description: "Dành 3 phút chia sẻ trải nghiệm của bạn nhé!",
-            date: "15/01/2026",
-            isRead: false,
-            icon: "megaphone",
-        },
-        {
-            id: "3",
-            title: "Ưu đãi đặc biệt tháng 1",
-            description: "Giảm 20% phí đăng tin cho khách hàng mới!",
-            date: "10/01/2026",
-            isRead: true,
-            icon: "announcement",
-        },
-    ];
-
     const filteredNotifications = showUnread
         ? notifications.filter((n) => !n.isRead)
-        : notifications;
+        : (() => {
+              if (activeTab === "all") return notifications;
+              if (activeTab === "posts")
+                  return notifications.filter(
+                      (n) =>
+                          n.type === "PROPERTY_UPDATE" ||
+                          n.type === "ADMIN_ACTION"
+                  );
+              return notifications;
+          })();
 
     const unreadCount = notifications.filter((n) => !n.isRead).length;
 
     const tabItems = [
         { key: "all", label: "Tất cả" },
         { key: "posts", label: "Tin đăng" },
-        { key: "finance", label: "Tài chính" },
-        { key: "promo", label: "Khuyến mãi" },
-        {
-            key: "more",
-            label: (
-                <span className="flex items-center gap-1">
-                    Thêm
-                    <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                        2
-                    </span>
-                    <svg
-                        className="w-3 h-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                        />
-                    </svg>
-                </span>
-            ),
-        },
     ];
 
-    const handleNotificationClick = (id: string) => {
-        console.log("Notification clicked:", id);
+    const handleNotificationClick = (notification: Notification) => {
+        if (!notification.isRead) {
+            dispatch(markAsRead(notification.id));
+        }
     };
 
     const handleMarkAllRead = () => {
-        console.log("Mark all as read");
+        notifications
+            .filter((n) => !n.isRead)
+            .forEach((n) => dispatch(markAsRead(n.id)));
+    };
+
+    const handleOpen = () => {
+        setIsOpen((prev) => {
+            if (!prev) dispatch(getNotification());
+            return !prev;
+        });
+    };
+
+    const formatDate = (dateStr: string) => {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        return d.toLocaleDateString("vi-VN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+    };
+
+    const getNotificationIcon = (n: Notification) => {
+        if (n.type === "PROPERTY_UPDATE" || n.type === "ADMIN_ACTION")
+            return <HomeOutlined style={{ fontSize: 18 }} className="text-blue-500" />;
+        return <SoundOutlined style={{ fontSize: 18 }} className="text-gray-500" />;
     };
 
     return (
         <div className="relative">
-            {/* Bell Icon Button */}
             <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleOpen}
                 className="relative w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
             >
                 <Badge count={unreadCount} size="small" offset={[-2, 2]}>
@@ -107,18 +84,13 @@ const NotificationDropdown = () => {
                 </Badge>
             </button>
 
-            {/* Dropdown Panel */}
             {isOpen && (
                 <>
-                    {/* Backdrop */}
                     <div
                         className="fixed inset-0 z-40"
                         onClick={() => setIsOpen(false)}
                     />
-
-                    {/* Panel */}
-                    <div className="absolute right-0 top-full mt-2 w-[480px] bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
-                        {/* Header */}
+                    <div className="absolute right-0 top-full mt-2 w-[420px] bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden">
                         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                             <h3 className="text-lg font-semibold text-gray-900">Thông báo</h3>
                             <div className="flex items-center gap-3">
@@ -130,18 +102,18 @@ const NotificationDropdown = () => {
                                     />
                                     <span className="text-sm text-gray-600">Chưa đọc</span>
                                 </div>
-                                <button
-                                    onClick={handleMarkAllRead}
-                                    className="text-gray-500 hover:text-gray-700 transition-colors"
-                                    title="Đánh dấu tất cả đã đọc"
-                                >
-                                    <CheckOutlined style={{ fontSize: 16 }} />
-                                    <CheckOutlined style={{ fontSize: 16, marginLeft: -8 }} />
-                                </button>
+                                {unreadCount > 0 && (
+                                    <button
+                                        onClick={handleMarkAllRead}
+                                        className="text-gray-500 hover:text-gray-700 transition-colors"
+                                        title="Đánh dấu tất cả đã đọc"
+                                    >
+                                        <CheckOutlined style={{ fontSize: 16 }} />
+                                        <CheckOutlined style={{ fontSize: 16, marginLeft: -8 }} />
+                                    </button>
+                                )}
                             </div>
                         </div>
-
-                        {/* Tabs */}
                         <div className="border-b border-gray-100">
                             <Tabs
                                 activeKey={activeTab}
@@ -151,8 +123,6 @@ const NotificationDropdown = () => {
                                 tabBarStyle={{ marginBottom: 0 }}
                             />
                         </div>
-
-                        {/* Notification List */}
                         <div className="max-h-[400px] overflow-y-auto">
                             {filteredNotifications.length === 0 ? (
                                 <div className="py-12 text-center text-gray-500">
@@ -162,32 +132,26 @@ const NotificationDropdown = () => {
                                 filteredNotifications.map((notification) => (
                                     <div
                                         key={notification.id}
-                                        onClick={() => handleNotificationClick(notification.id)}
-                                        className="flex gap-3 px-4 py-4 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors"
+                                        onClick={() => handleNotificationClick(notification)}
+                                        className={`flex gap-3 px-4 py-4 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors ${!notification.isRead ? "bg-blue-50/40" : ""}`}
                                     >
-                                        {/* Icon */}
                                         <div className="relative flex-shrink-0">
                                             <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                                                <SoundOutlined
-                                                    style={{ fontSize: 18 }}
-                                                    className="text-gray-500"
-                                                />
+                                                {getNotificationIcon(notification)}
                                             </div>
                                             {!notification.isRead && (
                                                 <div className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
                                             )}
                                         </div>
-
-                                        {/* Content */}
                                         <div className="flex-1 min-w-0">
                                             <h4 className="text-sm font-semibold text-gray-900 mb-1">
                                                 {notification.title}
                                             </h4>
                                             <p className="text-sm text-gray-600 leading-relaxed mb-2">
-                                                {notification.description}
+                                                {notification.body}
                                             </p>
                                             <span className="text-xs text-gray-400">
-                                                {notification.date}
+                                                {formatDate(notification.createdAt)}
                                             </span>
                                         </div>
                                     </div>
@@ -200,5 +164,6 @@ const NotificationDropdown = () => {
         </div>
     );
 };
+
 
 export default NotificationDropdown;

@@ -107,6 +107,10 @@ class HttpClient {
   delete(endpoint: string, data?: any, options?: HttpOptions) {
     return this.request("DELETE", endpoint, data, options);
   }
+
+  patch(endpoint: string, data?: any, options?: HttpOptions) {
+    return this.request("PUT", endpoint, data, options);
+  }
 }
 
 // Export instance mặc định

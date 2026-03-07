@@ -12,10 +12,14 @@ import {
   AppstoreOutlined,
   BarChartOutlined,
   LogoutOutlined,
+  FileTextOutlined,
+  SendOutlined,
+  DollarOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import type { MenuProps } from "antd";
-import { useAppDispatch } from "@/stores/hooks";
+import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { logout } from "@/stores/slices/auth.slice";
 
 const { Header, Sider, Content } = Layout;
@@ -29,6 +33,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useAppDispatch();
+  const authProvider = useAppSelector((state) => state.auth.authProvider);
+  const isOAuthUser = authProvider === "google" || authProvider === "facebook";
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const {
     token: { borderRadiusLG },
@@ -37,11 +43,17 @@ export default function DashboardLayout({
   const menuItems: MenuProps["items"] = [
     { key: "/dashboard", icon: <DashboardOutlined />, label: "Tổng quan" },
     { key: "/dashboard/posts", icon: <AppstoreOutlined />, label: "Quản lý bài đăng" },
+    { key: "/dashboard/rental-requests", icon: <SendOutlined />, label: "Yêu cầu thuê" },
+    { key: "/dashboard/contracts", icon: <FileTextOutlined />, label: "Hợp đồng" },
+    { key: "/dashboard/payments", icon: <DollarOutlined />, label: "Thanh toán" },
+    { key: "/dashboard/bookings", icon: <CalendarOutlined />, label: "Lịch xem nhà" },
     { key: "/dashboard/customers", icon: <TeamOutlined />, label: "Khách hàng" },
     { key: "/dashboard/statistics", icon: <BarChartOutlined />, label: "Thống kê" },
     { type: "divider" },
     { key: "/dashboard/profile", icon: <UserOutlined />, label: "Thông tin cá nhân" },
-    { key: "/dashboard/change-password", icon: <LockOutlined />, label: "Đổi mật khẩu" },
+    ...(!isOAuthUser
+      ? [{ key: "/dashboard/change-password", icon: <LockOutlined />, label: "Đổi mật khẩu" }]
+      : []),
   ];
 
   const handleLogout = async () => {
@@ -96,14 +108,7 @@ export default function DashboardLayout({
   <Menu
     mode="inline"
     onClick={handleLogout}
-    className="
-      !bg-transparent
-      [&_.ant-menu-item]:!m-0
-      [&_.ant-menu-item]:!text-black
-      [&_.ant-menu-item:hover]:!text-red-500
-      [&_.ant-menu-item]:!flex
-      [&_.ant-menu-item]:!items-center
-    "
+    className="bg-transparent! [&_.ant-menu-item]:m-0! [&_.ant-menu-item]:text-black! [&_.ant-menu-item:hover]:text-red-500! [&_.ant-menu-item]:flex! [&_.ant-menu-item]:items-center!"
     items={[
       { 
         type: "divider", 

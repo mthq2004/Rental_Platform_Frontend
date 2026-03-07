@@ -1,10 +1,11 @@
-import CreatePostForm from '@/components/property/CreatePostForm'
-import React from 'react'
+import { Suspense } from "react";
+import { Spin } from "antd";
+import CreatePostForm from "@/components/property/CreatePostForm";
 
-const CreatePostPage = () => {
+export default function CreatePostPage() {
   return (
-    <CreatePostForm></CreatePostForm>
-  )
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><Spin size="large" /></div>}>
+      <CreatePostForm />
+    </Suspense>
+  );
 }
-
-export default CreatePostPage

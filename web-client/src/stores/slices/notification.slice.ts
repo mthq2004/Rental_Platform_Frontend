@@ -5,10 +5,11 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 export interface Notification {
     id: string;
     title: string;
-    message: string;
+    body: string;
     isRead: boolean;
     createdAt: string;
     type?: string;
+    metadata?: Record<string, any>;
 }
 
 interface NotificationState {

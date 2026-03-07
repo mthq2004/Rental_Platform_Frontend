@@ -261,3 +261,6 @@ export const selectPropertyMessage = (state: { property: PropertyState }) =>
 
 export const selectStatusCount = (state: { property: PropertyState }) =>
     state.property.statusCount;
+
+export const selectPropertyLoadingDetail = (state: { property: PropertyState }) =>
+    state.property.loadingProperty;

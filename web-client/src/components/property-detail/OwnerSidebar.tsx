@@ -14,13 +14,18 @@ import {
   LockOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
+import { Modal, DatePicker, InputNumber, Input, App } from "antd";
+import dayjs from "dayjs";
 import type { PropertyOwner } from "./types";
+import { useAppDispatch, useAppSelector } from "@/stores/hooks";
+import { createRentalRequest } from "@/stores/slices/contract.slice";
 
 interface OwnerSidebarProps {
   owner: PropertyOwner;
   propertyId: string;
   isTenant?: boolean;
   isLoggedIn?: boolean;
+  pricePerMonth?: number;
 }
 
 const QUICK_QUESTIONS = [
@@ -36,11 +41,21 @@ const USER_TYPE_LABELS: Record<string, string> = {
   agency: "Đại lý",
 };
 
-export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLoggedIn = false }: OwnerSidebarProps) {
+export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLoggedIn = false, pricePerMonth }: OwnerSidebarProps) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { message: messageApi } = App.useApp();
+  const actionLoading = useAppSelector((state) => state.contract.actionLoading);
   const [showPhone, setShowPhone] = useState(false);
   const [message, setMessage] = useState("");
   const [questionIdx, setQuestionIdx] = useState(0);
+
+  // Rental request modal state
+  const [rentalModalOpen, setRentalModalOpen] = useState(false);
+  const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
+  const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
+  const [proposedRent, setProposedRent] = useState<number | null>(pricePerMonth || null);
+  const [rentalMessage, setRentalMessage] = useState("");
 
   const visibleQuestions = QUICK_QUESTIONS.slice(questionIdx, questionIdx + 2);
 
@@ -71,7 +86,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
       router.push("/");
       return;
     }
-    router.push(`/dashboard?tab=booking&property=${propertyId}`);
+    router.push(`/post/book-schedule/${propertyId}`);
   };
 
   const handleRentalRequest = () => {
@@ -79,7 +94,36 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
       router.push("/");
       return;
     }
-    router.push(`/dashboard?tab=rental-request&property=${propertyId}`);
+    setRentalModalOpen(true);
+  };
+
+  const handleSubmitRentalRequest = async () => {
+    if (!startDate || !endDate || !proposedRent) {
+      messageApi.warning("Vui lòng điền đầy đủ ngày bắt đầu, ngày kết thúc và giá đề xuất");
+      return;
+    }
+    if (endDate.isBefore(startDate)) {
+      messageApi.warning("Ngày kết thúc phải sau ngày bắt đầu");
+      return;
+    }
+    try {
+      await dispatch(createRentalRequest({
+        propertyId,
+        ownerId: owner.id,
+        startDate: startDate.format("YYYY-MM-DD"),
+        endDate: endDate.format("YYYY-MM-DD"),
+        proposedRent,
+        message: rentalMessage || undefined,
+      })).unwrap();
+      messageApi.success("Gửi yêu cầu thuê nhà thành công!");
+      setRentalModalOpen(false);
+      setStartDate(null);
+      setEndDate(null);
+      setProposedRent(pricePerMonth || null);
+      setRentalMessage("");
+    } catch (err: any) {
+      messageApi.error(typeof err === "string" ? err : "Gửi yêu cầu thất bại");
+    }
   };
 
   return (
@@ -352,6 +396,71 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
           </p>
         )}
       </div>
+
+      {/* Rental Request Modal */}
+      <Modal
+        open={rentalModalOpen}
+        title={
+          <div className="flex items-center gap-2">
+            <HomeOutlined className="text-blue-500" />
+            <span>Gửi yêu cầu thuê nhà</span>
+          </div>
+        }
+        onCancel={() => setRentalModalOpen(false)}
+        onOk={handleSubmitRentalRequest}
+        confirmLoading={actionLoading}
+        okText="Gửi yêu cầu"
+        cancelText="Hủy"
+        width={480}
+      >
+        <div className="space-y-4 mt-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ngày bắt đầu thuê *</label>
+            <DatePicker
+              value={startDate}
+              onChange={setStartDate}
+              className="w-full"
+              placeholder="Chọn ngày bắt đầu"
+              disabledDate={(d) => d.isBefore(dayjs(), "day")}
+              format="DD/MM/YYYY"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Ngày kết thúc thuê *</label>
+            <DatePicker
+              value={endDate}
+              onChange={setEndDate}
+              className="w-full"
+              placeholder="Chọn ngày kết thúc"
+              disabledDate={(d) => d.isBefore(startDate || dayjs(), "day")}
+              format="DD/MM/YYYY"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Giá đề xuất (VNĐ/tháng) *</label>
+            <InputNumber
+              value={proposedRent}
+              onChange={(v) => setProposedRent(v)}
+              className="w-full"
+              min={0}
+              formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+              parser={(v) => Number(v?.replace(/,/g, "") || 0)}
+              placeholder="Nhập giá đề xuất"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Lời nhắn (tuỳ chọn)</label>
+            <Input.TextArea
+              value={rentalMessage}
+              onChange={(e) => setRentalMessage(e.target.value)}
+              rows={3}
+              placeholder="VD: Tôi muốn thuê lâu dài, có thể thương lượng giá..."
+              maxLength={500}
+              showCount
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

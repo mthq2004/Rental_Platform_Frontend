@@ -9,6 +9,7 @@ import {
     LogoutOutlined,
     DownOutlined,
 } from "@ant-design/icons";
+import { useAppSelector } from "@/stores/hooks";
 
 interface UserDropdownProps {
     userName: string;
@@ -29,6 +30,8 @@ interface MenuItem {
 
 const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isDashboard = false }: UserDropdownProps) => {
     const router = useRouter();
+    const authProvider = useAppSelector((state) => state.auth.authProvider);
+    const isOAuthUser = authProvider === "google" || authProvider === "facebook";
     const [isOpen, setIsOpen] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
     const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -123,11 +126,13 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isD
                 icon: <UserOutlined />,
                 label: "Thay đổi thông tin cá nhân",
             },
-            {
-                key: "change-password",
-                icon: <LockOutlined />,
-                label: "Thay đổi mật khẩu",
-            },
+            ...(!isOAuthUser
+                ? [{
+                    key: "change-password",
+                    icon: <LockOutlined />,
+                    label: "Thay đổi mật khẩu",
+                }]
+                : []),
         ];
 
     return (

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -27,8 +27,14 @@ import {
 } from "antd";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import logoImg from "../../assets/logo.png";
-import { useAppDispatch } from "../../stores/hooks";
+import { useAppDispatch, useAppSelector } from "../../stores/hooks";
 import { logout } from "../../stores/slices/auth.slice";
+import {
+  getNotification,
+  markAsRead,
+  selectNotifications,
+  selectUnreadCount,
+} from "../../stores/slices/notification.slice";
 const { Header, Sider, Content } = Layout;
 
 const Sidebar: React.FC = () => {
@@ -37,9 +43,16 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
 
+  const notifications = useAppSelector(selectNotifications);
+  const unreadCount = useAppSelector(selectUnreadCount);
+
+  useEffect(() => {
+    dispatch(getNotification());
+  }, [dispatch]);
+
   const logoutUser = () => {
-    dispatch(logout())
-  }
+    dispatch(logout());
+  };
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -358,7 +371,7 @@ const Sidebar: React.FC = () => {
             />
 
             {/* NOTIFICATIONS */}
-            <Badge count={3} color="#ff4d4f">
+            <Badge count={unreadCount} color="#ff4d4f">
               <Button
                 type="text"
                 shape="circle"
@@ -371,6 +384,7 @@ const Sidebar: React.FC = () => {
                   justifyContent: "center",
                   border: "1px solid #d9d9d9",
                 }}
+                onClick={() => navigate("/dashboard/notifications")}
               />
             </Badge>
 

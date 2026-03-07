@@ -3,6 +3,8 @@ import http from "../../utils/api";
 import type { UserType } from "../../types/user.type";
 import Cookies from "js-cookie";
 
+type AuthProvider = "phone" | "google" | "facebook" | null;
+
 type initialStateType = {
   loading: boolean;
   isAuth: boolean;
@@ -11,10 +13,11 @@ type initialStateType = {
   refreshToken: string | null;
   otpSent: boolean;
   otpVerified: boolean;
+  authProvider: AuthProvider;
 };
 
-
 const tokenFromCookie = Cookies.get("accessToken") || null;
+const providerFromCookie = (Cookies.get("authProvider") as AuthProvider) || null;
 
 const initialState: initialStateType = {
   loading: false,
@@ -24,6 +27,7 @@ const initialState: initialStateType = {
   refreshToken: null,
   otpSent: false,
   otpVerified: false,
+  authProvider: providerFromCookie,
 };
 
 export const loginUser = createAsyncThunk("auth/login", async (data: any) => {
@@ -35,6 +39,33 @@ export const getProfileUser = createAsyncThunk("auth/getProfile", async () => {
   const response = await http.get("/auth/profile");
   return response;
 });
+
+export const updateProfile = createAsyncThunk(
+  "auth/updateProfile",
+  async (data: Partial<UserType>, { rejectWithValue }) => {
+    try {
+      const response = await http.put("/estate/auth/profile", data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Cập nhật thông tin thất bại");
+    }
+  }
+);
+
+export const changePassword = createAsyncThunk(
+  "auth/changePassword",
+  async (
+    data: { currentPassword: string; newPassword: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await http.put("/estate/auth/change-password", data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Đổi mật khẩu thất bại");
+    }
+  }
+);
 
 export const loginWithGoogle = createAsyncThunk(
   "auth/loginWithGoogle",
@@ -82,6 +113,47 @@ export const signupWithPhone = createAsyncThunk(
   }
 );
 
+// Avatar Upload
+export const updateAvatar = createAsyncThunk(
+  "auth/updateAvatar",
+  async (file: File, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await http.put("/estate/auth/avatar", formData);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Cập nhật avatar thất bại");
+    }
+  }
+);
+
+// Phone Update - Request OTP for changing phone
+export const requestPhoneUpdateOtp = createAsyncThunk(
+  "auth/requestPhoneUpdateOtp",
+  async (phone: string, { rejectWithValue }) => {
+    try {
+      const response = await http.post("/estate/auth/otp/request", { phone });
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Gửi OTP thất bại");
+    }
+  }
+);
+
+// Phone Update - Verify OTP
+export const verifyPhoneUpdateOtp = createAsyncThunk(
+  "auth/verifyPhoneUpdateOtp",
+  async (data: { phone: string; otp: string }, { rejectWithValue }) => {
+    try {
+      const response = await http.post("/estate/auth/otp/verify-phone", data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Xác thực OTP thất bại");
+    }
+  }
+);
+
 export const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -94,7 +166,9 @@ export const authSlice = createSlice({
       state.refreshToken = null;
       state.otpSent = false;
       state.otpVerified = false;
+      state.authProvider = null;
       http.setAccessToken(null);
+      Cookies.remove("authProvider");
     },
     resetOtpState: (state) => {
       state.otpSent = false;
@@ -119,7 +193,9 @@ export const authSlice = createSlice({
         state.accessToken = action.payload.data.accessToken;
         state.refreshToken = action.payload.data.refreshToken;
         state.user = action.payload.data.user;
+        state.authProvider = "phone";
         http.setAccessToken(action.payload.data.accessToken);
+        Cookies.set("authProvider", "phone", { expires: 7 });
       })
       .addCase(loginUser.rejected, (state) => {
         state.loading = false;
@@ -154,7 +230,9 @@ export const authSlice = createSlice({
         state.accessToken = action.payload.data.accessToken;
         state.refreshToken = action.payload.data.refreshToken;
         state.user = action.payload.data.user;
+        state.authProvider = "google";
         http.setAccessToken(action.payload.data.accessToken);
+        Cookies.set("authProvider", "google", { expires: 7 });
       })
       .addCase(loginWithGoogle.rejected, (state) => {
         state.loading = false;
@@ -172,7 +250,9 @@ export const authSlice = createSlice({
         state.accessToken = action.payload.data.accessToken;
         state.refreshToken = action.payload.data.refreshToken;
         state.user = action.payload.data.user;
+        state.authProvider = "google";
         http.setAccessToken(action.payload.data.accessToken);
+        Cookies.set("authProvider", "google", { expires: 7 });
       })
       .addCase(exchangeGoogleCode.rejected, (state) => {
         state.loading = false;
@@ -190,7 +270,9 @@ export const authSlice = createSlice({
         state.accessToken = action.payload.data.accessToken;
         state.refreshToken = action.payload.data.refreshToken;
         state.user = action.payload.data.user;
+        state.authProvider = "facebook";
         http.setAccessToken(action.payload.data.accessToken);
+        Cookies.set("authProvider", "facebook", { expires: 7 });
       })
       .addCase(exchangeFacebookCode.rejected, (state) => {
         state.loading = false;
@@ -224,9 +306,55 @@ export const authSlice = createSlice({
         state.user = action.payload.data.user;
         state.otpSent = false;
         state.otpVerified = false;
+        state.authProvider = "phone";
         http.setAccessToken(action.payload.data.accessToken);
+        Cookies.set("authProvider", "phone", { expires: 7 });
       })
       .addCase(signupWithPhone.rejected, (state) => {
+        state.loading = false;
+      });
+
+    // Update Profile
+    builder
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        const updated = action.payload?.data?.user || action.payload?.data || action.payload;
+        if (updated && state.user) {
+          state.user = { ...state.user, ...updated };
+        }
+      })
+      .addCase(updateProfile.rejected, (state) => {
+        state.loading = false;
+      });
+
+    // Update Avatar
+    builder
+      .addCase(updateAvatar.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateAvatar.fulfilled, (state, action) => {
+        state.loading = false;
+        const avatarUrl = action.payload?.data?.avatarUrl || action.payload?.data?.user?.avatarUrl;
+        if (avatarUrl && state.user) {
+          state.user = { ...state.user, avatarUrl };
+        }
+      })
+      .addCase(updateAvatar.rejected, (state) => {
+        state.loading = false;
+      });
+
+    // Change Password
+    builder
+      .addCase(changePassword.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(changePassword.rejected, (state) => {
         state.loading = false;
       });
   },
