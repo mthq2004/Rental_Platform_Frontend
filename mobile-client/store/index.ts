@@ -7,6 +7,7 @@ import bookingReducer from './slices/booking.slice'
 import conversationReducer from './slices/conversation.slice'
 import messageReducer from "./slices/message.slice"
 import customerCategoryReducer from "./slices/customer-category.slice"
+import estateReducer from "./slices/estate.slice"
 
 export const makeStore = () => {
   return configureStore({
@@ -18,7 +19,8 @@ export const makeStore = () => {
       booking: bookingReducer,
       conversation: conversationReducer,
       message: messageReducer,
-      customerCategory: customerCategoryReducer
+      customerCategory: customerCategoryReducer,
+      estate: estateReducer
     },
   });
 };

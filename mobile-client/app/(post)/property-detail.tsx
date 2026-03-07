@@ -24,6 +24,8 @@ import {
 } from '@/store/slices/booking.slice'
 import Toast from 'react-native-toast-message'
 import { createConversation } from '@/store/slices/conversation.slice'
+import { fetchSimilarPropertiesThunk, getPropertyDetailThunk } from '@/store/slices/estate.slice'
+import { PropertyDetailApiData } from '@/types/property.type'
 
 const PropertyDetail = () => {
   const colorScheme = useColorScheme()
@@ -32,11 +34,12 @@ const PropertyDetail = () => {
   const { id: propertyId } = useLocalSearchParams()
 
   const dispatch = useAppDispatch()
-  const { loading: propertyLoading, propertyDetail } = useAppSelector(state => state.property)
+  const { data: propertyDetail, loading: propertyLoading } = useAppSelector(state => state.estate.detail)
   const { myBookings, ownerBookings, loading: bookingLoading, message } = useAppSelector(state => state.booking)
+  const { data: propertySimilar } = useAppSelector(state => state.estate.similar)
   const { user } = useAppSelector(state => state.auth)
 
-  const isOwner = propertyDetail?.landlordId === user?.id
+  const isOwner = propertyDetail?.user.id === user?.id
 
   const [activeTab, setActiveTab] = useState<TabKey>('info')
 
@@ -46,57 +49,43 @@ const PropertyDetail = () => {
   const [isFavorite, setIsFavorite] = useState(false)
   const [favoriteLoading, setFavoriteLoading] = useState(false)
 
-  const mediaGallery: MediaItem[] = [
-    { id: 1, type: 'image', uri: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200', title: 'Phòng khách' },
-    { id: 2, type: 'image', uri: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200', title: 'Phòng ngủ' },
-    {
-      id: 3,
-      type: 'video',
-      uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?w=1200',
-      duration: '2:34',
-      title: 'Video tour căn hộ'
-    },
-    { id: 4, type: 'image', uri: 'https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?w=1200', title: 'Nhà bếp' },
-    {
-      id: 5,
-      type: 'video',
-      uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200',
-      duration: '1:45',
-      title: 'Video tổng quan'
-    }
-  ]
+  const mockImages = propertyDetail?.images?.map((img, index) => ({
+    id: index + 1,
+    uri: img.uri,
+    type: "image" as const
+  })) ?? []
 
-  const propertyInfo = {
-    title: 'Phòng trọ Quận 7 – Gần Lotte',
-    price: '4.500.000 đ / tháng',
-    location: 'Quận 7, TP.HCM',
-    description: 'Phòng sạch sẽ, giờ giấc tự do, gần trung tâm thương mại. An ninh tốt, khu vực yên tĩnh, thuận tiện di chuyển.',
-    amenities: [
-      { icon: 'bed-outline', label: '2 Phòng ngủ' },
-      { icon: 'water-outline', label: 'WC riêng' },
-      { icon: 'wifi', label: 'Wifi' },
-      { icon: 'snow-outline', label: 'Điều hòa' },
-    ],
-    owner: {
-      name: 'Nguyễn Văn B',
-      phone: '0901234567',
-      avatar: 'https://via.placeholder.com/50',
-      rating: 4.8,
-      reviewCount: 24
-    },
-    stats: {
-      views: 124,
-      bookings: 8,
-      interests: 3
-    },
-    similarProperties: [
-      { id: 1, image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400', title: 'Phòng trọ Quận 1', price: '3.500.000 đ' },
-      { id: 2, image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400', title: 'Phòng trọ Quận 3', price: '4.000.000 đ' },
-      { id: 3, image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400', title: 'Phòng trọ Bình Thạnh', price: '3.800.000 đ' },
-    ]
+  const mockVideos = propertyDetail?.videos?.map((video, index) => ({
+    id: index + 1,
+    uri: video.uri,
+    thumbnail: video.uri,
+    type: "video" as const,
+    duration: "0:00"
+  })) ?? []
+
+  const buildMediaGallery = (data: PropertyDetailApiData): MediaItem[] => {
+    const sortedImages = [...data.images].sort(
+      (a, b) => Number(b.isPrimary) - Number(a.isPrimary)
+    )
+
+    const images: MediaItem[] = sortedImages.map((img, index) => ({
+      id: index + 1,
+      type: "image",
+      uri: img.uri
+    }))
+
+    const videos: MediaItem[] = data.videos.map((video, index) => ({
+      id: images.length + index + 1,
+      type: "video",
+      uri: video.uri
+    }))
+
+    return [...images, ...videos]
   }
+
+  const mediaGallery = propertyDetail
+    ? buildMediaGallery(propertyDetail)
+    : []
 
   const transformBookingToSchedule = (booking: any): Schedule => {
     const visitDate = new Date(booking.visitDate)
@@ -129,30 +118,6 @@ const PropertyDetail = () => {
       .map(transformBookingToSchedule)
   }, [isOwner, ownerBookings, myBookings, propertyId])
 
-  const mockImages = [
-    { id: 1, uri: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400', type: 'image' as const },
-    { id: 2, uri: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=400', type: 'image' as const },
-    { id: 3, uri: 'https://images.unsplash.com/photo-1556912172-45b7abe8b7e1?w=400', type: 'image' as const },
-    { id: 4, uri: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400', type: 'image' as const },
-  ]
-
-  const mockVideos = [
-    {
-      id: 1,
-      uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1499951360447-b19be8fe80f5?w=400',
-      type: 'video' as const,
-      duration: '2:34'
-    },
-    {
-      id: 2,
-      uri: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-      thumbnail: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400',
-      type: 'video' as const,
-      duration: '1:45'
-    },
-  ]
-
   const tabs = [
     { key: 'info' as TabKey, label: 'Thông tin' },
     { key: 'schedule' as TabKey, label: 'Lịch xem' },
@@ -161,9 +126,13 @@ const PropertyDetail = () => {
 
   useEffect(() => {
     if (propertyId) {
-      dispatch(getPropertyDetail(propertyId as string))
+      dispatch(getPropertyDetailThunk(propertyId as string))
     }
   }, [propertyId, dispatch])
+
+  useEffect(() => {
+    dispatch(fetchSimilarPropertiesThunk({}))
+  }, [dispatch])
 
   useEffect(() => {
     if (propertyId) {
@@ -396,26 +365,26 @@ const PropertyDetail = () => {
   }
 
   const handleConversation = async () => {
-  if (!propertyDetail?.landlordId) {
-    Alert.alert("Lỗi", "Không tìm thấy chủ nhà");
-    return;
-  }
+    if (!propertyDetail?.user.id) {
+      Alert.alert("Lỗi", "Không tìm thấy chủ nhà");
+      return;
+    }
 
-  try {
-    const conversation = await dispatch(
-      createConversation(propertyDetail.landlordId)
-    ).unwrap();
+    try {
+      const conversation = await dispatch(
+        createConversation(propertyDetail.user.id)
+      ).unwrap();
 
-    router.push({
-      pathname: "/(tab)/(protected)/chat",
-      params: {
-        conversationId: conversation.id,
-      },
-    });
-  } catch (error: any) {
-    Alert.alert("Lỗi", error || "Không thể tạo cuộc trò chuyện");
-  }
-};
+      router.push({
+        pathname: "/(tab)/(protected)/chat",
+        params: {
+          conversationId: conversation.id,
+        },
+      });
+    } catch (error: any) {
+      Alert.alert("Lỗi", error || "Không thể tạo cuộc trò chuyện");
+    }
+  };
 
   if (propertyLoading) {
     return (
@@ -462,17 +431,11 @@ const PropertyDetail = () => {
             onTabChange={setActiveTab}
           />
 
-          {activeTab === 'info' && (
+          {activeTab === 'info' && propertyDetail && (
             <PropertyInfoTab
               isOwner={isOwner}
-              title={propertyInfo.title}
-              price={propertyInfo.price}
-              location={propertyInfo.location}
-              amenities={propertyInfo.amenities}
-              description={propertyInfo.description}
-              owner={!isOwner ? propertyInfo.owner : undefined}
-              similarProperties={!isOwner ? propertyInfo.similarProperties : undefined}
-              stats={isOwner ? propertyInfo.stats : undefined}
+              property={propertyDetail}
+              similarProperties={propertySimilar}
             />
           )}
 

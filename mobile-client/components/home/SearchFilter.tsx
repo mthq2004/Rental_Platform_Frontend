@@ -1,20 +1,82 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import LocationFilterModal from "../post/LocationFilterModal";
+import { useAppSelector } from "@/store/hook";
+import PropertyTypeModal from "../post/Propertytypemodal";
+import { router } from "expo-router";
+import { PropertyType } from "@/types/property.type";
 
-const SearchFilter: React.FC = () => {
+const SearchFilter = () => {
+  const { provinces, districts, wards } = useAppSelector(state => state.location);
+
   const [searchText, setSearchText] = useState('');
+  const [areaModalVisible, setAreaModalVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedType, setSelectedType] = useState<PropertyType | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
 
   const handleAreaSelect = () => {
-    console.log('Select area');
+    setAreaModalVisible(true);
   };
 
   const handleTypeSelect = () => {
-    console.log('Select property type');
+    setModalVisible(true)
   };
 
   const handleSearch = () => {
-    console.log('Search:', searchText);
+    const searchData = {
+      keyword: searchText,
+      propertyType: selectedType,
+      location: selectedLocation,
+    };
+
+    router.push({
+      pathname: "/filter-search",
+      params: {
+        keyword: searchText,
+        propertyType: selectedType,
+        location: JSON.stringify(selectedLocation),
+      },
+    });
+  };
+
+  const handleSeachLocation = (data: any) => {
+    setSelectedLocation(data);
+  }
+
+  const handleApply = (type: PropertyType) => {
+    setSelectedType(type);
+  };
+
+  const getPropertyLabel = (type: PropertyType) => {
+    const labels: Record<PropertyType, string> = {
+      apartment: "Chung cư / Căn hộ",
+      house: "Nhà ở",
+      room: "Phòng trọ",
+      office: "Văn phòng",
+      land: "Đất",
+    };
+    return labels[type];
+  };
+
+  const getLocationLabel = () => {
+    if (!selectedLocation) return "Chọn khu vực";
+
+    const provinceNames =
+      selectedLocation.provinces?.map((p: any) => p.name) || [];
+
+    const districtNames =
+      selectedLocation.districts?.map((d: any) => d.name) || [];
+
+    const wardNames =
+      selectedLocation.wards?.map((w: any) => w.name) || [];
+
+    const parts = [...wardNames, ...districtNames, ...provinceNames];
+
+    if (parts.length === 0) return "Chọn khu vực";
+
+    return parts.join(", ");
   };
 
   return (
@@ -32,7 +94,13 @@ const SearchFilter: React.FC = () => {
           onPress={handleAreaSelect}
           className="flex-row items-center gap-2"
         >
-          <Text className="text-primary font-medium">Chọn khu vực</Text>
+          <Text
+            className="text-primary font-medium max-w-[180px]"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {getLocationLabel()}
+          </Text>
           <Text className="text-xs text-gray-500">▼</Text>
         </TouchableOpacity>
       </View>
@@ -49,17 +117,19 @@ const SearchFilter: React.FC = () => {
           onPress={handleTypeSelect}
           className="flex-row items-center gap-2"
         >
-          <Text className="text-gray-900 font-medium">Tất cả loại hình</Text>
+          <Text className="text-gray-900 font-medium">
+            {selectedType ? getPropertyLabel(selectedType) : "Tất cả loại hình"}
+          </Text>
           <Text className="text-xs text-gray-500">▼</Text>
         </TouchableOpacity>
       </View>
       <View className="flex-row items-center bg-gray-50 rounded-lg px-3 py-2">
         <Ionicons
-            name="search"
-            size={24}
-            color="#0040d1"
-            className='mr-2'
-          />
+          name="search"
+          size={24}
+          color="#0040d1"
+          className='mr-2'
+        />
         <TextInput
           value={searchText}
           onChangeText={setSearchText}
@@ -74,6 +144,23 @@ const SearchFilter: React.FC = () => {
           <Text className="text-white font-medium">Tìm nhà</Text>
         </TouchableOpacity>
       </View>
+
+      <LocationFilterModal
+        visible={areaModalVisible}
+        onClose={() => setAreaModalVisible(false)}
+        provinces={provinces}
+        districts={districts}
+        wards={wards}
+        onApply={handleSeachLocation}
+      />
+
+      <PropertyTypeModal
+        visible={modalVisible}
+        title="Chọn loại bất động sản"
+        selectedId={selectedType}
+        onClose={() => setModalVisible(false)}
+        onApply={handleApply}
+      />
     </View>
   );
 };

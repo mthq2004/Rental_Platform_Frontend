@@ -58,6 +58,7 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
 
       socketService.on('new_conversation', (data) => {
+        console.log("NEW CONVERSATION", data)
         dispatch(addConversation(data));
       });
 

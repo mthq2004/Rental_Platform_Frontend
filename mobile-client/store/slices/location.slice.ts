@@ -12,7 +12,7 @@ export const getProvinces = createAsyncThunk(
 // Lấy quận / huyện theo tỉnh
 export const getDistricts = createAsyncThunk(
   "location/getDistricts",
-  async (provinceCode) => {
+  async (provinceCode: string) => {
     const res = await axios.get(
       `https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`
     );
@@ -23,7 +23,7 @@ export const getDistricts = createAsyncThunk(
 // Lấy phường / xã theo quận
 export const getWards = createAsyncThunk(
   "location/getWards",
-  async (districtCode) => {
+  async (districtCode: string) => {
     const res = await axios.get(
       `https://provinces.open-api.vn/api/d/${districtCode}?depth=2`
     );
