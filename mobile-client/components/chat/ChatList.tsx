@@ -149,15 +149,20 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
     )
   }
 
-  const filteredConversations = conversations.filter((conv) => {
-    const matchesTab = activeTab === 'all' || conv.unreadCount > 0;
-    const matchesSearch = conv.participant.id
+  if(loading) {
+    return <Text>Đang tải</Text>
+  }
+
+  const filteredConversations = conversations?.filter((conv) => {
+
+    const matchesTab = activeTab === 'all' || conv.unreadCount > 0
+    const matchesSearch = conv.participant?.id
       .toLowerCase()
       .includes(searchText.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
-  const unreadCount = conversations.filter((c) => c.unreadCount > 0).length;
+  const unreadCount = conversations?.filter((c) => c.unreadCount > 0).length;
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -241,7 +246,7 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
         }}
       />
     </View>
-  );
+  )
 };
 
 export default ChatList;

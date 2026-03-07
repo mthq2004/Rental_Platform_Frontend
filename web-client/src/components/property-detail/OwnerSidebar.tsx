@@ -15,6 +15,8 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import type { PropertyOwner } from "./types";
+import { createConversation } from "@/stores/slices/conversation.slice";
+import { useAppDispatch } from "@/stores/hooks";
 
 interface OwnerSidebarProps {
   owner: PropertyOwner;
@@ -37,6 +39,7 @@ const USER_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLoggedIn = false }: OwnerSidebarProps) {
+  const dispatch = useAppDispatch()
   const router = useRouter();
   const [showPhone, setShowPhone] = useState(false);
   const [message, setMessage] = useState("");
@@ -54,12 +57,21 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
     setMessage("");
   };
 
-  const handleChat = () => {
+  const handleChat = async () => {
     if (!isLoggedIn) {
       router.push("/");
       return;
     }
-    router.push(`/chat?to=${owner.id}&property=${propertyId}`);
+
+    try {
+      await dispatch(
+        createConversation(owner.id)
+      ).unwrap();
+
+      router.push(`/chat`);
+    } catch (error) {
+      console.error("Create conversation failed:", error);
+    }
   };
 
   const handlePhoneReveal = () => {
