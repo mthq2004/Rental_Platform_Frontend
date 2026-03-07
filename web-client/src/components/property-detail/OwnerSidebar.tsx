@@ -19,6 +19,7 @@ import dayjs from "dayjs";
 import type { PropertyOwner } from "./types";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { createRentalRequest } from "@/stores/slices/contract.slice";
+import { createConversation } from "@/stores/slices/conversation.slice";
 
 interface OwnerSidebarProps {
   owner: PropertyOwner;
@@ -69,12 +70,21 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
     setMessage("");
   };
 
-  const handleChat = () => {
+  const handleChat = async () => {
     if (!isLoggedIn) {
       router.push("/");
       return;
     }
-    router.push(`/chat?to=${owner.id}&property=${propertyId}`);
+
+    try {
+      await dispatch(
+        createConversation(owner.id)
+      ).unwrap();
+
+      router.push(`/chat`);
+    } catch (error) {
+      console.error("Create conversation failed:", error);
+    }
   };
 
   const handlePhoneReveal = () => {

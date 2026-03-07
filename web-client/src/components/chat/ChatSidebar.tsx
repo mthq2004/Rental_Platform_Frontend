@@ -50,9 +50,8 @@ export default function ChatSidebar({
 }: ChatSidebarProps) {
   const [search, setSearch] = useState("");
 
-  const filtered = conversations
-    .filter((c) =>
-      c.participant.fullName.toLowerCase().includes(search.toLowerCase())
+  const filtered = conversations?.filter((c) =>
+      c.participant?.fullName.toLowerCase().includes(search.toLowerCase())
     )
 
   if (loading) {

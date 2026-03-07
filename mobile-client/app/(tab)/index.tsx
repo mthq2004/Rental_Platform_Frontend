@@ -4,6 +4,7 @@ import HeaderBanner from '@/components/home/Header';
 import SearchFilter from '@/components/home/SearchFilter';
 import PropertyCard from '@/components/PropertyCard';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
+import { getProvinces } from '@/store/slices/location.slice';
 import { getAllproperty } from '@/store/slices/property.slice';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -85,6 +86,10 @@ const Home = () => {
   useEffect(() => {
     dispatch(getAllproperty())
   }, [dispatch])
+
+  useEffect(() => {
+    dispatch(getProvinces());
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true)
