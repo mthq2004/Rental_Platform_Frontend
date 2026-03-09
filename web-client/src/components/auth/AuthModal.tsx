@@ -103,6 +103,12 @@ const AuthModal = ({
         }
     };
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && view === "login") {
+            handleLogin();
+        }
+    };
+
     // Handle verify OTP and go to password step
     const handleVerifyOtp = () => {
         if (!otp || otp.length !== 6) {
@@ -307,7 +313,7 @@ const AuthModal = ({
                                         : "Tạo mật khẩu"}
                         </h2>
 
-                        <div className="space-y-4">
+                        <div className="space-y-4" onKeyDown={handleKeyDown}>
                             {/* ===== LOGIN VIEW ===== */}
                             {view === "login" && (
                                 <>

@@ -1,31 +1,46 @@
 "use client";
 
-import { Input, List, Avatar, Badge, Typography, Tag, Spin } from "antd";
+import { Input, Avatar, Badge, Typography, Tag, Spin } from "antd";
 import { SearchOutlined, PushpinFilled } from "@ant-design/icons";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Conversation } from "@/types/conversation.type";
 
 const { Text } = Typography;
 
+type FilterTab = "all" | "unread" | "spam";
+
+const TABS: { key: FilterTab; label: string }[] = [
+  { key: "all", label: "Tất cả" },
+  { key: "unread", label: "Chưa đọc" },
+  { key: "spam", label: "Tin rác / Bỏ qua" },
+];
 
 function formatTime(isoString: string | null): string {
   if (!isoString) return "";
   const date = new Date(isoString);
   const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+  const diffDays = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+  );
   if (diffDays === 0)
-    return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   if (diffDays === 1) return "Hôm qua";
-  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+  });
 }
 
-function getLastMessagePreview(conv: Conversation, currentUserId: string): string {
+function getLastMessagePreview(
+  conv: Conversation,
+  currentUserId: string
+): string {
   const { lastMessage } = conv;
   if (!lastMessage.type) return "";
   const isMe = lastMessage.senderId === currentUserId;
-
-  console.log("xu: ", isMe, lastMessage.senderId, lastMessage.content, currentUserId);
-
   const prefix = isMe ? "Bạn: " : "";
   if (lastMessage.type === "IMAGE") return `${prefix}📷 Hình ảnh`;
   if (lastMessage.type === "VIDEO") return `${prefix}🎥 Video`;
@@ -38,6 +53,7 @@ interface ChatSidebarProps {
   loading?: boolean;
   selectedId?: string;
   currentUserId?: string;
+  onlineUsers?: string[];
   onSelect?: (conversation: Conversation) => void;
 }
 
@@ -46,148 +62,170 @@ export default function ChatSidebar({
   loading,
   selectedId,
   currentUserId = "me",
+  onlineUsers = [],
   onSelect,
 }: ChatSidebarProps) {
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<FilterTab>("all");
 
-  const filtered = conversations?.filter((c) =>
-      c.participant?.fullName.toLowerCase().includes(search.toLowerCase())
-    )
+  const filtered = useMemo(() => {
+    let list = conversations;
 
-  if (loading) {
-    <div style={{ padding: 20, textAlign: "center" }}>
-      <Spin />
-    </div>
-  }
+    // Search filter
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((c) =>
+        c.participant?.fullName.toLowerCase().includes(q)
+      );
+    }
+
+    // Tab filter
+    if (activeTab === "unread") {
+      list = list.filter((c) => c.unreadCount > 0);
+    } else if (activeTab === "spam") {
+      list = list.filter((c) => c.isArchived);
+    }
+
+    return list;
+  }, [conversations, search, activeTab]);
 
   return (
-    <div
-      style={{
-        width: 340,
-        minWidth: 340,
-        height: "100%",
-        background: "#fff",
-        borderRight: "1px solid #f0f0f0",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div style={{ padding: "20px 16px 12px", borderBottom: "1px solid #f0f0f0" }}>
-        <Typography.Title level={4} style={{ margin: "0 0 14px 0", color: "#1677ff" }}>
-          Tin nhắn
-        </Typography.Title>
+    <div className="flex flex-col h-full bg-white border-r border-gray-100 w-80 min-w-70 max-w-90 lg:w-85">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3 shrink-0">
+        <h2 className="text-lg font-bold text-gray-900 mb-3">Tin nhắn</h2>
         <Input
-          prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+          prefix={<SearchOutlined className="text-gray-400" />}
           placeholder="Tìm kiếm hội thoại..."
           variant="filled"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ borderRadius: 8 }}
+          className="rounded-lg"
           allowClear
+          size="middle"
         />
       </div>
 
+      {/* Filter tabs */}
+      <div className="flex items-center gap-1 px-4 pb-2 shrink-0">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`
+              px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 border-none cursor-pointer
+              ${
+                activeTab === tab.key
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }
+            `}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      <div style={{ flex: 1, overflowY: "auto" }}>
-        <List
-          itemLayout="horizontal"
-          dataSource={filtered}
-          locale={{ emptyText: "Không có hội thoại nào" }}
-          renderItem={(item) => {
+      <div className="h-px bg-gray-100 mx-4 shrink-0" />
 
-            console.log("heoo: ", item);
-
+      {/* Conversations list */}
+      <div className="flex-1 overflow-y-auto">
+        {loading && conversations.length === 0 ? (
+          <div className="flex justify-center py-10">
+            <Spin />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-10 text-gray-400 text-sm">
+            Không có hội thoại nào
+          </div>
+        ) : (
+          filtered.map((item) => {
             const isSelected = item.id === selectedId;
             const preview = getLastMessagePreview(item, currentUserId);
             const hasUnread = item.unreadCount > 0;
+            const isOnline = onlineUsers.includes(item.participant.id);
 
             return (
-              <List.Item
+              <div
+                key={item.id}
                 onClick={() => onSelect?.(item)}
-                style={{
-                  padding: "10px 16px",
-                  cursor: "pointer",
-                  background: isSelected ? "#e6f4ff" : "transparent",
-                  borderLeft: isSelected ? "3px solid #1677ff" : "3px solid transparent",
-                  transition: "background 0.15s",
-                }}
-                className="hover:bg-blue-50"
+                className={`
+                  flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-100
+                  ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}
+                  ${isSelected ? "border-l-[3px] border-l-blue-500" : "border-l-[3px] border-l-transparent"}
+                `}
               >
-                <List.Item.Meta
-                  avatar={
-                    <Avatar
-                      size={46}
-                      src={item.participant.avatarUrl}
-                      style={{ border: "2px solid #f0f0f0", flexShrink: 0 }}
-                    >
-                      {item.participant.fullName.charAt(0)}
-                    </Avatar>
-                  }
-                  title={
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 4 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
-                        {item.isPinned && (
-                          <PushpinFilled style={{ fontSize: 11, color: "#faad14", flexShrink: 0 }} />
-                        )}
-                        <Text
-                          ellipsis
-                          style={{ fontSize: 14, fontWeight: hasUnread ? 700 : 500 }}
-                        >
-                          {item.participant.fullName}
-                        </Text>
-                      </div>
+                {/* Avatar with online indicator */}
+                <div className="relative shrink-0">
+                  <Avatar size={48} src={item.participant.avatarUrl}>
+                    {item.participant.fullName.charAt(0)}
+                  </Avatar>
+                  {isOnline && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <div className="flex items-center gap-1 min-w-0">
+                      {item.isPinned && (
+                        <PushpinFilled className="text-[11px] text-yellow-500 shrink-0" />
+                      )}
                       <Text
-                        type="secondary"
-                        style={{ fontSize: 11, flexShrink: 0, whiteSpace: "nowrap" }}
+                        ellipsis
+                        className={`text-[14px] leading-tight ${
+                          hasUnread
+                            ? "font-semibold text-gray-900"
+                            : "font-medium text-gray-800"
+                        }`}
                       >
-                        {formatTime(item.lastMessage.createdAt)}
+                        {item.participant.fullName}
                       </Text>
                     </div>
-                  }
-                  description={
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Text
-                          type="secondary"
-                          ellipsis
-                          style={{
-                            maxWidth: 200,
-                            fontSize: 12,
-                            fontWeight: hasUnread ? 600 : 400,
-                            color: hasUnread ? "#262626" : undefined,
-                          }}
-                        >
-                          {preview}
-                        </Text>
-                        {hasUnread && <Badge count={item.unreadCount} size="small" />}
-                      </div>
+                    <span className="text-[11px] text-gray-400 shrink-0 whitespace-nowrap">
+                      {formatTime(item.lastMessage.createdAt)}
+                    </span>
+                  </div>
 
-                      {item.categories && item.categories.length > 0 && (
-                        <div style={{ marginTop: 4, display: "flex", gap: 4, flexWrap: "wrap" }}>
-                          {item.categories.map((cat) => (
-                            <Tag
-                              key={cat.id}
-                              color={cat.color}
-                              style={{
-                                fontSize: 10,
-                                lineHeight: "16px",
-                                padding: "0 5px",
-                                margin: 0,
-                                borderRadius: 4,
-                              }}
-                            >
-                              {cat.name}
-                            </Tag>
-                          ))}
-                        </div>
-                      )}
+                  <div className="flex items-center justify-between gap-2">
+                    <Text
+                      ellipsis
+                      className={`text-[12.5px] leading-tight ${
+                        hasUnread
+                          ? "font-medium text-gray-700"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {preview}
+                    </Text>
+                    {hasUnread && (
+                      <Badge
+                        count={item.unreadCount}
+                        size="small"
+                        className="shrink-0"
+                      />
+                    )}
+                  </div>
+
+                  {item.categories && item.categories.length > 0 && (
+                    <div className="flex gap-1 flex-wrap mt-1.5">
+                      {item.categories.map((cat) => (
+                        <Tag
+                          key={cat.id}
+                          color={cat.color}
+                          className="text-[10px] leading-4 px-1.5 py-0 m-0 rounded"
+                        >
+                          {cat.name}
+                        </Tag>
+                      ))}
                     </div>
-                  }
-                />
-              </List.Item>
+                  )}
+                </div>
+              </div>
             );
-          }}
-        />
+          })
+        )}
       </div>
     </div>
   );

@@ -42,44 +42,31 @@ const SmartPriceInput: React.FC<SmartPriceInputProps> = ({
 
   // Tạo gợi ý giá từ số nhập vào
   const generateSuggestions = (numValue: number): PriceSuggestion[] => {
-    if (numValue <= 0 || numValue > 1000000) return [];
+  if (numValue <= 0) return [];
 
-    const result: PriceSuggestion[] = [];
-    
-    // x1,000 (nghìn)
-    if (numValue * 1000 <= maxPrice) {
-      result.push({
-        value: numValue * 1000,
-        label: formatVND(numValue * 1000) + " ₫",
-      });
-    }
+  const multipliers = [
+    100,
+    1000,
+    10000,
+    100000,
+    1000000,
+  ];
 
-    // x100,000 (trăm nghìn)
-    if (numValue * 100000 <= maxPrice) {
-      result.push({
-        value: numValue * 100000,
-        label: formatVND(numValue * 100000) + " ₫",
-      });
-    }
-    
-    // x1,000,000 (triệu)
-    if (numValue * 1000000 <= maxPrice) {
-      result.push({
-        value: numValue * 1000000,
-        label: formatVND(numValue * 1000000) + " ₫",
-      });
-    }
-    
-    // x1,000,000,000 (tỷ)
-    if (numValue * 1000000000 <= maxPrice) {
-      result.push({
-        value: numValue * 1000000000,
-        label: formatVND(numValue * 1000000000) + " ₫",
-      });
-    }
+  const result: PriceSuggestion[] = [];
 
-    return result;
-  };
+  for (const m of multipliers) {
+    const value = numValue * m;
+
+    if (value >= minPrice && value <= maxPrice) {
+      result.push({
+        value,
+        label: formatVND(value) + " ₫",
+      });
+    }
+  }
+
+  return result;
+};
 
   // Xử lý khi nhập
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

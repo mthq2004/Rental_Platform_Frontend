@@ -70,6 +70,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   };
 
   const handleChat = async () => {
+    console.log("owner id:" ,owner.id)
     if (!isLoggedIn) {
       router.push("/");
       return;
@@ -84,6 +85,8 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
     } catch (error) {
       console.error("Create conversation failed:", error);
     }
+
+    
   };
 
   const handlePhoneReveal = () => {

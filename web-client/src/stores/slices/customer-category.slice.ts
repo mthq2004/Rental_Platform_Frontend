@@ -1,4 +1,4 @@
-import { AddConversationToCategoryDto, CreateCustomerCategoryDto, CustomerCategory } from "@/types/customer-category.type"
+import { AddConversationToCategoryDto, CreateCustomerCategoryDto, CustomerCategory, UpdateCustomerCategoryDto } from "@/types/customer-category.type"
 import apiClient from "@/utils/api"
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit"
 
@@ -63,6 +63,36 @@ export const addConversationToCategory = createAsyncThunk<
         data
       )
       return res.data
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Error")
+    }
+  }
+)
+
+export const updateCustomerCategory = createAsyncThunk<
+  CustomerCategory,
+  { id: string; data: UpdateCustomerCategoryDto }
+>(
+  "customer-category/update",
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.patch(`/chat/customer-categories/${id}`, data)
+      return res.data
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Error")
+    }
+  }
+)
+
+export const deleteCustomerCategory = createAsyncThunk<
+  string,
+  string
+>(
+  "customer-category/delete",
+  async (id, { rejectWithValue }) => {
+    try {
+      await apiClient.delete(`/chat/customer-categories/${id}`)
+      return id
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || "Error")
     }
@@ -154,6 +184,19 @@ const customerCategorySlice = createSlice({
         })
 
         state.currentConversationCategoryIds = categoryIds
+      })
+
+      // ================= UPDATE =================
+      .addCase(updateCustomerCategory.fulfilled, (state, action) => {
+        const idx = state.customerCategories.findIndex(c => c.id === action.payload.id)
+        if (idx !== -1) {
+          state.customerCategories[idx] = action.payload
+        }
+      })
+
+      // ================= DELETE =================
+      .addCase(deleteCustomerCategory.fulfilled, (state, action) => {
+        state.customerCategories = state.customerCategories.filter(c => c.id !== action.payload)
       })
 
       // ================= GET BY ID =================

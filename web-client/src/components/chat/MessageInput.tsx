@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import type { UploadFile } from "antd";
 import { SendMessagePayload } from "@/stores/slices/message.slice";
+import { uploadImage, uploadVideo } from "@/services/upload.service";
 
 interface ReplyInfo {
   id: string;
@@ -19,7 +20,17 @@ interface MessageInputProps {
   disabled?: boolean;
 }
 
-// ── Icons ────────────────────────────────────────────────────────────────────
+// ── Quick reply suggestions ──
+const QUICK_REPLIES = [
+  "Giá phòng như thế nào ạ?",
+  "Cho mình xem hình thêm được không?",
+  "Còn phòng trống không ạ?",
+  "Mình muốn đặt lịch xem phòng",
+  "Phòng có nội thất không ạ?",
+  "Tiền điện nước tính thế nào?",
+];
+
+// ── Icons ──
 const IconImage = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" />
@@ -55,15 +66,20 @@ const IconFile = () => (
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
   </svg>
 );
+const IconSuggestion = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ──
 function formatFileSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// ── Component ────────────────────────────────────────────────────────────────
+// ── Component ──
 export default function MessageInput({
   conversationId,
   onSend,
@@ -75,11 +91,13 @@ export default function MessageInput({
   const [pendingFile, setPendingFile] = useState<UploadFile | null>(null);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canSend = (text.trim().length > 0 || pendingFile !== null) && !disabled && !loading;
+  const canSend =
+    (text.trim().length > 0 || pendingFile !== null) && !disabled && !loading;
   const isImage = pendingFile?.type?.startsWith("image/");
 
   // Auto-resize textarea
@@ -87,8 +105,15 @@ export default function MessageInput({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 140) + "px";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }, [text]);
+
+  // Auto-focus textarea when replying
+  useEffect(() => {
+    if (replyTo) {
+      textareaRef.current?.focus();
+    }
+  }, [replyTo]);
 
   const detectMessageType = (): SendMessagePayload["messageType"] => {
     if (!pendingFile) return "TEXT";
@@ -101,22 +126,64 @@ export default function MessageInput({
     if (!canSend || loading) return;
     try {
       setLoading(true);
-      const payload: SendMessagePayload = {
-        conversationId,
-        messageType: detectMessageType(),
-        replyToId: replyTo?.id ?? null,
-        content: !pendingFile ? text.trim() : undefined,
-      };
-      onSend?.(payload);
+      const msgType = detectMessageType();
+
+      if (pendingFile && pendingFile.originFileObj) {
+        const file = pendingFile.originFileObj as File;
+        let uploaded;
+        if (msgType === "VIDEO") {
+          uploaded = await uploadVideo(file, (p) => setUploadProgress(p.percentage));
+        } else if (msgType === "IMAGE") {
+          uploaded = await uploadImage(file, (p) => setUploadProgress(p.percentage));
+        } else {
+          // FILE type - upload as image endpoint (generic)
+          uploaded = await uploadImage(file, (p) => setUploadProgress(p.percentage));
+        }
+
+        const payload: SendMessagePayload = {
+          conversationId,
+          messageType: msgType,
+          replyToId: replyTo?.id ?? null,
+          fileUrl: uploaded.secureUrl || uploaded.url,
+          fileName: file.name,
+          fileSize: uploaded.bytes ?? file.size,
+          mimeType: file.type,
+          width: uploaded.width,
+          height: uploaded.height,
+          duration: uploaded.duration,
+          thumbnailUrl: uploaded.thumbnail,
+        };
+        onSend?.(payload);
+      } else {
+        const payload: SendMessagePayload = {
+          conversationId,
+          messageType: "TEXT",
+          replyToId: replyTo?.id ?? null,
+          content: text.trim(),
+        };
+        onSend?.(payload);
+      }
+
       setText("");
       setPendingFile(null);
+      setUploadProgress(0);
       onCancelReply?.();
       textareaRef.current?.focus();
     } catch (err) {
       console.error("Send message error:", err);
     } finally {
       setLoading(false);
+      setUploadProgress(0);
     }
+  };
+
+  const handleQuickReply = (reply: string) => {
+    onSend?.({
+      conversationId,
+      messageType: "TEXT",
+      content: reply,
+      replyToId: null,
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -127,7 +194,9 @@ export default function MessageInput({
   };
 
   const handleFileSelect = (file: File) => {
-    const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
+    const previewUrl = file.type.startsWith("image/")
+      ? URL.createObjectURL(file)
+      : undefined;
     setPendingFile({
       uid: `${Date.now()}-${file.name}`,
       name: file.name,
@@ -146,149 +215,230 @@ export default function MessageInput({
   };
 
   return (
-    <div className="px-4 pb-4 pt-3 bg-white border-t border-gray-100">
-
-      {/* ── Reply banner ── */}
-      {replyTo && (
-        <div className="flex items-center gap-2 px-3 py-2 mb-2 bg-indigo-50 border-l-[3px] border-indigo-500 rounded-r-lg">
-          <span className="text-indigo-500 flex-shrink-0"><IconReply /></span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-semibold text-indigo-600 leading-none mb-0.5">{replyTo.senderName}</p>
-            <p className="text-xs text-gray-400 truncate">
-              {replyTo.messageType !== "TEXT" ? `[${replyTo.messageType}]` : replyTo.content}
-            </p>
+    <div className="bg-white border-t border-gray-100 shrink-0">
+      {/* Quick reply suggestions */}
+        <div className="px-4 pt-3 pb-1">
+          <div className="flex items-center gap-1.5 mb-2">
+            <IconSuggestion />
+            <span className="text-xs text-gray-500 font-medium">
+              Gợi ý tin nhắn
+            </span>
           </div>
-          <button
-            onClick={onCancelReply}
-            className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors"
-          >
-            <IconX />
-          </button>
+          <div className="flex flex-wrap gap-2">
+            {QUICK_REPLIES.map((reply, i) => (
+              <button
+                key={i}
+                onClick={() => handleQuickReply(reply)}
+                className="px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs hover:bg-blue-100 hover:border-blue-300 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                {reply}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
 
-      {/* ── File / Image preview ── */}
-      {pendingFile && (
-        <div className="flex items-center gap-3 px-3 py-2 mb-2 bg-gray-50 border border-gray-200 rounded-xl">
-          {isImage && pendingFile.url ? (
-            <img src={pendingFile.url} alt="preview" className="w-11 h-11 rounded-lg object-cover flex-shrink-0" />
-          ) : (
-            <div className="w-11 h-11 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 flex-shrink-0">
-              <IconFile />
+      <div className="px-4 pb-3 pt-2">
+        {/* Reply banner */}
+        {replyTo && (
+          <div className="flex items-center gap-2 px-3 py-2 mb-2 bg-blue-50 border-l-[3px] border-blue-500 rounded-r-lg">
+            <span className="text-blue-500 shrink-0">
+              <IconReply />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold text-blue-600 leading-none mb-0.5">
+                {replyTo.senderName}
+              </p>
+              <p className="text-xs text-gray-400 truncate m-0">
+                {replyTo.messageType !== "TEXT"
+                  ? `[${replyTo.messageType}]`
+                  : replyTo.content}
+              </p>
             </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium text-gray-800 truncate">{pendingFile.name}</p>
-            {pendingFile.size && (
-              <p className="text-[11px] text-gray-400 mt-0.5">{formatFileSize(pendingFile.size)}</p>
-            )}
+            <button
+              onClick={onCancelReply}
+              className="shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-200 hover:text-gray-600 transition-colors cursor-pointer border-none bg-transparent"
+            >
+              <IconX />
+            </button>
           </div>
-          <button
-            onClick={() => setPendingFile(null)}
-            className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-100 hover:text-red-500 transition-colors"
-          >
-            <IconX />
-          </button>
-        </div>
-      )}
+        )}
 
-      {/* ── Input shell ── */}
-      <div
-        className={[
-          "flex items-end gap-1.5 rounded-2xl border px-3.5 py-1.5 transition-all duration-200",
-          dragOver
-            ? "border-dashed border-indigo-400 bg-indigo-50"
-            : "border-gray-200 bg-gray-50 focus-within:border-indigo-400 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.1)]",
-          disabled ? "opacity-50 pointer-events-none" : "",
-        ].join(" ")}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-      >
-        {/* Textarea */}
-        <textarea
-          ref={textareaRef}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={dragOver ? "Thả file vào đây…" : "Nhập tin nhắn…"}
-          disabled={disabled || loading}
-          rows={1}
-          className="flex-1 bg-transparent border-none outline-none resize-none text-[13.5px] leading-relaxed text-gray-800 placeholder-gray-400 py-1.5 min-h-[32px] max-h-[140px] overflow-y-auto"
-          style={{ height: "auto" }}
-        />
+        {/* File / Image preview */}
+        {pendingFile && (
+          <div className="flex items-center gap-3 px-3 py-2 mb-2 bg-gray-50 border border-gray-200 rounded-xl">
+            {isImage && pendingFile.url ? (
+              <img
+                src={pendingFile.url}
+                alt="preview"
+                className="w-11 h-11 rounded-lg object-cover shrink-0"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                <IconFile />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-medium text-gray-800 truncate m-0">
+                {pendingFile.name}
+              </p>
+              {pendingFile.size && (
+                <p className="text-[11px] text-gray-400 mt-0.5 m-0">
+                  {formatFileSize(pendingFile.size)}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => setPendingFile(null)}
+              className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-100 hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent"
+            >
+              <IconX />
+            </button>
+          </div>
+        )}
 
-        {/* Emoji */}
-        <button
-          title="Emoji"
-          disabled={disabled || loading}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-gray-100 transition-colors flex-shrink-0"
-        >
-          <IconSmile />
-        </button>
+        {/* Upload progress */}
+        {loading && uploadProgress > 0 && uploadProgress < 100 && (
+          <div className="mb-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-gray-500">Đang tải lên...</span>
+              <span className="text-[11px] text-blue-500 font-medium">{uploadProgress}%</span>
+            </div>
+            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
 
-        {/* Image/Video upload */}
-        <input
-          ref={imageInputRef}
-          type="file"
-          accept="image/*,video/*"
-          className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = ""; }}
-        />
-        <button
-          title="Ảnh / Video"
-          onClick={() => imageInputRef.current?.click()}
-          disabled={disabled || loading}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-gray-100 transition-colors flex-shrink-0"
-        >
-          <IconImage />
-        </button>
-
-        {/* File upload */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFileSelect(f); e.target.value = ""; }}
-        />
-        <button
-          title="Tệp đính kèm"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || loading}
-          className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-indigo-500 hover:bg-gray-100 transition-colors flex-shrink-0"
-        >
-          <IconPaperclip />
-        </button>
-
-        {/* Divider */}
-        <div className="w-px h-5 bg-gray-200 mx-0.5 self-center flex-shrink-0" />
-
-        {/* Send button */}
-        <button
-          onClick={handleSend}
-          disabled={!canSend}
+        {/* Input shell */}
+        <div
           className={[
-            "w-[34px] h-[34px] rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200",
-            canSend
-              ? "bg-gradient-to-br from-indigo-500 to-violet-500 text-white shadow-[0_4px_12px_rgba(99,102,241,0.35)] hover:scale-105 active:scale-95"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed",
+            "flex items-end gap-1.5 rounded-2xl border px-3 py-1.5 transition-all duration-200",
+            dragOver
+              ? "border-dashed border-blue-400 bg-blue-50"
+              : "border-gray-200 bg-gray-50 focus-within:border-blue-400 focus-within:bg-white focus-within:shadow-[0_0_0_2px_rgba(59,130,246,0.08)]",
+            disabled ? "opacity-50 pointer-events-none" : "",
           ].join(" ")}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
         >
-          {loading ? (
-            <svg className="animate-spin w-4 h-4 text-white" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-            </svg>
-          ) : (
-            <IconSend />
-          )}
-        </button>
-      </div>
 
-      {/* Hint */}
-      <p className="text-[10.5px] text-gray-300 text-right mt-1 pr-1">
-        Enter để gửi · Shift+Enter xuống dòng
-      </p>
+
+          {/* Textarea */}
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={dragOver ? "Thả file vào đây…" : "Nhập tin nhắn…"}
+            disabled={disabled || loading}
+            rows={1}
+            className="flex-1 bg-transparent border-none outline-none resize-none text-[13.5px] leading-relaxed text-gray-800 placeholder-gray-400 py-1.5 min-h-8 max-h-30 overflow-y-auto"
+            style={{ height: "auto" }}
+          />
+
+          {/* Emoji */}
+          <button
+            title="Emoji"
+            disabled={disabled || loading}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 transition-colors shrink-0 border-none bg-transparent cursor-pointer"
+          >
+            <IconSmile />
+          </button>
+
+          {/* Image/Video upload */}
+          <input
+            ref={imageInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFileSelect(f);
+              e.target.value = "";
+            }}
+          />
+          <button
+            title="Ảnh / Video"
+            onClick={() => imageInputRef.current?.click()}
+            disabled={disabled || loading}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 transition-colors shrink-0 border-none bg-transparent cursor-pointer"
+          >
+            <IconImage />
+          </button>
+
+          {/* File upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFileSelect(f);
+              e.target.value = "";
+            }}
+          />
+          <button
+            title="Tệp đính kèm"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled || loading}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-500 hover:bg-gray-100 transition-colors shrink-0 border-none bg-transparent cursor-pointer"
+          >
+            <IconPaperclip />
+          </button>
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-gray-200 mx-0.5 self-center shrink-0" />
+
+          {/* Send button */}
+          {/* Send button */}
+            <button
+              onClick={handleSend}
+              disabled={!canSend}
+              title="Gửi tin nhắn"
+              className={`
+                w-8 h-8 flex items-center justify-center shrink-0 
+                transition-all duration-200 border-none bg-transparent cursor-pointer
+                ${canSend ? "text-blue-500 hover:text-blue-600 active:scale-90" : "text-gray-300"}
+              `}
+            >
+              {loading ? (
+                <svg
+                  className="animate-spin w-4 h-4 text-blue-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  />
+                </svg>
+              ) : (
+                <IconSend />
+              )}
+            </button>
+        </div>
+
+        {/* Hint */}
+        <p className="text-[10.5px] text-gray-300 text-right mt-1 pr-1 m-0">
+          Enter để gửi · Shift+Enter xuống dòng
+        </p>
+      </div>
     </div>
   );
 }

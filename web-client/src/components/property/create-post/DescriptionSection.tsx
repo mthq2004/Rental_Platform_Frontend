@@ -12,7 +12,7 @@ import {
 } from "@ant-design/icons";
 import { PropertyFormData, PropertyType } from "@/types/property.type";
 import { PROPERTY_META } from "@/constants/property.constant";
-
+import { Editor } from "@tinymce/tinymce-react";
 const { TextArea } = Input;
 
 interface DescriptionSectionProps {
@@ -82,29 +82,13 @@ export default function DescriptionSection({
     return (
         <>
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Tiêu đề tin đăng và Mô tả chi tiết</h3>
 
                 <div className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tiêu đề tin đăng <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            placeholder="Nhập tiêu đề tin đăng"
-                            size="large"
-                            className="rounded-lg"
-                            maxLength={100}
-                            showCount
-                            value={formData.title}
-                            onChange={(e) => updateFormData("title", e.target.value)}
-                        />
-                    </div>
 
                     <div>
                         <div className="flex items-center justify-between mb-3">
-                            <label className="block text-sm font-medium text-gray-700">
-                                Mô tả chi tiết <span className="text-red-500">*</span>
-                            </label>
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Mô tả chi tiết</h3>
+
 
                             {/* AI Generate Button */}
                             <div className="flex items-center gap-2">
@@ -206,15 +190,47 @@ export default function DescriptionSection({
                             </div>
                         </div>
 
-                        <TextArea
-                            placeholder="Nhập mô tả chi tiết về bất động sản của bạn... Hoặc nhấn 'Tạo với AI' để tự động tạo mô tả hấp dẫn!"
-                            rows={6}
-                            className="rounded-lg"
-                            maxLength={3000}
-                            showCount
+                        <Editor
+                            apiKey="kwxyzg10ywt6lk8ia1b6cx1ix2s5ydtgtnnu52mqfavyz6u8"
                             value={formData.description}
-                            onChange={(e) => updateFormData("description", e.target.value)}
-                        />
+                            init={{
+                                height: 350,
+                                menubar: true,
+
+                                plugins: [
+                                "advlist",
+                                "autolink",
+                                "lists",
+                                "link",
+                                "image",
+                                "charmap",
+                                "preview",
+                                "anchor",
+                                "searchreplace",
+                                "visualblocks",
+                                "code",
+                                "fullscreen",
+                                "insertdatetime",
+                                "media",
+                                "table",
+                                "help",
+                                "wordcount",
+                                ],
+
+                                toolbar:
+                                "undo redo | blocks | " +
+                                "bold italic underline | forecolor backcolor | " +
+                                "alignleft aligncenter alignright alignjustify | " +
+                                "bullist numlist outdent indent | " +
+                                "link image table | removeformat",
+
+                                content_style:
+                                "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
+                            }}
+                            onEditorChange={(content) =>
+                                updateFormData("description", content)
+                            }
+                            />
 
                         {/* AI Tips */}
                         <div className="flex items-start gap-2 mt-3 p-3 bg-linear-to-r from-blue-50 to-sky-50 rounded-lg border border-blue-100">

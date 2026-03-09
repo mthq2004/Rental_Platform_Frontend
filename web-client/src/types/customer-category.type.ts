@@ -12,6 +12,12 @@ export interface CreateCustomerCategoryDto {
     description?: string
 }
 
+export interface UpdateCustomerCategoryDto {
+    name?: string
+    color?: string
+    description?: string
+}
+
 export interface AddConversationToCategoryDto {
     conversationId: string
     categoryIds: string[]

@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { Image as AntImage, message } from "antd";
-import { Heart, ThumbsUp, Laugh, Frown, Angry } from "lucide-react";
 import { Message } from "@/types/message.type";
 import ReplyPreview from "./ReplyPreview";
 import ReactionsDisplay from "./ReactionsDisplay";
@@ -53,11 +52,11 @@ const IconFile = () => (
 );
 
 const REACTIONS = [
-  { key: "love", Icon: Heart, color: "#ff3b30", label: "Yêu thích" },
-  { key: "like", Icon: ThumbsUp, color: "#0a84ff", label: "Thích" },
-  { key: "haha", Icon: Laugh, color: "#ffd60a", label: "Haha" },
-  { key: "sad", Icon: Frown, color: "#64d2ff", label: "Buồn" },
-  { key: "angry", Icon: Angry, color: "#ff453a", label: "Phẫn nộ" },
+  { key: "love", emoji: "❤️", label: "Yêu thích" },
+  { key: "like", emoji: "👍", label: "Thích" },
+  { key: "haha", emoji: "😂", label: "Haha" },
+  { key: "sad", emoji: "😢", label: "Buồn" },
+  { key: "angry", emoji: "😡", label: "Phẫn nộ" },
 ] as const;
 
 export type ReactionKey = (typeof REACTIONS)[number]["key"];
@@ -99,48 +98,46 @@ const ReactionPicker = ({
       ref={pickerRef}
       style={{
         position: "fixed",
-        top: rect.top - 60,
+        top: rect.top - 64,
         left: rect.left + rect.width / 2,
         transform: "translateX(-50%)",
         zIndex: 9999,
       }}
     >
       <div
-        className="
-        bg-white border border-zinc-200
-        rounded-full
-        px-3 py-2
-        flex items-end gap-1
-        shadow-xl
-        "
+        className="bg-white rounded-full px-2.5 py-1.5 flex items-end gap-0.5"
+        style={{
+          boxShadow: "0 4px 24px rgba(0,0,0,0.18), 0 1.5px 6px rgba(0,0,0,0.10)",
+          animation: "pickerPop .18s cubic-bezier(.175,.885,.32,1.275) forwards",
+        }}
       >
-        {REACTIONS.map(({ key, Icon, color }) => {
+        <style>{`@keyframes pickerPop{from{opacity:0;transform:scale(.7) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}`}</style>
+        {REACTIONS.map(({ key, emoji, label }) => {
           const isHover = hover === key;
 
           return (
             <div
               key={key}
+              title={label}
               onClick={() => {
                 onReact(key);
                 onClose();
               }}
               onMouseEnter={() => setHover(key)}
               onMouseLeave={() => setHover(null)}
-              className="flex flex-col items-center cursor-pointer"
+              className="flex flex-col items-center cursor-pointer select-none"
             >
               <div
-                className="flex items-center justify-center rounded-full transition-all duration-150"
+                className="flex items-center justify-center transition-all duration-150"
                 style={{
-                  width: isHover ? 36 : 28,
-                  height: isHover ? 36 : 28,
-                  transform: isHover ? "translateY(-6px)" : "none",
+                  fontSize: isHover ? 32 : 24,
+                  transform: isHover ? "translateY(-8px) scale(1.15)" : "none",
+                  filter: isHover ? "drop-shadow(0 3px 6px rgba(0,0,0,0.2))" : "none",
+                  width: 36,
+                  height: 36,
                 }}
               >
-                <Icon
-                  size={isHover ? 22 : 18}
-                  fill={key === "like" ? "none" : color}
-                  strokeWidth={key === "like" ? 2 : 1.5}
-                />
+                {emoji}
               </div>
             </div>
           );
@@ -153,11 +150,15 @@ const ReactionPicker = ({
 const MessageBubble = ({
   msg,
   currentUserId,
+  participantName,
+  showTime,
   onReply,
   onReact,
 }: {
   msg: Message;
   currentUserId: string;
+  participantName?: string;
+  showTime?: boolean;
   onReply?: (msg: Message) => void;
   onReact?: (messageId: string, reactionKey: ReactionKey) => void;
 }) => {
@@ -214,21 +215,11 @@ const MessageBubble = ({
       onMouseLeave={handleMouseLeave}
     >
       <div className="relative" style={{ maxWidth: "70%" }}>
-        {msg.replyTo && (
-          <div className={`
-            mb-[3px] pl-3 py-[7px] pr-3 rounded-[14px] border-l-[3px]
-            ${isMe ? "border-[#93c5fd] bg-[#bfdbfe]/40" : "border-[#0068ff] bg-[#dbeafe]/50"}
-          `}>
-            <ReplyPreview reply={msg.replyTo} isMe={isMe} currentUserId={currentUserId} />
-          </div>
-        )}
-
         <div className={`flex items-end gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
           <div className="relative">
             <div
               onDoubleClick={() => onReply?.(msg)}
               className={`
-                ${isMedia ? "p-[3px]" : "py-[9px] px-[14px]"}
                 ${isMe
                   ? "bg-[#d9eaff] border border-[#bfdbfe] rounded-tl-[18px] rounded-tr-[18px] rounded-bl-[18px] rounded-br-[5px]"
                   : "bg-white border border-zinc-200 rounded-tl-[5px] rounded-tr-[18px] rounded-br-[18px] rounded-bl-[18px]"
@@ -237,9 +228,34 @@ const MessageBubble = ({
                 break-words cursor-default select-text
                 text-[#111827] text-[14px] leading-[1.55]
                 min-w-[44px]
+                overflow-hidden
               `}
               style={{ marginBottom: hasReactions ? 18 : 0 }}
             >
+              {msg.replyTo && (
+                <div className={`
+                  px-3 py-[7px]
+                  ${isMe ? "bg-[#bfdbfe]/40" : "bg-white"}
+                `}>
+                  {/* Chỗ pl-3 dưới đây là để đẩy nội dung ra xa thanh gạch */}
+                  <div className={`
+                    border-l-[3px] pl-3 
+                    ${isMe ? "border-blue-500" : "border-[#0068ff]"}
+                  `}>
+                    <ReplyPreview
+                      reply={msg.replyTo}
+                      isMe={isMe}
+                      senderName={
+                        msg.replyTo.senderId === currentUserId
+                          ? "Bạn"
+                          : (participantName ?? "Người dùng")
+                      }
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className={`${isMedia ? "p-[3px]" : "py-[9px] px-[14px]"}`}>
               {msg.messageType === "TEXT" && (
                 <span className="whitespace-pre-wrap">{msg.content}</span>
               )}
@@ -285,6 +301,7 @@ const MessageBubble = ({
                   </div>
                 </a>
               )}
+              </div>
             </div>
 
             {hasReactions && msg.reactions && (
@@ -319,7 +336,9 @@ const MessageBubble = ({
           className={`flex items-center gap-1 mt-[4px] ${isMe ? "justify-end" : "justify-start"}`}
           style={{ paddingBottom: hasReactions ? 4 : 0 }}
         >
-          <span className="text-[11px] text-zinc-400 leading-none">{formatTime(msg.createdAt)}</span>
+          {showTime && (
+            <span className="text-[11px] text-zinc-400 leading-none">{formatTime(msg.createdAt)}</span>
+          )}
           {isMe && <IconTick delivered={!!msg.isDelivered} />}
         </div>
 
