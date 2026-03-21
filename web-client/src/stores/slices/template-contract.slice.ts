@@ -39,11 +39,11 @@ const initialState: TemplateState = {
 
 export const getTemplates = createAsyncThunk<
   ContractTemplate[],
-  void,
+  string,
   { rejectValue: string }
->("template/getTemplates", async (_, { rejectWithValue }) => {
+>("template/getTemplates", async (propertyType, { rejectWithValue }) => {
   try {
-    const res = await http.get("contract/contract-templates");
+    const res = await http.get(`contract/contract-templates/property-type/${propertyType}`);
     return res.data ?? [];
   } catch (error: any) {
     return rejectWithValue(
