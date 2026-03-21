@@ -1,0 +1,356 @@
+"use client";
+
+import Image from "next/image";
+import { Camera, CheckCircle2, ImageUp, Shield, Upload, X, XCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { BRAND } from "./constants";
+
+export function ActionButton({
+  text,
+  onClick,
+  primary,
+  icon,
+}: {
+  text: string;
+  onClick: () => void;
+  primary?: boolean;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition md:text-base"
+      style={{
+        background: primary ? BRAND.primary : "#E9EEF7",
+        color: primary ? "#FFFFFF" : BRAND.text,
+      }}
+    >
+      {icon}
+      {text}
+    </button>
+  );
+}
+
+export function BottomActionBar({ onPrimary }: { onPrimary: () => void }) {
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-30 border-t bg-white/95 p-3 backdrop-blur md:hidden">
+      <button
+        type="button"
+        onClick={onPrimary}
+        className="w-full rounded-xl px-4 py-3 text-sm font-semibold text-white"
+        style={{ background: BRAND.primary }}
+      >
+        Về trang chủ
+      </button>
+    </div>
+  );
+}
+
+export function Field({
+  label,
+  placeholder,
+  icon,
+  suffix,
+}: {
+  label: string;
+  placeholder: string;
+  icon: React.ReactNode;
+  suffix?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-semibold" style={{ color: BRAND.text }}>
+        {label}
+      </span>
+      <div className="flex h-12 items-center justify-between rounded-xl border px-3" style={{ borderColor: BRAND.border, background: "#F7F9FC" }}>
+        <div className="flex items-center gap-2 text-sm" style={{ color: BRAND.muted }}>
+          <span style={{ color: BRAND.primary }}>{icon}</span>
+          <span>{placeholder}</span>
+        </div>
+        {suffix ? <span className="text-xs font-semibold" style={{ color: BRAND.primary }}>{suffix}</span> : null}
+      </div>
+    </label>
+  );
+}
+
+export function UploadCard({
+  label,
+  imageUrl,
+  onPickFile,
+  onCaptureFile,
+}: {
+  label: string;
+  imageUrl?: string;
+  onPickFile: (file: File) => void;
+  onCaptureFile: (file: File) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const handlePickFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onPickFile(file);
+      event.target.value = "";
+    }
+  };
+
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraOpen(false);
+  };
+
+  const openCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError("Trình duyệt chưa hỗ trợ camera hoặc đang chạy ở chế độ không an toàn.");
+      setIsCameraOpen(true);
+      return;
+    }
+
+    try {
+      setCameraError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        },
+        audio: false,
+      });
+
+      streamRef.current = stream;
+      setIsCameraOpen(true);
+
+      requestAnimationFrame(async () => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+      });
+    } catch {
+      setCameraError("Không thể mở camera. Vui lòng cấp quyền camera và thử lại.");
+      setIsCameraOpen(true);
+    }
+  };
+
+  const captureFromCamera = () => {
+    const video = videoRef.current;
+    if (!video) {
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 1280;
+    canvas.height = video.videoHeight || 720;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          return;
+        }
+        const file = new File([blob], `${label.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}.jpg`, {
+          type: "image/jpeg",
+        });
+        onCaptureFile(file);
+        stopCamera();
+      },
+      "image/jpeg",
+      0.92,
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  return (
+    <div>
+      <p className="mb-2 text-sm font-semibold" style={{ color: BRAND.text }}>{label}</p>
+      <div className="rounded-2xl border border-dashed p-2.5" style={{ borderColor: BRAND.border, background: "#F7FAFF" }}>
+        <div className="relative h-36 w-full overflow-hidden rounded-xl border md:h-40" style={{ borderColor: BRAND.border, background: "#F2F6FC" }}>
+          {imageUrl ? (
+            <Image src={imageUrl} alt={label} fill unoptimized className="object-contain p-1" />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#EAF1FF", color: BRAND.primary }}>
+                <ImageUp className="h-6 w-6" />
+              </div>
+              <p className="mt-3 text-sm" style={{ color: BRAND.muted }}>Chưa có hình ảnh</p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium"
+            style={{ borderColor: BRAND.border, color: BRAND.text, background: "#FFFFFF" }}
+          >
+            <Upload className="h-4 w-4" />
+            Chọn hình ảnh
+          </button>
+
+          <button
+            type="button"
+            onClick={openCamera}
+            className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white"
+            style={{ background: BRAND.primary }}
+          >
+            <Camera className="h-4 w-4" />
+            Chụp ảnh
+          </button>
+        </div>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handlePickFile}
+          className="hidden"
+        />
+      </div>
+
+      {isCameraOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-base font-semibold" style={{ color: BRAND.text }}>Chụp ảnh: {label}</p>
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="rounded-full p-1"
+                style={{ background: "#EEF3FB", color: BRAND.text }}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="relative overflow-hidden rounded-xl border" style={{ borderColor: BRAND.border, background: "#0f172a" }}>
+              <video ref={videoRef} className="h-[320px] w-full bg-black object-cover md:h-[420px]" playsInline muted />
+            </div>
+
+            {cameraError ? (
+              <p className="mt-2 text-sm" style={{ color: "#D14343" }}>{cameraError}</p>
+            ) : null}
+
+            <div className="mt-3 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="rounded-lg border px-3 py-2 text-sm font-medium"
+                style={{ borderColor: BRAND.border, color: BRAND.text }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={captureFromCamera}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-white"
+                style={{ background: BRAND.primary }}
+                disabled={!!cameraError}
+              >
+                Chụp ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function Hint({ ok, text }: { ok: boolean; text: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm" style={{ color: BRAND.text }}>
+      {ok ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <XCircle className="h-4 w-4 text-red-600" />}
+      <span>{text}</span>
+    </div>
+  );
+}
+
+export function Guide({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+  return (
+    <div className="rounded-2xl border p-4" style={{ background: "#F8FAFE", borderColor: BRAND.border }}>
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 rounded-lg p-2" style={{ background: "#EAF1FF", color: BRAND.primary }}>{icon}</div>
+        <div>
+          <p className="font-semibold" style={{ color: BRAND.text }}>{title}</p>
+          <p className="mt-1 text-sm" style={{ color: BRAND.muted }}>{desc}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function Tag({
+  icon,
+  text,
+  color,
+  bg,
+}: {
+  icon: React.ReactNode;
+  text: string;
+  color: string;
+  bg: string;
+}) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold" style={{ color, background: bg }}>
+      {icon}
+      <span>{text}</span>
+    </div>
+  );
+}
+
+export function ReadOnlyCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#7E8AA0" }}>{label}</p>
+      <p className="mt-1 text-lg font-bold" style={{ color: BRAND.text }}>{value}</p>
+    </div>
+  );
+}
+
+export function PreviewBox({ title, imageUrl }: { title: string; imageUrl?: string }) {
+  return (
+    <div className="relative h-44 overflow-hidden rounded-2xl border bg-slate-50 md:h-52" style={{ borderColor: BRAND.border }}>
+      {imageUrl ? (
+        <Image src={imageUrl} alt={title} fill unoptimized className="object-contain p-1" />
+      ) : (
+        <div className="flex h-full items-center justify-center">
+          <p className="text-sm font-semibold" style={{ color: BRAND.muted }}>{title}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function StatusItem({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-3">
+      <div className="flex items-center gap-2" style={{ color: BRAND.text }}>
+        <Shield className="h-4 w-4" style={{ color: BRAND.primary }} />
+        <span className="text-sm">{title}</span>
+      </div>
+      <span className="rounded-full px-3 py-1 text-sm font-semibold" style={{ background: BRAND.primarySoft, color: BRAND.primary }}>
+        {value}
+      </span>
+    </div>
+  );
+}

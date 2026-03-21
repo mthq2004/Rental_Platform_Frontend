@@ -10,6 +10,8 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
   const isDashboard = pathname.startsWith("/dashboard");
   const isChat = pathname.startsWith("/chat");
+  const isKYC = pathname.startsWith("/kyc");
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -22,7 +24,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
       </main>
 
       {/* Footer */}
-      {!isDashboard && !isChat && <FooterBottom />}
+      {!isDashboard && !isChat && !isKYC && <FooterBottom />}
     </div>
   );
 };
