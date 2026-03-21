@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Camera, CheckCircle2, ImageUp, Shield, Upload, X, XCircle } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, ImageUp, Shield, Upload, X, XCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BRAND } from "./constants";
 
@@ -351,6 +351,57 @@ export function StatusItem({ title, value }: { title: string; value: string }) {
       <span className="rounded-full px-3 py-1 text-sm font-semibold" style={{ background: BRAND.primarySoft, color: BRAND.primary }}>
         {value}
       </span>
+    </div>
+  );
+}
+export function KycErrorModal({
+  onClose,
+  onRetry,
+  onSendToAdmin,
+}: {
+  onClose: () => void;
+  onRetry: () => void;
+  onSendToAdmin: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm transition-all animate-in fade-in">
+      <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
+        <div className="flex h-32 items-center justify-center bg-red-50">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600">
+            <AlertTriangle className="h-9 w-9" />
+          </div>
+        </div>
+        
+        <div className="p-8 text-center">
+          <h3 className="text-2xl font-extrabold" style={{ color: BRAND.text }}>Xác thực thất bại</h3>
+          <p className="mt-4 text-sm leading-6" style={{ color: BRAND.muted }}>
+            Hệ thống nhận diện FPT không thể xác minh thông tin của bạn. Ảnh có thể bị mờ, lóa hoặc không khớp. Vui lòng thử lại hoặc gửi yêu cầu xác thực thủ công.
+          </p>
+          
+          <div className="mt-8 flex flex-col gap-3">
+            <button
+              onClick={onRetry}
+              className="w-full rounded-2xl px-5 py-4 text-sm font-bold text-white transition hover:brightness-110 active:scale-95 shadow-md shadow-blue-200"
+              style={{ background: BRAND.primary }}
+            >
+              Kiểm tra & Thử lại
+            </button>
+            <button
+              onClick={onSendToAdmin}
+              className="w-full rounded-2xl border px-5 py-4 text-sm font-bold transition hover:bg-slate-50 active:scale-95"
+              style={{ borderColor: BRAND.border, color: BRAND.text }}
+            >
+              Gửi quản trị viên (Chờ xác thực)
+            </button>
+            <button
+              onClick={onClose}
+              className="mt-4 text-xs font-semibold text-slate-400 underline underline-offset-4 hover:text-slate-600"
+            >
+              Quay lại sau
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

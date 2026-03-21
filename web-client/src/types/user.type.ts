@@ -9,4 +9,5 @@ export type UserType = {
   gender: string;
   avatarUrl: string;
   isActive: boolean;
+  kycStatus: "pending" | "verified" | "rejected";
 }

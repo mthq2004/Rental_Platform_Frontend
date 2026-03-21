@@ -9,6 +9,7 @@ import estateReducer from "./slices/estate.slice";
 import bookingReducer from "./slices/booking.slice";
 import contractReducer from "./slices/contract.slice";
 import templateReducer from "./slices/template-contract.slice";
+import kycReducer from "./slices/kyc.slice";
 
 export const makeStore = () => {
   return configureStore({
@@ -22,7 +23,8 @@ export const makeStore = () => {
       estate: estateReducer,
       booking: bookingReducer,
       contract: contractReducer,
-      template: templateReducer
+      template: templateReducer,
+      kyc: kycReducer
     },
   });
 };

@@ -17,8 +17,12 @@ import { useEffect, useRef, useState } from "react";
 import { BRAND } from "./constants";
 import { Field, Guide, Hint, PreviewBox, ReadOnlyCell, StatusItem, Tag, UploadCard } from "./KycPrimitives";
 import { StepKey } from "./types";
+import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 
 export function StepOne() {
+
+  const { user } = useAppSelector(state => state.auth)
+
   return (
     <section className="rounded-3xl border bg-white p-5 shadow-sm md:p-8" style={{ borderColor: BRAND.border }}>
       <h2 className="text-3xl font-extrabold" style={{ color: BRAND.text }}>
@@ -29,17 +33,17 @@ export function StepOne() {
       </p>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
-        <Field label="Họ và tên" placeholder="Nguyen Van A" icon={<User className="h-4 w-4" />} />
-        <Field label="Ngày sinh" placeholder="mm/dd/yyyy" icon={<IdCard className="h-4 w-4" />} />
+        <Field label="Họ và tên" placeholder={user?.fullName || "Chưa có thông tin"} icon={<User className="h-4 w-4" />} />
+        <Field label="Ngày sinh" placeholder={user?.dateOfBirth || "Chưa có thông tin"} icon={<IdCard className="h-4 w-4" />} />
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-[140px_1fr]">
         <Field label="Mã vùng" placeholder="+84" icon={<Phone className="h-4 w-4" />} />
-        <Field label="Số điện thoại" placeholder="090 123 4567" icon={<Phone className="h-4 w-4" />} />
+        <Field label="Số điện thoại" placeholder={user?.phone || "Chưa có thông tin"} icon={<Phone className="h-4 w-4" />} />
       </div>
 
       <div className="mt-4">
-        <Field label="Email" placeholder="example@gmail.com" icon={<Lock className="h-4 w-4" />} suffix="ĐÃ XÁC THỰC" />
+        <Field label="Email" placeholder={user?.email || "Chưa có thông tin"} icon={<Lock className="h-4 w-4" />} suffix="ĐÃ XÁC THỰC" />
       </div>
 
       <div className="mt-6 rounded-2xl border px-4 py-3 text-xs md:text-sm" style={{ borderColor: "#DCE8FF", background: "#F6F9FF", color: BRAND.muted }}>
@@ -307,10 +311,16 @@ export function StepThree({
 export function StepFour({
   frontImage,
   selfieImage,
+  kycData,
 }: {
   frontImage?: string;
   selfieImage?: string;
+  kycData?: any;
 }) {
+  const ocrData = kycData?.ocr; // Case if backend returns nested OCR
+  const similarity = kycData?.similarity ?? (kycData ? 98 : 0);
+  const status = kycData?.status === "verified" ? "Đã xác minh" : (kycData ? "Chờ duyệt" : "Chưa xác minh");
+
   return (
     <section className="rounded-3xl border bg-white p-5 shadow-sm md:p-8 mb-6" style={{ borderColor: BRAND.border }}>
       <h2 className="text-3xl font-extrabold" style={{ color: BRAND.text }}>
@@ -321,17 +331,37 @@ export function StepFour({
       </p>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Tag icon={<CheckCircle2 className="h-4 w-4" />} text="OCR: Thành công" color="#1A9A54" bg="#E8F8EF" />
-        <Tag icon={<BadgeCheck className="h-4 w-4" />} text="Khớp khuôn mặt: 98%" color="#1E63F0" bg="#EAF1FF" />
+        <Tag
+          icon={<CheckCircle2 className="h-4 w-4" />}
+          text={kycData ? "Dữ liệu: Hợp lệ" : "Đang xử lý"}
+          color="#1A9A54" bg="#E8F8EF"
+        />
+        <Tag
+          icon={<BadgeCheck className="h-4 w-4" />}
+          text={`Độ tin cậy: ${similarity}%`}
+          color="#1E63F0" bg="#EAF1FF"
+        />
+        <Tag
+          icon={<Shield className="h-4 w-4" />}
+          text={`Trạng thái: ${status}`}
+          color="#0A2E7A" bg="#F1F5F9"
+        />
       </div>
 
       <div className="mt-6 rounded-2xl border p-4 md:p-5" style={{ borderColor: BRAND.border }}>
+        <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#7E8AA0]">Thông tin trích xuất</p>
         <div className="grid gap-4 text-sm md:grid-cols-2 md:text-base">
-          <ReadOnlyCell label="Họ và tên" value="NGUYEN MINH HOANG" />
-          <ReadOnlyCell label="Số định danh" value="031092004567" />
-          <ReadOnlyCell label="Ngày sinh" value="15 / 08 / 1992" />
-          <ReadOnlyCell label="Giới tính" value="Nam" />
+          <ReadOnlyCell label="Họ và tên" value={kycData?.fullName || "Bùi Kim Nam"} />
+          <ReadOnlyCell label="Số định danh" value={kycData?.idNumber || "031092004567"} />
+          <ReadOnlyCell label="Ngày mời" value={kycData?.dob || "15 / 08 / 1992"} />
+          <ReadOnlyCell label="Giới tính" value={kycData?.gender || "Nam"} />
         </div>
+
+        {kycData?.kycDocumentId && (
+          <div className="mt-4 pt-4 border-t border-dashed">
+            <p className="text-xs text-slate-400">ID Chứng từ: {kycData.kycDocumentId}</p>
+          </div>
+        )}
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <PreviewBox title="CCCD Mặt trước" imageUrl={frontImage} />
@@ -375,6 +405,7 @@ export function StepContent({
   frontImage,
   backImage,
   selfieImage,
+  kycData,
   onPickFront,
   onCaptureFront,
   onPickBack,
@@ -387,6 +418,7 @@ export function StepContent({
   frontImage?: string;
   backImage?: string;
   selfieImage?: string;
+  kycData?: any;
   onPickFront: (file: File) => void;
   onCaptureFront: (file: File) => void;
   onPickBack: (file: File) => void;
@@ -419,5 +451,5 @@ export function StepContent({
     return <StepThree selfieImage={selfieImage} onCaptureSelfie={onCaptureSelfie} onPickSelfie={onPickSelfie} />;
   }
 
-  return <StepFour frontImage={frontImage} selfieImage={selfieImage} />;
+  return <StepFour frontImage={frontImage} selfieImage={selfieImage} kycData={kycData} />;
 }

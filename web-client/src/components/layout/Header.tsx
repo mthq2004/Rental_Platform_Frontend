@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Button, Space, Dropdown, Tooltip } from "antd";
+import { Button, Space, Dropdown, Tooltip, Modal } from "antd";
 import { HeartOutlined, MessageOutlined, AppstoreOutlined } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -48,7 +48,20 @@ const Header = () => {
   const handlePostClick = () => {
     console.log("Đăng tin clicked");
     if (isAuth) {
-      router.push("/post/create");
+      if (user?.kycStatus === "verified") {
+        router.push("/post/create");
+      } else {
+        Modal.confirm({
+          title: "Yêu cầu xác thực tài khoản",
+          content: "Bạn cần xác thực tài khoản (KYC) để có thể đăng tin. Bạn có muốn thực hiện xác thực ngay bây giờ không?",
+          okText: "Xác thực ngay",
+          cancelText: "Để sau",
+          onOk: () => {
+            router.push("/kyc");
+          },
+          centered: true,
+        });
+      }
     } else {
       openAuthModal("login");
     }
