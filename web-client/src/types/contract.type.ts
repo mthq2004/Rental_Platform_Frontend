@@ -1,5 +1,5 @@
 // Rental Request Types
-export type RentalRequestStatus = 
+export type RentalRequestStatus =
   'pending' | 'under_review' | 'approved' | 'rejected' | 'cancelled' | 'expired' | 'contract_created';
 
 export interface RentalRequest {
@@ -23,6 +23,7 @@ export interface RentalRequest {
     rentalId: string;
     contractCode: string;
     status: string;
+    templateId: string;
   };
 }
 
@@ -34,8 +35,8 @@ export interface ContractTerm {
 }
 
 // Contract Types
-export type RentalContractStatus = 
-  'draft' | 'pending_tenant' | 'tenant_signed' | 'pending_landlord' | 
+export type RentalContractStatus =
+  'draft' | 'pending_tenant' | 'tenant_signed' | 'pending_landlord' |
   'fully_signed' | 'active' | 'expired' | 'terminated' | 'renewed' | 'cancelled';
 
 export interface RentalContract {
@@ -64,12 +65,17 @@ export interface RentalContract {
   isActive: boolean;
   notes?: string;
   contractPdfUrl?: string;
+  contractData?: Record<string, unknown>;
+  contractHtml?: string;
   createdAt: string;
   updatedAt: string;
   terms?: ContractTerm[];
+  templateId?: string;
   signatureLog?: SignatureLog[];
   payments?: Payment[];
   rentalRequest?: RentalRequest;
+  owner?: { name: string; email?: string; phone?: string };
+  tenant?: { name: string; email?: string; phone?: string };
   _count?: { payments: number };
 }
 
@@ -132,4 +138,21 @@ export interface StatusCount {
   id: string;
   label: string;
   count: number;
+}
+
+export interface CreateContractPayload {
+  templateId?: string;
+  propertyId?: string;
+  ownerId?: string;
+  tenantId?: string;
+  fromRequestId?: string;
+
+  startDate?: string;
+  endDate?: string;
+
+  monthlyRent?: number;
+  depositAmount?: number;
+
+  contractData?: Record<string, unknown>;
+  contractHtml?: string;
 }

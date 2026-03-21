@@ -7,8 +7,9 @@ import {
   EditOutlined,
   SendOutlined,
   CheckCircleOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
-import type { RentalContract } from "@/types/contract.type";
+import type { RentalContract, RentalContractStatus } from "@/types/contract.type";
 import { STATUS_CONFIG, formatDate, formatCurrency } from "./ContractStatusConfig";
 import dayjs from "dayjs";
 
@@ -22,6 +23,7 @@ interface ContractDetailModalProps {
   onTenantSign: (rentalId: string) => void;
   onOwnerSign: (rentalId: string) => void;
   onActivate: (rentalId: string) => void;
+  onCancel: (rentalId: string) => void;
 }
 
 export default function ContractDetailModal({
@@ -34,6 +36,7 @@ export default function ContractDetailModal({
   onTenantSign,
   onOwnerSign,
   onActivate,
+  onCancel,
 }: ContractDetailModalProps) {
   return (
     <Modal
@@ -41,8 +44,8 @@ export default function ContractDetailModal({
       onCancel={onClose}
       title={null}
       footer={null}
-      width={860}
-      destroyOnClose
+      width={1000}
+      destroyOnHidden
       styles={{ body: { padding: 0 } }}
     >
       {contractDetail && (() => {
@@ -52,12 +55,6 @@ export default function ContractDetailModal({
         const landlordSigned = contractDetail.signatureLog?.some((l) => l.action === "LANDLORD_SIGNED");
         const tenantSignDate = contractDetail.signatureLog?.find((l) => l.action === "TENANT_SIGNED")?.createdAt;
         const landlordSignDate = contractDetail.signatureLog?.find((l) => l.action === "LANDLORD_SIGNED")?.createdAt;
-        const hasFees =
-          contractDetail.electricityCostPerKwh != null ||
-          contractDetail.waterCostPerM3 != null ||
-          contractDetail.managementFee != null ||
-          contractDetail.parkingFee != null ||
-          contractDetail.internetFee != null;
 
         return (
           <div>
@@ -69,19 +66,21 @@ export default function ContractDetailModal({
                 <Tag color={cfg.color} icon={cfg.icon}>{cfg.label}</Tag>
               </div>
               <Space>
-                {contractDetail.status === "draft" && ownerSide && (
+                {(contractDetail.status === "draft" || contractDetail.status === "pending_tenant") && ownerSide && (
                   <>
                     <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(contractDetail)}>
                       Chỉnh sửa
                     </Button>
-                    <Button
-                      size="small"
-                      type="primary"
-                      icon={<SendOutlined />}
-                      onClick={() => onSendToTenant(contractDetail.rentalId)}
-                    >
-                      Gửi cho người thuê
-                    </Button>
+                    {contractDetail.status === "draft" && (
+                      <Button
+                        size="small"
+                        type="primary"
+                        icon={<SendOutlined />}
+                        onClick={() => onSendToTenant(contractDetail.rentalId)}
+                      >
+                        Gửi cho người thuê
+                      </Button>
+                    )}
                   </>
                 )}
                 {contractDetail.status === "pending_tenant" && !ownerSide && (
@@ -99,240 +98,152 @@ export default function ContractDetailModal({
                     Kích hoạt hợp đồng
                   </Button>
                 )}
+
+                {/* Cancel/Reject buttons */}
+                {((contractDetail.status === "pending_tenant" && !ownerSide) ||
+                  (contractDetail.status === "pending_landlord" && ownerSide) ||
+                  (contractDetail.status === "draft" && ownerSide)) && (
+                    <Button
+                      size="small"
+                      danger
+                      icon={<CloseCircleOutlined />}
+                      onClick={() => onCancel(contractDetail.rentalId)}
+                    >
+                      Từ chối / Hủy
+                    </Button>
+                  )}
               </Space>
             </div>
 
-            {/* A4 document */}
-            <div className="overflow-y-auto bg-gray-100" style={{ maxHeight: "76vh" }}>
+            {/* A4 document view area */}
+            <div className="overflow-y-auto bg-[#e8eaed]" style={{ maxHeight: "80vh" }}>
               <div
-                className="mx-auto my-6 bg-white shadow-lg"
-                style={{ maxWidth: 700, padding: "48px 64px", fontFamily: "'Times New Roman', Times, serif" }}
+                className="mx-auto my-8 bg-white shrink-0 contract-a4-view transition-all duration-300"
+                style={{
+                  width: "210mm",
+                  minHeight: "297mm",
+                  padding: "25mm 20mm",
+                  fontFamily: "'Times New Roman', Times, serif",
+                  boxShadow: "0 0 0 1px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.04), 0 8px 16px rgba(0,0,0,0.06), 0 24px 48px rgba(0,0,0,0.06)",
+                  borderRadius: "2px",
+                  position: "relative",
+                  color: "#1a1a1a",
+                  lineHeight: 1.6,
+                }}
               >
-                {/* National header */}
-                <div className="text-center mb-5">
-                  <p className="font-bold text-sm tracking-wide">CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-                  <p className="italic text-sm">Độc lập - Tự do - Hạnh phúc</p>
-                  <p className="text-gray-400 text-xs mt-1">────────────────────────</p>
-                </div>
-
-                {/* Title */}
-                <div className="text-center mb-6">
-                  <h2 className="text-xl font-bold uppercase tracking-widest mb-1">HỢP ĐỒNG THUÊ NHÀ Ở</h2>
-                  <p className="text-sm">Số: <strong>{contractDetail.contractCode}</strong></p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Ngày {dayjs(contractDetail.createdAt).format("DD")} tháng{" "}
-                    {dayjs(contractDetail.createdAt).format("MM")} năm{" "}
-                    {dayjs(contractDetail.createdAt).format("YYYY")}
-                  </p>
-                </div>
-
-                {/* Legal basis */}
-                <div className="mb-5 text-sm text-gray-600 italic leading-relaxed">
-                  <p>- Căn cứ Bộ luật Dân sự nước Cộng hoà xã hội chủ nghĩa Việt Nam;</p>
-                  <p>- Căn cứ Luật Nhà ở và các văn bản hướng dẫn thi hành;</p>
-                  <p>- Dựa trên nhu cầu và thoả thuận tự nguyện giữa các bên.</p>
-                </div>
-
-                {/* Parties */}
-                <section className="mb-5">
-                  <h3 className="font-bold text-sm uppercase mb-3 pb-1" style={{ borderBottom: "1.5px solid #333" }}>
-                    I. CÁC BÊN THAM GIA HỢP ĐỒNG
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                      <p className="font-bold text-blue-700">BÊN A – BÊN CHO THUÊ</p>
-                      {ownerSide && <span className="text-xs text-blue-500">(Bạn)</span>}
-                      <p className="text-gray-400 text-xs mt-1 break-all">ID: {contractDetail.ownerId}</p>
+                {contractDetail.contractHtml ? (
+                  <div
+                    className="contract-content-html"
+                    style={{ fontSize: "12pt" }}
+                    dangerouslySetInnerHTML={{ __html: contractDetail.contractHtml }}
+                  />
+                ) : (
+                  <>
+                    <div className="text-center mb-8">
+                      <h1 className="font-bold text-[14pt] uppercase mb-1">CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
+                      <h2 className="italic font-bold text-[12pt] mb-1">Độc lập - Tự do - Hạnh phúc</h2>
+                      <div className="mx-auto mt-2 border-b-[1.5px] border-black w-32"></div>
                     </div>
-                    <div className="bg-green-50 p-3 rounded border border-green-200">
-                      <p className="font-bold text-green-700">BÊN B – BÊN THUÊ</p>
-                      {!ownerSide && <span className="text-xs text-green-500">(Bạn)</span>}
-                      <p className="text-gray-400 text-xs mt-1 break-all">ID: {contractDetail.tenantId}</p>
+
+                    <div className="text-center mb-10 mt-6">
+                      <h2 className="text-[16pt] font-bold uppercase tracking-widest mb-1">HỢP ĐỒNG THUÊ NHÀ Ở</h2>
+                      <p className="text-[13pt] mt-2">Số: <strong>{contractDetail.contractCode}</strong></p>
+                      <p className="text-[13pt] italic">Ngày {dayjs(contractDetail.createdAt).format("DD/MM/YYYY")}</p>
                     </div>
-                  </div>
-                </section>
 
-                {/* Content header */}
-                <section className="mb-1">
-                  <h3 className="font-bold text-sm uppercase mb-3 pb-1" style={{ borderBottom: "1.5px solid #333" }}>
-                    II. NỘI DUNG HỢP ĐỒNG
-                  </h3>
-                </section>
-
-                {/* Article 1 */}
-                <section className="mb-4 text-sm">
-                  <p className="font-bold mb-1">Điều 1. Đối tượng hợp đồng</p>
-                  <p className="leading-relaxed">
-                    Bên A đồng ý cho Bên B thuê bất động sản mã:{" "}
-                    <strong>{contractDetail.propertyId}</strong>
-                  </p>
-                </section>
-
-                {/* Article 2 */}
-                <section className="mb-4 text-sm">
-                  <p className="font-bold mb-2">Điều 2. Thời hạn và giá thuê</p>
-                  <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
-                    <tbody>
-                      <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <td className="py-1.5 text-gray-600 w-48">Thời gian thuê:</td>
-                        <td className="py-1.5 font-medium">
-                          {formatDate(contractDetail.startDate)} — {formatDate(contractDetail.endDate)}
-                        </td>
-                      </tr>
-                      <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <td className="py-1.5 text-gray-600">Giá thuê hàng tháng:</td>
-                        <td className="py-1.5 font-bold text-red-600">{formatCurrency(contractDetail.monthlyRent)}</td>
-                      </tr>
-                      <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <td className="py-1.5 text-gray-600">Tiền đặt cọc:</td>
-                        <td className="py-1.5 font-medium">{formatCurrency(contractDetail.depositAmount)}</td>
-                      </tr>
-                      <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <td className="py-1.5 text-gray-600">Ngày thanh toán:</td>
-                        <td className="py-1.5">
-                          Ngày <strong>{contractDetail.paymentDueDay}</strong> hàng tháng
-                        </td>
-                      </tr>
-                      {contractDetail.gracePeriodDays > 0 && (
-                        <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                          <td className="py-1.5 text-gray-600">Gia hạn thanh toán:</td>
-                          <td className="py-1.5">{contractDetail.gracePeriodDays} ngày</td>
-                        </tr>
-                      )}
-                      {contractDetail.lateFeePerDay != null && (
-                        <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                          <td className="py-1.5 text-gray-600">Phí chậm/ngày:</td>
-                          <td className="py-1.5">{formatCurrency(contractDetail.lateFeePerDay)}</td>
-                        </tr>
-                      )}
-                      <tr>
-                        <td className="py-1.5 text-gray-600">Tự động gia hạn:</td>
-                        <td className="py-1.5">{contractDetail.autoRenewal ? "Có" : "Không"}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </section>
-
-                {/* Article 3: Fees */}
-                {hasFees && (
-                  <section className="mb-4 text-sm">
-                    <p className="font-bold mb-2">Điều 3. Chi phí dịch vụ</p>
-                    <table className="w-full text-sm" style={{ borderCollapse: "collapse" }}>
-                      <tbody>
-                        {contractDetail.electricityCostPerKwh != null && (
-                          <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                            <td className="py-1.5 text-gray-600 w-48">Tiền điện:</td>
-                            <td className="py-1.5">{formatCurrency(contractDetail.electricityCostPerKwh)} / kWh</td>
-                          </tr>
-                        )}
-                        {contractDetail.waterCostPerM3 != null && (
-                          <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                            <td className="py-1.5 text-gray-600">Tiền nước:</td>
-                            <td className="py-1.5">{formatCurrency(contractDetail.waterCostPerM3)} / m³</td>
-                          </tr>
-                        )}
-                        {contractDetail.managementFee != null && (
-                          <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                            <td className="py-1.5 text-gray-600">Phí quản lý:</td>
-                            <td className="py-1.5">{formatCurrency(contractDetail.managementFee)}</td>
-                          </tr>
-                        )}
-                        {contractDetail.parkingFee != null && (
-                          <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
-                            <td className="py-1.5 text-gray-600">Phí giữ xe:</td>
-                            <td className="py-1.5">{formatCurrency(contractDetail.parkingFee)}</td>
-                          </tr>
-                        )}
-                        {contractDetail.internetFee != null && (
-                          <tr>
-                            <td className="py-1.5 text-gray-600">Phí internet:</td>
-                            <td className="py-1.5">{formatCurrency(contractDetail.internetFee)}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </section>
-                )}
-
-                {/* Article 4: Terms */}
-                {contractDetail.terms && contractDetail.terms.length > 0 && (
-                  <section className="mb-4 text-sm">
-                    <p className="font-bold mb-2">Điều {hasFees ? 4 : 3}. Điều khoản và nội quy</p>
-                    <ol className="list-decimal pl-5 space-y-1.5 text-gray-700 leading-relaxed">
-                      {contractDetail.terms.map((term) => (
-                        <li key={term.id}>{term.content}</li>
-                      ))}
-                    </ol>
-                  </section>
-                )}
-
-                {/* Notes */}
-                {contractDetail.notes && (
-                  <section className="mb-4 text-sm">
-                    <p className="font-bold mb-2">Ghi chú bổ sung</p>
-                    <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-gray-700 leading-relaxed whitespace-pre-wrap">
-                      {contractDetail.notes}
+                    <div className="mb-8 text-[12pt] italic leading-relaxed">
+                      <p>- Căn cứ Bộ luật Dân sự nước Cộng hoà xã hội chủ nghĩa Việt Nam;</p>
+                      <p>- Căn cứ Luật Nhà ở và các văn bản hướng dẫn thi hành;</p>
+                      <p>- Dựa trên nhu cầu và thoả thuận tự nguyện giữa các bên.</p>
                     </div>
-                  </section>
+
+                    <section className="mb-8">
+                      <h3 className="font-bold text-[12pt] uppercase mb-4 border-b border-gray-100 pb-1">I. CÁC BÊN THAM GIA</h3>
+                      <div className="grid grid-cols-2 gap-8 text-[12pt]">
+                        <div className="space-y-1">
+                          <p className="font-bold">BÊN CHO THUÊ (BÊN A):</p>
+                          <p>Họ tên: {contractDetail.owner?.name || "N/A"}</p>
+                          <p className="text-gray-400 text-xs break-all">ID: {contractDetail.ownerId}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-bold">BÊN THUÊ (BÊN B):</p>
+                          <p>Họ tên: {contractDetail.tenant?.name || "N/A"}</p>
+                          <p className="text-gray-400 text-xs break-all">ID: {contractDetail.tenantId}</p>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="mb-8 text-[12pt]">
+                      <h3 className="font-bold text-[12pt] uppercase mb-4 border-b border-gray-100 pb-1">II. NỘI DUNG CHÍNH</h3>
+                      <div className="space-y-3">
+                        <p><strong>Điều 1.</strong> Đối tượng cho thuê: Bất động sản mã {contractDetail.propertyId}</p>
+                        <p><strong>Điều 2.</strong> Thời hạn thuê: Từ {formatDate(contractDetail.startDate)} đến {formatDate(contractDetail.endDate)}</p>
+                        <p><strong>Điều 3.</strong> Giá thuê: {formatCurrency(contractDetail.monthlyRent)}/tháng</p>
+                        <p><strong>Điều 4.</strong> Đặt cọc: {formatCurrency(contractDetail.depositAmount)}</p>
+                      </div>
+                    </section>
+                  </>
                 )}
 
-                {/* Signature history */}
-                {contractDetail.signatureLog && contractDetail.signatureLog.length > 0 && (
-                  <section className="mb-4 text-sm">
-                    <p className="font-bold mb-2">Lịch sử thao tác</p>
-                    <Timeline
-                      items={contractDetail.signatureLog.map((log) => ({
-                        color: log.action.includes("SIGNED") ? "green" : "blue",
-                        children: (
-                          <span className="text-xs text-gray-600">
-                            {log.action === "SENT_TO_TENANT" && "Gửi cho người thuê"}
-                            {log.action === "TENANT_SIGNED" && "Người thuê đã ký"}
-                            {log.action === "LANDLORD_SIGNED" && "Chủ nhà đã ký"}
-                            {!["SENT_TO_TENANT", "TENANT_SIGNED", "LANDLORD_SIGNED"].includes(log.action) && log.action}
-                            {" · "}
-                            {dayjs(log.createdAt).format("DD/MM/YYYY HH:mm")}
-                          </span>
-                        ),
-                      }))}
-                    />
-                  </section>
-                )}
-
-                {/* Signatures */}
-                <section className="mt-8 pt-5" style={{ borderTop: "2px solid #333" }}>
-                  <div className="grid grid-cols-2 gap-8 text-center text-sm">
+                <div className="mt-20">
+                  <div className="grid grid-cols-2 gap-10 text-center text-[12pt]">
                     <div>
-                      <p className="font-bold">BÊN A – BÊN CHO THUÊ</p>
-                      <p className="text-gray-400 text-xs italic mb-3">(Chủ nhà)</p>
+                      <p className="font-bold uppercase mb-2">BÊN CHO THUÊ</p>
+                      <p className="italic text-xs mb-8 text-gray-400">(Ký và ghi rõ họ tên)</p>
                       {landlordSigned ? (
-                        <div className="border border-green-400 rounded p-3 bg-green-50">
-                          <CheckCircleOutlined className="text-green-500 text-xl" />
-                          <p className="text-green-600 text-xs mt-1 font-medium">Đã ký điện tử</p>
-                          <p className="text-gray-500 text-xs">{formatDate(landlordSignDate || "")}</p>
+                        <div className="flex flex-col items-center">
+                          <div className="border-2 border-green-500 rounded-md p-2 bg-green-50 text-green-600 font-bold uppercase rotate-[-5deg]">
+                            ĐÃ KÝ SỐ
+                          </div>
+                          <p className="text-[10pt] text-gray-500 mt-2">{dayjs(landlordSignDate).format("HH:mm DD/MM/YYYY")}</p>
                         </div>
                       ) : (
-                        <div className="border-2 border-dashed border-gray-300 rounded p-4 text-gray-400 text-xs">
-                          Chưa ký
-                        </div>
+                        <div className="h-20 flex items-center justify-center border border-dashed border-gray-200 rounded text-gray-300 italic">Chưa ký</div>
                       )}
                     </div>
                     <div>
-                      <p className="font-bold">BÊN B – BÊN THUÊ</p>
-                      <p className="text-gray-400 text-xs italic mb-3">(Người thuê)</p>
+                      <p className="font-bold uppercase mb-2">BÊN THUÊ</p>
+                      <p className="italic text-xs mb-8 text-gray-400">(Ký và ghi rõ họ tên)</p>
                       {tenantSigned ? (
-                        <div className="border border-green-400 rounded p-3 bg-green-50">
-                          <CheckCircleOutlined className="text-green-500 text-xl" />
-                          <p className="text-green-600 text-xs mt-1 font-medium">Đã ký điện tử</p>
-                          <p className="text-gray-500 text-xs">{formatDate(tenantSignDate || "")}</p>
+                        <div className="flex flex-col items-center">
+                          <div className="border-2 border-green-500 rounded-md p-2 bg-green-50 text-green-600 font-bold uppercase rotate-[-5deg]">
+                            ĐÃ KÝ SỐ
+                          </div>
+                          <p className="text-[10pt] text-gray-500 mt-2">{dayjs(tenantSignDate).format("HH:mm DD/MM/YYYY")}</p>
                         </div>
                       ) : (
-                        <div className="border-2 border-dashed border-gray-300 rounded p-4 text-gray-400 text-xs">
-                          Chưa ký
-                        </div>
+                        <div className="h-20 flex items-center justify-center border border-dashed border-gray-200 rounded text-gray-300 italic">Chưa ký</div>
                       )}
                     </div>
                   </div>
-                </section>
+                </div>
+              </div>
+
+              <div className="max-w-[210mm] mx-auto mb-10 px-8 py-6 bg-white border-t border-gray-100 rounded-b shadow-sm">
+                <h4 className="font-bold text-gray-700 mb-6 flex items-center gap-2">
+                  <CheckCircleOutlined className="text-blue-500" />
+                  Lịch sử ký kết & Thao tác
+                </h4>
+                <Timeline
+                  items={contractDetail.signatureLog?.map((log) => ({
+                    color: log.action.includes("SIGNED") ? "green" : "blue",
+                    children: (
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-700">
+                          {log.action === "SENT_TO_TENANT" && "Gửi hợp đồng cho người thuê"}
+                          {log.action === "TENANT_SIGNED" && "Người thuê đã ký xác nhận"}
+                          {log.action === "LANDLORD_SIGNED" && "Chủ nhà đã ký xác nhận"}
+                          {log.action === "ACTIVATED" && "Hợp đồng đã được kích hoạt"}
+                          {log.action === "CANCELLED" && "Hợp đồng bị hủy"}
+                          {!["SENT_TO_TENANT", "TENANT_SIGNED", "LANDLORD_SIGNED", "ACTIVATED", "CANCELLED"].includes(log.action) && log.action}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {dayjs(log.createdAt).format("HH:mm:ss · DD/MM/YYYY")}
+                        </span>
+                      </div>
+                    ),
+                  })) || []}
+                />
               </div>
             </div>
           </div>

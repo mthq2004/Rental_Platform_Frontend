@@ -29,6 +29,7 @@ export default function ChatPage() {
     hasNextPage,
     nextCursor,
   } = useAppSelector((state) => state.message);
+  
   const { user } = useAppSelector((state) => state.auth);
   const { onlineUsers } = useAppSelector((state) => state.conversation);
 

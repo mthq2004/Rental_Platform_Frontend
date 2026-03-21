@@ -101,7 +101,7 @@ const conversationSlice = createSlice({
       const { conversationId, message, isCurrentOpen } = action.payload;
 
       console.log('====================================');
-      console.log("choa: ", isCurrentOpen);
+      console.log("choa: ", isCurrentOpen, message);
       console.log('====================================');
 
       const index = state.conversations.findIndex(

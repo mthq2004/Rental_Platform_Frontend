@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { getNotification, markAsRead, selectUnreadCount } from '@/store/slices/notification.slice';
+import AuthGuard from '@/components/AuthGuard';
 
 const NotificationScreen = () => {
   const router = useRouter();
@@ -67,34 +68,36 @@ const NotificationScreen = () => {
 
   if (!notifications || notifications.length === 0) {
     return (
-      <View className="flex-1 bg-gray-100 items-center justify-center px-6">
-        <View className="bg-white w-full rounded-3xl p-10 items-center shadow-md">
-          <View className="w-24 h-24 rounded-full bg-blue-100 items-center justify-center mb-6">
-            <Ionicons
-              name="notifications-outline"
-              size={42}
-              color="#2563EB"
-            />
-          </View>
+      <AuthGuard>
+        <View className="flex-1 bg-gray-100 items-center justify-center px-6">
+          <View className="bg-white w-full rounded-3xl p-10 items-center shadow-md">
+            <View className="w-24 h-24 rounded-full bg-blue-100 items-center justify-center mb-6">
+              <Ionicons
+                name="notifications-outline"
+                size={42}
+                color="#2563EB"
+              />
+            </View>
 
-          <Text className="text-xl font-bold text-gray-900 mb-2">
-            Chưa có thông báo
-          </Text>
-
-          <Text className="text-gray-500 text-center mb-8">
-            Mọi cập nhật mới sẽ được hiển thị tại đây
-          </Text>
-
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="bg-blue-500 px-8 py-3 rounded-xl"
-          >
-            <Text className="text-white font-semibold">
-              Quay về
+            <Text className="text-xl font-bold text-gray-900 mb-2">
+              Chưa có thông báo
             </Text>
-          </TouchableOpacity>
+
+            <Text className="text-gray-500 text-center mb-8">
+              Mọi cập nhật mới sẽ được hiển thị tại đây
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="bg-blue-500 px-8 py-3 rounded-xl"
+            >
+              <Text className="text-white font-semibold">
+                Quay về
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </AuthGuard>
     );
   }
 
@@ -167,76 +170,78 @@ const NotificationScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-gray-100">
-      <View className="bg-white px-4 pt-14 pb-4 shadow-sm">
-        <View className="flex-row items-center justify-between">
+    <AuthGuard>
+      <View className="flex-1 bg-gray-100">
+        <View className="bg-white px-4 pt-14 pb-4 shadow-sm">
+          <View className="flex-row items-center justify-between">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center"
+            >
+              <Ionicons name="arrow-back" size={22} />
+            </TouchableOpacity>
+
+            <Text className="text-2xl font-bold text-gray-900">
+              Thông báo
+            </Text>
+
+            {unreadCount > 0 ? (
+              <View className="bg-blue-500 px-3 py-1 rounded-full">
+                <Text className="text-white text-xs font-semibold">
+                  {unreadCount} mới
+                </Text>
+              </View>
+            ) : (
+              <View className="w-10" />
+            )}
+          </View>
+        </View>
+
+        <View className="flex-row px-4 py-3">
           <TouchableOpacity
-            onPress={() => router.back()}
-            className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center"
+            onPress={() => setActiveTab('ALL')}
+            className={`flex-1 mr-2 py-3 rounded-xl items-center ${activeTab === 'ALL'
+              ? 'bg-blue-500'
+              : 'bg-white'
+              }`}
           >
-            <Ionicons name="arrow-back" size={22} />
+            <Text
+              className={`font-semibold ${activeTab === 'ALL'
+                ? 'text-white'
+                : 'text-gray-700'
+                }`}
+            >
+              Tất cả
+            </Text>
           </TouchableOpacity>
 
-          <Text className="text-2xl font-bold text-gray-900">
-            Thông báo
-          </Text>
-
-          {unreadCount > 0 ? (
-            <View className="bg-blue-500 px-3 py-1 rounded-full">
-              <Text className="text-white text-xs font-semibold">
-                {unreadCount} mới
-              </Text>
-            </View>
-          ) : (
-            <View className="w-10" />
-          )}
+          <TouchableOpacity
+            onPress={() => setActiveTab('UNREAD')}
+            className={`flex-1 ml-2 py-3 rounded-xl items-center ${activeTab === 'UNREAD'
+              ? 'bg-blue-500'
+              : 'bg-white'
+              }`}
+          >
+            <Text
+              className={`font-semibold ${activeTab === 'UNREAD'
+                ? 'text-white'
+                : 'text-gray-700'
+                }`}
+            >
+              Chưa đọc {unreadCount > 0 ? `(${unreadCount})` : ''}
+            </Text>
+          </TouchableOpacity>
         </View>
+
+        <FlatList
+          data={filteredNotification}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={{ paddingVertical: 8 }}
+          showsVerticalScrollIndicator={false}
+        />
       </View>
-
-      <View className="flex-row px-4 py-3">
-        <TouchableOpacity
-          onPress={() => setActiveTab('ALL')}
-          className={`flex-1 mr-2 py-3 rounded-xl items-center ${activeTab === 'ALL'
-            ? 'bg-blue-500'
-            : 'bg-white'
-            }`}
-        >
-          <Text
-            className={`font-semibold ${activeTab === 'ALL'
-              ? 'text-white'
-              : 'text-gray-700'
-              }`}
-          >
-            Tất cả
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setActiveTab('UNREAD')}
-          className={`flex-1 ml-2 py-3 rounded-xl items-center ${activeTab === 'UNREAD'
-            ? 'bg-blue-500'
-            : 'bg-white'
-            }`}
-        >
-          <Text
-            className={`font-semibold ${activeTab === 'UNREAD'
-              ? 'text-white'
-              : 'text-gray-700'
-              }`}
-          >
-            Chưa đọc {unreadCount > 0 ? `(${unreadCount})` : ''}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        data={filteredNotification}
-        renderItem={renderItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={{ paddingVertical: 8 }}
-        showsVerticalScrollIndicator={false}
-      />
-    </View>
+    </AuthGuard>
   );
 };
 

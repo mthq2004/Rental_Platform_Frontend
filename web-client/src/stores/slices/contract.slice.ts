@@ -5,6 +5,7 @@ import type {
   RentalContract,
   Payment,
   StatusCount,
+  CreateContractPayload,
 } from "../../types/contract.type";
 
 interface ContractState {
@@ -54,6 +55,7 @@ export const createRentalRequest = createAsyncThunk(
     ownerId: string;
     startDate: string;
     endDate: string;
+    proposedRent: number;
     message?: string;
   }, { rejectWithValue }) => {
     try {
@@ -217,6 +219,17 @@ export const confirmPayment = createAsyncThunk(
   }
 );
 
+export const createContract = createAsyncThunk(
+  "contract/createContract",
+  async (data: CreateContractPayload, { rejectWithValue }) => {
+    try {
+      return await http.post("/contract/rental-contracts/createContract", data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
 // ─── Slice ───────────────────────────────────────────────────────
 
 export const contractSlice = createSlice({
@@ -300,6 +313,36 @@ export const contractSlice = createSlice({
       .addCase(confirmPayment.pending, (state) => { state.actionLoading = true; })
       .addCase(confirmPayment.fulfilled, (state) => { state.actionLoading = false; })
       .addCase(confirmPayment.rejected, (state) => { state.actionLoading = false; });
+
+    builder
+      .addCase(createContract.pending, (state) => {
+        state.actionLoading = true;
+      })
+      .addCase(createContract.fulfilled, (state, action) => {
+        state.actionLoading = false;
+
+        const contract = action.payload?.data;
+        if (!contract) return;
+
+        // 🔍 check contract đã tồn tại chưa
+        const index = state.contracts.findIndex(
+          (c) => c.rentalId === contract.id
+        );
+
+        if (index !== -1) {
+          // ✅ update nếu đã tồn tại
+          state.contracts[index] = contract;
+        } else {
+          // ✅ thêm mới
+          state.contracts.unshift(contract);
+        }
+
+        // ✅ đồng bộ detail
+        state.contractDetail = contract;
+      })
+      .addCase(createContract.rejected, (state) => {
+        state.actionLoading = false;
+      });
   },
 });
 

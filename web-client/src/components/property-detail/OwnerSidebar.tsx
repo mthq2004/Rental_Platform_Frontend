@@ -36,6 +36,7 @@ const QUICK_QUESTIONS = [
   "Giá có thương lượng không?",
 ];
 
+
 const USER_TYPE_LABELS: Record<string, string> = {
   personal: "Cá nhân",
   broker: "Môi giới",
@@ -47,6 +48,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   const dispatch = useAppDispatch();
   const { message: messageApi } = App.useApp();
   const actionLoading = useAppSelector((state) => state.contract.actionLoading);
+  const { detail } = useAppSelector(state => state.estate)
   const [showPhone, setShowPhone] = useState(false);
   const [message, setMessage] = useState("");
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -56,8 +58,13 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
   const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
   const [rentalMessage, setRentalMessage] = useState("");
+  const [proposedRent, setProposedRent] = useState<number | null>(pricePerMonth || null);
 
   const visibleQuestions = QUICK_QUESTIONS.slice(questionIdx, questionIdx + 2);
+
+  console.log("số tháng thuê tối thiểu: ", detail?.data?.minimumLeaseMonths);
+  console.log("số tháng thuê tối đa: ", detail?.data?.maximumLeaseMonths);
+
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
@@ -70,7 +77,6 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   };
 
   const handleChat = async () => {
-    console.log("owner id:" ,owner.id)
     if (!isLoggedIn) {
       router.push("/");
       return;
@@ -86,7 +92,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
       console.error("Create conversation failed:", error);
     }
 
-    
+
   };
 
   const handlePhoneReveal = () => {
@@ -110,22 +116,46 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   };
 
   const handleSubmitRentalRequest = async () => {
-    if (!startDate || !endDate) {
-      messageApi.warning("Vui lòng điền đầy đủ ngày bắt đầu và ngày kết thúc");
+    if (!startDate || !endDate || !proposedRent) {
+      messageApi.warning("Vui lòng điền đầy đủ thông tin thuê (ngày bắt đầu, ngày kết thúc và giá đề xuất)");
       return;
     }
-    if (endDate.isBefore(startDate)) {
+
+    if (endDate.isBefore(startDate, "day")) {
       messageApi.warning("Ngày kết thúc phải sau ngày bắt đầu");
       return;
     }
+
+    // ✅ Lease Duration Validation
+    const diffMonths = endDate.diff(startDate, "month", true);
+    const minMonths = detail.data?.minimumLeaseMonths || 0;
+    const maxMonths = detail.data?.maximumLeaseMonths;
+
+    if (minMonths > 0 && diffMonths < minMonths) {
+      messageApi.warning(`Thời hạn thuê tối thiểu cho nhà này là ${minMonths} tháng`);
+      return;
+    }
+
+    if (maxMonths && diffMonths > maxMonths) {
+      messageApi.warning(`Thời hạn thuê tối đa cho nhà này là ${maxMonths} tháng`);
+      return;
+    }
+
+    if (proposedRent <= 0) {
+      messageApi.warning("Giá đề xuất phải lớn hơn 0");
+      return;
+    }
+
     try {
       await dispatch(createRentalRequest({
         propertyId,
         ownerId: owner.id,
         startDate: startDate.format("YYYY-MM-DD"),
         endDate: endDate.format("YYYY-MM-DD"),
+        proposedRent: proposedRent,
         message: rentalMessage || undefined,
       })).unwrap();
+      
       messageApi.success("Gửi yêu cầu thuê nhà thành công!");
       setRentalModalOpen(false);
       setStartDate(null);
@@ -445,7 +475,30 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
               disabledDate={(d) => d.isBefore(startDate || dayjs(), "day")}
               format="DD/MM/YYYY"
             />
+            <div className="mt-1 flex gap-3 text-[11px] text-gray-500 italic">
+              {detail.data?.minimumLeaseMonths && (
+                <span>Tối thiểu: {detail.data.minimumLeaseMonths} tháng</span>
+              )}
+              {detail.data?.maximumLeaseMonths && (
+                <span>Tối đa: {detail.data.maximumLeaseMonths} tháng</span>
+              )}
+            </div>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Giá đề xuất (VNĐ/tháng) *
+            </label>
+            <Input
+              value={proposedRent ?? ""}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, "");
+                setProposedRent(value ? Number(value) : null);
+              }}
+              placeholder="Nhập giá bạn muốn thuê"
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Lời nhắn (tuỳ chọn)</label>
             <Input.TextArea

@@ -18,6 +18,13 @@ import {
 } from "@ant-design/icons";
 import type { RentalContract } from "@/types/contract.type";
 import SmartPriceInput from "@/components/common/SmartPriceInput";
+import dynamic from "next/dynamic";
+
+const Editor = dynamic(() => import("./CKEditorWrapper"), { ssr: false });
+
+const CkEditorField = ({ value, onChange }: { value?: string; onChange?: (val: string) => void }) => {
+  return <Editor value={value || ""} onChange={(v) => onChange?.(v)} />;
+};
 
 interface ContractEditModalProps {
   open: boolean;
@@ -225,12 +232,7 @@ export default function ContractEditModal({
                     <div className="flex gap-3">
                       <Badge count={index + 1} color="#bfbfbf" style={{ marginTop: 8 }} />
                       <Form.Item {...field} noStyle>
-                        <Input.TextArea
-                          autoSize={{ minRows: 1, maxRows: 4 }}
-                          placeholder="Nhập nội dung điều khoản..."
-                          variant="borderless"
-                          className="p-0 focus:shadow-none"
-                        />
+                        <CkEditorField />
                       </Form.Item>
                       <Button
                         type="text"

@@ -4,73 +4,65 @@ import HeaderBanner from '@/components/home/Header';
 import SearchFilter from '@/components/home/SearchFilter';
 import PropertyCard from '@/components/PropertyCard';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
+import { getFeaturedPropertiesThunk, getListProperty } from '@/store/slices/estate.slice';
 import { getProvinces } from '@/store/slices/location.slice';
-import { getAllproperty } from '@/store/slices/property.slice';
+import { getAllproperty, getNumberPropertyByCity } from '@/store/slices/property.slice';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Dimensions,
   SafeAreaView,
   StatusBar,
   Alert,
   RefreshControl,
 } from 'react-native';
-
-// const properties = [
-//   {
-//     id: '1',
-//     price: '12 triệu/tháng',
-//     area: '80m²',
-//     bedrooms: 2,
-//     bathrooms: 2,
-//     type: 'Căn hộ',
-//     furniture: 'Nội thất đầy đủ',
-//     direction: 'Đông Nam',
-//     location: 'Quận 7, TP.HCM',
-//     postedTime: '2 giờ trước',
-//     image: 'https://lighthouse.chotot.com/_next/image?url=https%3A%2F%2Fcdn.chotot.com%2FEWuSdDaVoISGNOtGQ6wSbROybEep7ta4kQ_E0Iz18-Y%2Fpreset%3Alisting%2Fplain%2F46fdf4cf4534b8615a0ab1fa9dd3931b-2905545158123516816.jpg&w=1920&q=100',
-//   },
-//   {
-//     id: '2',
-//     price: '18 triệu/tháng',
-//     area: '120m²',
-//     bedrooms: 3,
-//     bathrooms: 2,
-//     type: 'Nhà nguyên căn',
-//     furniture: 'Nội thất cơ bản',
-//     direction: 'Tây Bắc',
-//     location: 'Quận 2, TP.HCM',
-//     postedTime: '1 ngày trước',
-//     image: 'https://lighthouse.chotot.com/_next/image?url=https%3A%2F%2Fcdn.chotot.com%2FEWuSdDaVoISGNOtGQ6wSbROybEep7ta4kQ_E0Iz18-Y%2Fpreset%3Alisting%2Fplain%2F46fdf4cf4534b8615a0ab1fa9dd3931b-2905545158123516816.jpg&w=1920&q=100'
-//   },
-//   {
-//     id: '3',
-//     price: '9 triệu/tháng',
-//     area: '60m²',
-//     bedrooms: 1,
-//     bathrooms: 1,
-//     type: 'Căn hộ mini',
-//     furniture: 'Đầy đủ',
-//     direction: 'Nam',
-//     location: 'Quận 1, TP.HCM',
-//     postedTime: '3 ngày trước',
-//     image: 'https://lighthouse.chotot.com/_next/image?url=https%3A%2F%2Fcdn.chotot.com%2FEWuSdDaVoISGNOtGQ6wSbROybEep7ta4kQ_E0Iz18-Y%2Fpreset%3Alisting%2Fplain%2F46fdf4cf4534b8615a0ab1fa9dd3931b-2905545158123516816.jpg&w=1920&q=100'
-//   },
-// ];
-
+import MapView, { Marker } from 'react-native-maps';
 
 const Home = () => {
   const [refreshing, setRefreshing] = useState(false)
-  const { loading, propertyTemp } = useAppSelector(state => state.property)
+  const [selectedPropertyTypeId, setSelectedPropertyTypeId] = useState<string>(
+    "apartment"
+  );
+  const screenWidth = Dimensions.get('window').width;
+  const areaCardWidth = screenWidth * 0.75;
+  const { data, nextCursor, hasMore, total, error, loading } = useAppSelector(state => state.estate.featured)
+  const { propertyCountByCity } = useAppSelector(state => state.property)
+  const { isAuth } = useAppSelector(state => state.auth)
   const dispatch = useAppDispatch()
   const isInitialLoading = loading && !refreshing
 
-  const properties = propertyTemp
+  const properties = data
+
+  const propertyType = [
+    {
+      id: "apartment",
+      label: "Chung cư / Căn hộ"
+    },
+    {
+      id: "house",
+      label: "Nhà ở"
+    },
+    {
+      id: "room",
+      label: "Phòng trọ"
+    },
+    {
+      id: "office",
+      label: "Văn phòng"
+    },
+    {
+      id: "land",
+      label: "Đất"
+    }
+  ]
+
 
   const handlePropertyPress = (id: string) => {
     router.push({
@@ -84,25 +76,45 @@ const Home = () => {
   };
 
   useEffect(() => {
-    dispatch(getAllproperty())
-  }, [dispatch])
+    if (isAuth) {
+      dispatch(getListProperty());
+    } else {
+      dispatch(getFeaturedPropertiesThunk(10));
+    }
+  }, [dispatch, isAuth]);
 
   useEffect(() => {
     dispatch(getProvinces());
   }, []);
 
+  useEffect(() => {
+    dispatch(getNumberPropertyByCity(selectedPropertyTypeId)).unwrap();
+  }, [dispatch, selectedPropertyTypeId]);
+
   const onRefresh = async () => {
-    setRefreshing(true)
+    setRefreshing(true);
+
     try {
-      await Promise.all([
-        dispatch(getAllproperty()).unwrap(),
-      ])
+      if (isAuth) {
+        await dispatch(getListProperty()).unwrap();
+      } else {
+        await dispatch(getFeaturedPropertiesThunk(10)).unwrap();
+      }
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể tải lại dữ liệu')
+      Alert.alert("Lỗi", "Không thể tải lại dữ liệu");
     } finally {
-      setRefreshing(false)
+      setRefreshing(false);
     }
+  };
+
+  const handleLoadMore = async () => {
+    router.push("/(post)/filter-search")
   }
+
+  const handlePropertyTypePress = (id: string) => {
+    setSelectedPropertyTypeId(id);
+  }
+
 
   if (isInitialLoading) {
     return (
@@ -135,19 +147,121 @@ const Home = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16 }}
           >
-            {properties?.map((item: any) => (
+            {properties?.map((item) => (
               <PropertyCard
                 key={item.id}
-                {...item}
+                property={item}
                 onPress={() => handlePropertyPress(item.id)}
                 onFavoritePress={() => handleFavoritePress(item.id)}
               />
             ))}
           </ScrollView>
+          {
+            hasMore && (
+              <TouchableOpacity className='mt-2 border-2 border-gray-200 pt-4 pb-4 px-4 rounded-3xl mx-4 justify-center items-center' onPress={() => handleLoadMore()}>
+                <Text className="text-center text-gray-700 font-bold">Xem thêm {total - properties.length} bất động sản khác</Text>
+              </TouchableOpacity>
+            )
+          }
+
+          <Text className="text-xl font-bold text-gray-900 mt-4 mb-3 px-4">
+            Bất động sản theo khu vực
+          </Text>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16 }}
+          >
+            {propertyType.map((item) => {
+              const isActive = selectedPropertyTypeId === item.id;
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  onPress={() => handlePropertyTypePress(item.id)}
+                  activeOpacity={0.85}
+                  className={`mr-3 px-4 py-2 rounded-full border ${isActive
+                    ? "border-blue-600 bg-blue-600"
+                    : "border-gray-200 bg-white"
+                    }`}
+                >
+                  <Text
+                    className={`text-sm font-semibold ${isActive ? "text-white" : "text-gray-900"
+                      }`}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, marginTop: 16, gap: 10 }}
+          >
+            {propertyCountByCity && propertyCountByCity.length > 0 ? (
+              propertyCountByCity.map((item) => (
+                <View
+                  key={item.city}
+                  className="mr-3 rounded-2xl overflow-hidden shadow-lg"
+                  style={{ width: areaCardWidth, height: 180 }}
+                >
+                  <Image
+                    source={{
+                      uri: `https://picsum.photos/seed/${encodeURIComponent(
+                        item.city
+                      )}/300/200`,
+                    }}
+                    className="w-full h-full"
+                  />
+                  <View className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+
+                  {/* Chữ */}
+                  <View className="absolute bottom-3 left-3 right-3">
+                    <Text className="text-white text-lg font-bold">
+                      {item.city}
+                    </Text>
+                    <Text className="text-white text-sm mt-1">
+                      {item.numberProperty.toLocaleString()} bất động sản
+                    </Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View className="justify-center">
+                <Text className="text-gray-500 text-center py-4">
+                  Chưa có dữ liệu
+                </Text>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* <MapView
+            style={{ flex: 1 }}
+            initialRegion={{
+              latitude: 21.0285, // trung tâm Việt Nam
+              longitude: 105.8542,
+              latitudeDelta: 10,
+              longitudeDelta: 10,
+            }}
+          >
+            { propertyCountByCity && propertyCountByCity.length > 0 ? propertyCountByCity.map((item, index) => (
+              <Marker
+                key={index}
+                coordinate={{
+                  latitude: 21.0285,
+                  longitude: 105.8542,
+                }}
+                title={item.city}
+                description={`${item.numberProperty} bất động sản`}
+              />
+            )): <Text>Khong ton tại</Text>}
+          </MapView> */}
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 };
-
 export default Home;

@@ -216,7 +216,7 @@ const RegisterFlow: React.FC = () => {
   };
 
   const handleLogin = (): void => {
-    navigation.navigate('Login' as never);
+    router.replace("/(auth)/login")
   };
 
   useEffect(() => {

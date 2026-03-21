@@ -71,6 +71,41 @@ export const otpVerified = createAsyncThunk(
     }
 );
 
+export const updateAvatar = createAsyncThunk(
+    "auth/updateAvatar",
+    async (file: { uri: string; name: string; type: string }, { rejectWithValue }) => {
+        try {
+
+            const formData = new FormData();
+
+            formData.append("file", file as any);
+
+            console.log("hinh anh 1: ", formData);
+            
+
+            const response = await apiClient.put(
+                "/estate/auth/avatar",
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }
+            );
+
+            console.log("hinh anh: ", response.data);
+            
+
+            return response.data.data;
+
+        } catch (error: any) {
+            return rejectWithValue(
+                error?.response?.data?.message || "Cập nhật avatar thất bại"
+            );
+        }
+    }
+);
+
 export const requestOtp = createAsyncThunk(
     "auth/requestOtp",
     async (phone: String, { rejectWithValue }) => {
@@ -228,6 +263,21 @@ export const authSlice = createSlice({
                 state.loading = false;
             })
             .addCase(requestOtp.rejected, (state, action) => {
+                state.loading = false;
+            });
+
+        builder
+            .addCase(updateAvatar.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(updateAvatar.fulfilled, (state, action) => {
+                state.loading = false;
+                const avatarUrl = action.payload.avatarUrl;
+                if (avatarUrl && state.user) {
+                    state.user = { ...state.user, avatarUrl };
+                }
+            })
+            .addCase(updateAvatar.rejected, (state) => {
                 state.loading = false;
             });
     },

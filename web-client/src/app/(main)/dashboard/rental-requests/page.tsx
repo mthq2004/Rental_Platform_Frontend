@@ -36,6 +36,7 @@ import {
 } from "@/stores/slices/contract.slice";
 import type { RentalRequest, RentalRequestStatus } from "@/types/contract.type";
 import dayjs from "dayjs";
+import { useRouter } from "next/navigation";
 
 const { Text } = Typography;
 const { TextArea } = Input;
@@ -76,6 +77,7 @@ export default function RentalRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<RentalRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [landlordNotes, setLandlordNotes] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     dispatch(getMyRequests());
@@ -92,10 +94,14 @@ export default function RentalRequestsPage() {
     setDetailOpen(true);
   };
 
-  const handleReview = async (requestId: string, status: "under_review" | "approved" | "rejected") => {
+  const handleReview = async (
+    requestId: string,
+    status: "under_review" | "approved" | "rejected"
+  ) => {
     if (status === "rejected" && !rejectReason.trim()) {
       return message.warning("Vui lòng nhập lý do từ chối");
     }
+
     try {
       await dispatch(
         reviewRequest({
@@ -107,21 +113,30 @@ export default function RentalRequestsPage() {
           },
         })
       ).unwrap();
+
       message.success(
         status === "approved"
-          ? "Đã chấp nhận yêu cầu và tạo hợp đồng"
+          ? "Đã chấp nhận yêu cầu"
           : status === "rejected"
-          ? "Đã từ chối yêu cầu"
-          : "Đã chuyển sang trạng thái xem xét"
+            ? "Đã từ chối yêu cầu"
+            : "Đã chuyển sang trạng thái xem xét"
       );
+
       setDetailOpen(false);
       setRejectReason("");
       setLandlordNotes("");
       handleRefresh();
+
+      // 👉 Nếu approve thì chuyển sang trang chọn template
+      if (status === "approved") {
+        router.push(`/template-contracts?requestId=${requestId}`);
+      }
+
     } catch (err: any) {
       message.error(err || "Thao tác thất bại");
     }
   };
+
 
   const handleCancel = (requestId: string) => {
     modal.confirm({
@@ -177,9 +192,13 @@ export default function RentalRequestsPage() {
       width: 150,
       render: (status: RentalRequestStatus) => {
         const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+        let finalLabel = cfg.label;
+        if (status === "contract_created") {
+          finalLabel = activeTab === "my" ? "Đã tạo HĐ (Chưa gửi)" : "Đã tạo HĐ (Nháp)";
+        }
         return (
           <Tag color={cfg.color} icon={cfg.icon} className="text-xs">
-            {cfg.label}
+            {finalLabel}
           </Tag>
         );
       },
@@ -231,6 +250,20 @@ export default function RentalRequestsPage() {
           <Tooltip title="Xem chi tiết">
             <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleViewDetail(record)} />
           </Tooltip>
+
+          {record.status === "approved" && (
+            <Tooltip title="Chỉnh sửa hợp đồng">
+              <Button
+                size="small"
+                type="default"
+                icon={<FileTextOutlined />}
+                onClick={() => router.push(`/template-contracts/${record.contract?.templateId}?requestId=${record.requestId}`)}
+              >
+                Chỉnh sửa HĐ
+              </Button>
+            </Tooltip>
+          )}
+
           {record.status === "pending" && (
             <Tooltip title="Xem xét">
               <Button
@@ -350,7 +383,7 @@ export default function RentalRequestsPage() {
         title="Chi tiết yêu cầu thuê"
         footer={null}
         width={640}
-        destroyOnClose
+        destroyOnHidden
       >
         {selectedRequest && (
           <div className="space-y-4 pt-2">
@@ -431,11 +464,31 @@ export default function RentalRequestsPage() {
                     <Button
                       type="primary"
                       loading={actionLoading}
-                      onClick={() => handleReview(selectedRequest.requestId, "approved")}
+                      onClick={() => router.push(`/template-contracts?requestId=${selectedRequest.requestId}`)}
                     >
-                      Chấp nhận & Tạo hợp đồng
+                      Chọn mẫu tạo hợp đồng
                     </Button>
                   </div>
+                </div>
+              )}
+
+            {/* Approved / Contract Created -> Edit contract (if already reviewed) */}
+            {activeTab === "received" &&
+              (selectedRequest.status === "approved" ||
+                selectedRequest.status === "contract_created") && (
+                <div className="flex justify-end pt-3 border-t">
+                  <Button
+                    type="primary"
+                    icon={<FileTextOutlined />}
+                    onClick={() => {
+                      setDetailOpen(false);
+                      router.push(
+                        `/template-contracts?requestId=${selectedRequest.requestId}`
+                      );
+                    }}
+                  >
+                    Chỉnh sửa hợp đồng
+                  </Button>
                 </div>
               )}
           </div>

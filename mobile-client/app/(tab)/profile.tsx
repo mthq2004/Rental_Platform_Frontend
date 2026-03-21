@@ -26,16 +26,54 @@ import ProfileAvatar from '@/components/profile/ProfileAvatar';
 import SectionHeader from '@/components/SectionHeader';
 import VerificationCard from '@/components/profile/VerificationCard';
 import MenuItem from '@/components/profile/MenuItem';
-import { useAppSelector } from '@/store/hook';
+import { useAppDispatch, useAppSelector } from '@/store/hook';
+import { logout, updateAvatar } from '@/store/slices/auth.slice';
+import { uploadToCloudinary } from '@/utils/uploadToCloudinary';
+import * as ImagePicker from "expo-image-picker";
+import { router } from 'expo-router';
 
 const ProfileScreen = () => {
-  const [verificationStatus, setVerificationStatus] = useState<'verified' | 'pending' | 'unverified'>('unverified');
+  const [verificationStatus, setVerificationStatus] = useState<'verified' | 'pending' | 'unverified'>('verified');
   const [isDark, setIsDark] = useState(false);
   const { alert, showAlert, hideAlert } = useCustomAlert();
   const { error, isAuth, loading, user } = useAppSelector(state => state.auth)
+  const dispatch = useAppDispatch()
+  
 
-  const handleEdit = () => {
-    Alert.alert('Chỉnh sửa ảnh đại diện', 'Chọn ảnh mới từ thư viện');
+  const handleEdit = async () => {
+    // try {
+
+    //   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    //   if (!permission.granted) {
+    //     Alert.alert("Cần quyền truy cập thư viện ảnh");
+    //     return;
+    //   }
+
+    //   const result = await ImagePicker.launchImageLibraryAsync({
+    //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    //     allowsEditing: true,
+    //     aspect: [1, 1],
+    //     quality: 0.8,
+    //   });
+
+    //   if (result.canceled) return;
+
+    //   const asset = result.assets[0];
+
+    //   const file = {
+    //     uri: asset.uri,
+    //     name: `avatar_${Date.now()}.jpg`,
+    //     type: asset.mimeType || "image/jpeg",
+    //   };
+
+    //   dispatch(updateAvatar(file));
+
+    // } catch (error) {
+    //   Alert.alert("Upload avatar thất bại");
+    // }
+
+    router.push("/(profile)/edit")
   };
 
   const handleVerification = () => {
@@ -54,7 +92,7 @@ const ProfileScreen = () => {
       'Bạn có chắc chắn muốn đăng xuất?',
       [
         { text: 'Hủy', style: 'cancel' },
-        { text: 'Đăng xuất', style: 'destructive', onPress: () => Alert.alert('Đã đăng xuất') }
+        { text: 'Đăng xuất', style: 'destructive', onPress: () => dispatch(logout()) }
       ]
     );
   };
@@ -130,7 +168,7 @@ const ProfileScreen = () => {
     {
       icon: LogOut,
       title: 'Đăng xuất',
-      onPress: () => Alert.alert('Đăng xuất'),
+      onPress: handleLogout,
       iconBgColor: 'bg-red-100',
       iconColor: '#ef4444',
       rightElement: null
@@ -148,7 +186,7 @@ const ProfileScreen = () => {
           isAuth ? (
             <View className="bg-background dark:bg-background-dark pt-16 pb-8">
               <ProfileAvatar
-                imageUrl="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400"
+                imageUrl= { user?.avatarUrl ? user.avatarUrl : "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400" }
                 onEdit={handleEdit}
                 isVerified={verificationStatus === 'verified'}
               />
@@ -158,7 +196,7 @@ const ProfileScreen = () => {
                 }
               </Text>
               <Text className="text-center text-gray-500 text-sm mb-4">
-                ID: { user?.id}
+                ID: {user?.id}
               </Text>
 
               <View className="flex-row justify-center gap-8 mb-6 px-4">

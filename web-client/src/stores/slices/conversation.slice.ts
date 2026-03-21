@@ -101,20 +101,12 @@ const conversationSlice = createSlice({
       const { conversationId, message, isCurrentOpen } = action.payload;
 
       console.log('====================================');
-      console.log("choa: ", isCurrentOpen);
+      console.log("choa: ", isCurrentOpen, message);
       console.log('====================================');
-
-
-      console.log('====================================');
-        console.log("mkklm1: ", state.conversations);
-        console.log('====================================');
 
       const index = state.conversations.findIndex(
         (c) => c.id === conversationId
       );
-
-      console.log("index: ", index);
-      
 
       if (index !== -1) {
         const conversation = state.conversations[index];
@@ -128,17 +120,9 @@ const conversationSlice = createSlice({
             (conversation.unreadCount || 0) + 1;
         }
 
-        console.log('====================================');
-        console.log("mkklm2: ", state.conversations);
-        console.log('====================================');
-
         // move lên đầu
         state.conversations.splice(index, 1);
         state.conversations.unshift(conversation);
-
-        console.log('====================================');
-        console.log("mkklm: ", state.conversations);
-        console.log('====================================');
       }
     },
     setCurrentConversation: (state, action) => {

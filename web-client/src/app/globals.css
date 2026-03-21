@@ -165,3 +165,41 @@ body {
 .search-pagination .ant-pagination-item:hover a {
   color: #3b82f6 !important;
 }
+
+.contract-preview {
+  font-family: "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #000;
+  max-width: 800px;
+  margin: auto;
+  padding: 40px;
+}
+
+.contract-preview h1,
+.contract-preview h2,
+.contract-preview h3 {
+  text-align: center;
+  font-weight: bold;
+}
+
+.contract-preview p {
+  text-align: justify;
+  margin: 8px 0;
+}
+
+.contract-preview table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.contract-preview table,
+.contract-preview th,
+.contract-preview td {
+  border: 1px solid #000;
+}
+
+.contract-preview td,
+.contract-preview th {
+  padding: 8px;
+}

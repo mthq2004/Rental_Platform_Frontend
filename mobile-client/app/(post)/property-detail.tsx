@@ -40,6 +40,7 @@ const PropertyDetail = () => {
   const { user } = useAppSelector(state => state.auth)
 
   const isOwner = propertyDetail?.user.id === user?.id
+  
 
   const [activeTab, setActiveTab] = useState<TabKey>('info')
 
@@ -126,6 +127,8 @@ const PropertyDetail = () => {
 
   useEffect(() => {
     if (propertyId) {
+      console.log("jk");
+      
       dispatch(getPropertyDetailThunk(propertyId as string))
     }
   }, [propertyId, dispatch])

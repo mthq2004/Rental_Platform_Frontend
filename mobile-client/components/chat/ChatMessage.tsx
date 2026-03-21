@@ -2,6 +2,7 @@ import { Text, View, Image, TouchableWithoutFeedback, Dimensions } from 'react-n
 import React, { useState } from 'react';
 import { Message } from '@/types/message.type';
 import MessageContextMenu from './MessageContextMenu';
+import { Angry, Frown, Heart, Laugh, ThumbsUp } from 'lucide-react-native';
 interface ChatMessageProps {
   message: Message;
   isMe: boolean;
@@ -170,7 +171,16 @@ interface ReactionsRowProps {
   isMe: boolean;
 }
 
-const ReactionsRow = ({ reactions, isMe }: { reactions?: any[]; isMe?: boolean }) => {
+const ReactionsRow = ({ reactions }: { reactions?: any[] }) => {
+
+  const REACTIONS = [
+    { key: 'love', icon: Heart, color: '#ff3b30' },
+    { key: 'like', icon: ThumbsUp, color: '#0a84ff' },
+    { key: 'haha', icon: Laugh, color: '#ffd60a' },
+    { key: 'sad', icon: Frown, color: '#64d2ff' },
+    { key: 'angry', icon: Angry, color: '#ff453a' },
+  ];
+
   if (!reactions || reactions.length === 0) return null;
 
   const grouped = reactions.reduce((acc: Record<string, number>, r) => {
@@ -199,9 +209,23 @@ const ReactionsRow = ({ reactions, isMe }: { reactions?: any[]; isMe?: boolean }
         borderColor: 'rgba(0,0,0,0.08)',
       }}
     >
-      <Text style={{ fontSize: 13, letterSpacing: -1 }}>
-        {entries.slice(0, 3).map(([emoji]) => emoji).join('')}
-      </Text>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        {entries.slice(0, 3).map(([key]) => {
+          const reaction = REACTIONS.find(r => r.key === key);
+          if (!reaction) return null;
+
+          const Icon = reaction.icon;
+
+          return (
+            <Icon
+              key={key}
+              size={14}
+              color={reaction.color}
+              style={{ marginRight: -2 }}
+            />
+          );
+        })}
+      </View>
 
       {totalCount > 0 && (
         <Text
@@ -258,7 +282,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMe }) => {
             zIndex: 10,
           }}
         >
-          {message.reactions && <ReactionsRow reactions={message.reactions} isMe={isMe} />}
+          {message.reactions && <ReactionsRow reactions={message.reactions} />}
 
         </View>
       )}

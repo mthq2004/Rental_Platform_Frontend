@@ -82,8 +82,7 @@ const LoginScreen = () => {
   };
 
   const handleForgotPassword = (): void => {
-    console.log('Quên mật khẩu');
-    // Navigate to forgot password screen
+    router.push("/(auth)/forgot-password")
   };
 
   const handleRegister = (): void => {

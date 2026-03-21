@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import PropertyCard from "@/components/property/PropertyCard";
 import { DownOutlined } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
-import { getFeaturedPropertiesThunk } from "@/stores/slices/estate.slice";
+import { getFeaturedPropertiesThunk, getListProperty } from "@/stores/slices/estate.slice";
 
 function formatPrice(price: number): string {
   if (price >= 1_000_000_000) {
@@ -24,10 +24,15 @@ const PropertyListings = () => {
   const dispatch = useAppDispatch();
   const { data: featuredProperties, loading } = useAppSelector((state) => state.estate.featured);
   const [visibleCount, setVisibleCount] = useState(8);
+  const { isAuth } = useAppSelector(state => state.auth)
 
   useEffect(() => {
-    dispatch(getFeaturedPropertiesThunk(16));
-  }, [dispatch]);
+    if (isAuth) {
+      dispatch(getListProperty());
+    } else {
+      dispatch(getFeaturedPropertiesThunk(16));
+    }
+  }, [dispatch, isAuth]);
 
   const handleToggleFavorite = (id: string) => {
     console.log("Toggle favorite:", id);

@@ -69,6 +69,19 @@ export const getPropertyDetail = createAsyncThunk(
     }
 )
 
+export const getNumberPropertyByCity = createAsyncThunk(
+    "property/getNumberPropertyByCity",
+    async (type: string) => {
+        const res = await apiClient.get(`/estate/properties/number-property?type=${type}`);
+        return res.data;
+    }
+);
+
+interface PropertyCountByCity {
+    city: string;
+    numberProperty: number;
+}
+
 type initialStateType = {
     loading: boolean,
     loadingPropertyStatus?: boolean
@@ -82,7 +95,8 @@ type initialStateType = {
         count: number
     } | null
     propertyTemp?: any | [],
-    propertyDetail?: any | []
+    propertyDetail?: any | [],
+    propertyCountByCity?: PropertyCountByCity[] | []
 }
 
 const initialState: initialStateType = {
@@ -214,11 +228,23 @@ export const propertySlice = createSlice({
             })
             .addCase(getPropertyDetail.fulfilled, (state, action) => {
                 state.loading = false,
-                state.propertyDetail = action.payload.data
+                    state.propertyDetail = action.payload.data
             })
             .addCase(getPropertyDetail.rejected, state => {
                 state.loading = false,
-                state.propertyDetail = null
+                    state.propertyDetail = null
+            })
+        builder
+            .addCase(getNumberPropertyByCity.pending, state => {
+                state.loading = true
+            })
+            .addCase(getNumberPropertyByCity.fulfilled, (state, action) => {
+                state.loading = false
+                state.propertyCountByCity = action.payload.data || []
+            })
+            .addCase(getNumberPropertyByCity.rejected, state => {
+                state.loading = false
+                state.propertyCountByCity = []
             })
     },
 });

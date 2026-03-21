@@ -76,7 +76,19 @@ export const getFeaturedPropertiesThunk = createAsyncThunk(
   async (limit: number = 12, { rejectWithValue }) => {
     try {
       const res = await apiClient.get(`/estate/properties/featured?limit=${limit}`);
-      return res.data.data as FeaturedPropertyItem[];
+      return res.data.data as { data: FeaturedPropertyItem[]; nextCursor: string | null; hasMore: boolean; total: number };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Lấy tin nổi bật thất bại");
+    }
+  }
+);
+
+export const getListProperty = createAsyncThunk(
+  "estate/getListProperty",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.get(`/estate/properties`);
+      return res.data.data as { data: FeaturedPropertyItem[]; nextCursor: string | null; hasMore: boolean; total: number };
     } catch (error: any) {
       return rejectWithValue(error.message || "Lấy tin nổi bật thất bại");
     }
@@ -107,6 +119,9 @@ interface EstateState {
   featured: {
     loading: boolean;
     data: FeaturedPropertyItem[];
+    nextCursor: string | null;
+    hasMore: boolean;
+    total: number;
     error: string | null;
   };
 }
@@ -115,7 +130,7 @@ const initialState: EstateState = {
   search: { loading: false, data: [], nextCursor: null, hasMore: false, total: 0, error: null },
   similar: { loading: false, data: [], error: null },
   detail: { loading: false, data: null, error: null },
-  featured: { loading: false, data: [], error: null },
+  featured: { loading: false, data: [], nextCursor: null, hasMore: false, total: 0, error: null },
 };
 
 // ─── Slice ────────────────────────────────────────────────────────────────────
@@ -189,9 +204,29 @@ export const estateSlice = createSlice({
       })
       .addCase(getFeaturedPropertiesThunk.fulfilled, (state, action) => {
         state.featured.loading = false;
-        state.featured.data = action.payload;
+        state.featured.data = action.payload.data;
+        state.featured.nextCursor = action.payload.nextCursor;
+        state.featured.hasMore = action.payload.hasMore;
+        state.featured.total = action.payload.total;
       })
       .addCase(getFeaturedPropertiesThunk.rejected, (state, action) => {
+        state.featured.loading = false;
+        state.featured.error = (action.payload as string) || "Lấy tin nổi bật thất bại";
+      });
+
+    builder
+      .addCase(getListProperty.pending, (state) => {
+        state.featured.loading = true;
+        state.featured.error = null;
+      })
+      .addCase(getListProperty.fulfilled, (state, action) => {
+        state.featured.loading = false;
+        state.featured.data = action.payload.data;
+        state.featured.nextCursor = action.payload.nextCursor;
+        state.featured.hasMore = action.payload.hasMore;
+        state.featured.total = action.payload.total;
+      })
+      .addCase(getListProperty.rejected, (state, action) => {
         state.featured.loading = false;
         state.featured.error = (action.payload as string) || "Lấy tin nổi bật thất bại";
       });
