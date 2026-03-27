@@ -3,6 +3,18 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import dynamic from "next/dynamic";
+import {
+  ArrowLeftOutlined,
+  CheckCircleOutlined,
+  CloseOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  ExclamationCircleOutlined,
+  EyeOutlined,
+  SaveOutlined,
+  SendOutlined,
+  CloseCircleOutlined,
+} from "@ant-design/icons";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { getRequestTemplateData, getTemplateDetail } from "@/stores/slices/template-contract.slice";
@@ -107,6 +119,15 @@ function formatDate(val: any): string {
     return `${d}/${m}/${y}`;
   }
   return String(val);
+}
+
+function normalizeTemplateDocumentHtml(html: string): string {
+  return html
+    .replace(/overflow-y\s*:\s*auto\s*;?/gi, "")
+    .replace(/overflow-x\s*:\s*auto\s*;?/gi, "")
+    .replace(/overflow\s*:\s*auto\s*;?/gi, "")
+    .replace(/max-height\s*:\s*[^;\"]+;?/gi, "")
+    .replace(/height\s*:\s*(?:\d+(?:\.\d+)?vh|calc\([^)]*\))\s*;?/gi, "");
 }
 
 function renderTemplate(html: string, formData: Record<string, unknown>): string {
@@ -234,6 +255,11 @@ const RentalContractPage = () => {
     return { ...raw, templateVariables: normaliseTemplateVariables(raw.templateVariables) };
   }, [templateDetail]);
 
+  const normalizedTemplateContent = useMemo(() => {
+    if (!template) return "";
+    return normalizeTemplateDocumentHtml(template.templateContent);
+  }, [template]);
+
   useEffect(() => {
     if (requestId) {
       dispatch(getRequestTemplateData(requestId));
@@ -260,8 +286,8 @@ const RentalContractPage = () => {
 
   // ──── Init Editor Content ────
   useEffect(() => {
-    if (template) setEditorContent(template.templateContent);
-  }, [template]);
+    if (template) setEditorContent(normalizedTemplateContent);
+  }, [template, normalizedTemplateContent]);
 
   // ──── Load Request Data ────
   useEffect(() => {
@@ -336,7 +362,7 @@ const RentalContractPage = () => {
 
       // Re-render editor content if not using existing HTML
       if (!existingContract?.contractHtml) {
-        setEditorContent(renderTemplate(template.templateContent, initialFormData));
+        setEditorContent(renderTemplate(normalizedTemplateContent, initialFormData));
       }
 
       // Directly apply HTML with the mapped data to the paperRef
@@ -368,7 +394,7 @@ const RentalContractPage = () => {
 
   // ──── Generate Editable HTML ────
   function generateEditableHtml(data: Record<string, unknown>, tmpl: ContractTemplate): string {
-    return tmpl.templateContent.replace(/\{\{(.*?)\}\}/g, (_, rawKey: string) => {
+    return normalizeTemplateDocumentHtml(tmpl.templateContent).replace(/\{\{(.*?)\}\}/g, (_, rawKey: string) => {
       const key = rawKey.trim();
       const field = tmpl.templateVariables.find((v) => v.name === key);
       if (!field) return `{{${key}}}`;
@@ -392,7 +418,7 @@ const RentalContractPage = () => {
 
   // ──── Generate Preview HTML ────
   function generatePreviewHtml(data: Record<string, unknown>, tmpl: ContractTemplate): string {
-    return tmpl.templateContent.replace(/\{\{(.*?)\}\}/g, (_, rawKey: string) => {
+    return normalizeTemplateDocumentHtml(tmpl.templateContent).replace(/\{\{(.*?)\}\}/g, (_, rawKey: string) => {
       const key = rawKey.trim();
       const field = tmpl.templateVariables.find((v) => v.name === key);
       let value = data[key] != null ? String(data[key]) : "";
@@ -482,7 +508,7 @@ const RentalContractPage = () => {
       if (template) {
         setEditorContent((prev) => {
           const updated = { ...formDataRef.current, [fieldName]: input.value };
-          return renderTemplate(template.templateContent, updated);
+          return renderTemplate(normalizedTemplateContent, updated);
         });
       }
 
@@ -499,7 +525,7 @@ const RentalContractPage = () => {
 
     container.addEventListener("input", handleInput);
     return () => container.removeEventListener("input", handleInput);
-  }, [template]);
+  }, [template, normalizedTemplateContent]);
 
   // ──── Dynamic Error CSS ────
   const errorCss = useMemo(() => {
@@ -649,7 +675,7 @@ const RentalContractPage = () => {
 
   const handleDownloadPDF = useCallback(() => {
     try {
-      const finalHtml = template ? renderTemplate(template.templateContent, formData) : editorContent;
+      const finalHtml = template ? renderTemplate(normalizedTemplateContent, formData) : editorContent;
       const printWindow = window.open("", "", "height=800,width=900");
       if (printWindow) {
         printWindow.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${template?.templateName ?? "Hợp đồng"}</title>
@@ -692,9 +718,7 @@ const RentalContractPage = () => {
         <div className="toolbar-inner">
           <div className="toolbar-left">
             <button onClick={() => router.back()} className="toolbar-back-btn" type="button">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M10 12L6 8l4-4" />
-              </svg>
+              <ArrowLeftOutlined />
               Quay lại
             </button>
             <div className="toolbar-divider" />
@@ -715,7 +739,7 @@ const RentalContractPage = () => {
                 className={`mode-toggle-btn ${isEditMode ? "active" : ""}`}
                 type="button"
               >
-                ✏️ Chỉnh sửa
+                <EditOutlined /> Chỉnh sửa
               </button>
               <button
                 onClick={handleToggleMode}
@@ -724,7 +748,7 @@ const RentalContractPage = () => {
                 className={`mode-toggle-btn ${!isEditMode ? "active" : ""}`}
                 type="button"
               >
-                👁️ Xem trước
+                <EyeOutlined /> Xem trước
               </button>
             </div>
 
@@ -748,7 +772,7 @@ const RentalContractPage = () => {
 
             {/* Actions */}
             <button onClick={handleDownloadPDF} disabled={isSaving} className="action-btn" type="button">
-              📥 PDF
+              <DownloadOutlined /> PDF
             </button>
             <button
               onClick={handleSaveDraft}
@@ -756,7 +780,7 @@ const RentalContractPage = () => {
               className="action-btn"
               type="button"
             >
-              {isSaving ? "Đang lưu..." : "💾 Lưu nháp"}
+              {isSaving ? "Đang lưu..." : <><SaveOutlined /> Lưu nháp</>}
             </button>
             <button
               onClick={handlePrepareToSend}
@@ -764,7 +788,7 @@ const RentalContractPage = () => {
               className="action-btn action-btn-primary"
               type="button"
             >
-              {isSaving ? "Đang xử lý..." : "✉️ Gửi ký"}
+              {isSaving ? "Đang xử lý..." : <><SendOutlined /> Gửi ký</>}
             </button>
           </div>
         </div>
@@ -774,12 +798,12 @@ const RentalContractPage = () => {
           <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
             {saveSuccess && (
               <div className="alert-bar alert-success" role="alert">
-                ✅ {contractStatus === "sent" ? "Hợp đồng đã được gửi thành công!" : "Hợp đồng đã được lưu thành công!"}
+                <CheckCircleOutlined /> {contractStatus === "sent" ? "Hợp đồng đã được gửi thành công!" : "Hợp đồng đã được lưu thành công!"}
               </div>
             )}
             {saveError && (
               <div className="alert-bar alert-error" role="alert">
-                ❌ {saveError}
+                <CloseCircleOutlined /> {saveError}
               </div>
             )}
           </div>
@@ -807,7 +831,7 @@ const RentalContractPage = () => {
                     return next;
                   });
                   if (template) {
-                    setEditorContent(renderTemplate(template.templateContent, { ...formDataRef.current, [p.key]: val }));
+                    setEditorContent(renderTemplate(normalizedTemplateContent, { ...formDataRef.current, [p.key]: val }));
                   }
                 }}
               />
@@ -879,11 +903,11 @@ const SendContractModal: React.FC<SendContractModalProps> = ({
       <div className="fixed top-1/2 left-1/2 z-50" style={{ transform: 'translate(-50%, -50%)', maxWidth: 440, width: '92%', maxHeight: '90vh', overflow: 'auto', background: 'white', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>Gửi hợp đồng cho khách hàng</h2>
-          <button onClick={onClose} disabled={isLoading} style={{ color: '#9ca3af', fontSize: 18, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 6 }} type="button" aria-label="Đóng">✕</button>
+          <button onClick={onClose} disabled={isLoading} style={{ color: '#9ca3af', fontSize: 18, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 6 }} type="button" aria-label="Đóng"><CloseOutlined /></button>
         </div>
         <div style={{ padding: '20px 24px' }}>
           <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>Hợp đồng &quot;{contractName}&quot; sẽ được gửi để ký duyệt.</p>
-          {error && <div className="alert-bar alert-error" role="alert">❌ {error}</div>}
+          {error && <div className="alert-bar alert-error" role="alert"><CloseCircleOutlined /> {error}</div>}
           <div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column' }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 6 }} htmlFor="recipientName">Tên khách hàng <span style={{ color: '#dc2626' }}>*</span></label>
             <input id="recipientName" name="recipientName" type="text" value={formData.recipientName} onChange={handleChange} placeholder="Nhập tên khách hàng"
@@ -902,7 +926,7 @@ const SendContractModal: React.FC<SendContractModalProps> = ({
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
             <button onClick={onClose} disabled={isLoading} className="action-btn" type="button">Hủy</button>
             <button onClick={onSend} disabled={isLoading} className="action-btn action-btn-primary" type="button">
-              {isLoading ? "Đang gửi..." : "✉️ Gửi hợp đồng"}
+              {isLoading ? "Đang gửi..." : <><SendOutlined /> Gửi hợp đồng</>}
             </button>
           </div>
         </div>
@@ -921,7 +945,7 @@ const LoadingState = () => (
 
 const ErrorState = ({ message }: { message: string }) => (
   <div className="contract-editor-page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: 20 }}>
-    <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+    <div style={{ fontSize: 48, marginBottom: 16, color: '#d97706', lineHeight: 1 }}><ExclamationCircleOutlined /></div>
     <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 8 }}>Có lỗi xảy ra</h2>
     <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', maxWidth: 320 }}>{message}</p>
   </div>

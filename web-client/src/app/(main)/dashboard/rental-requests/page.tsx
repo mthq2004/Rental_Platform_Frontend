@@ -60,9 +60,32 @@ const formatDate = (dateStr: string) => {
   return dayjs(dateStr).format("DD/MM/YYYY");
 };
 
-const formatCurrency = (amount: number) => {
-  if (!amount) return "—";
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+const normalizeRentMagnitude = (value: number): number => {
+  if (value >= 1e11) {
+    return value / 1e6;
+  }
+  return value;
+};
+
+const toNumberSafe = (value: unknown): number | null => {
+  if (value === null || value === undefined) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? normalizeRentMagnitude(value) : null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const dotGrouped = /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(trimmed);
+    const normalized = dotGrouped
+      ? trimmed.replace(/\./g, "").replace(/,/g, ".")
+      : trimmed.replace(/,/g, "");
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? normalizeRentMagnitude(parsed) : null;
+  }
+  return null;
+};
+
+const formatCurrency = (amount: unknown) => {
+  const numericAmount = toNumberSafe(amount);
+  if (numericAmount === null) return "—";
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(numericAmount);
 };
 
 export default function RentalRequestsPage() {
@@ -183,7 +206,7 @@ export default function RentalRequestsPage() {
       key: "proposedRent",
       width: 160,
       render: (val) => <Text strong className="text-red-500 text-sm">{formatCurrency(val)}</Text>,
-      sorter: (a, b) => a.proposedRent - b.proposedRent,
+      sorter: (a, b) => (toNumberSafe(a.proposedRent) ?? 0) - (toNumberSafe(b.proposedRent) ?? 0),
     },
     {
       title: "Trạng thái",

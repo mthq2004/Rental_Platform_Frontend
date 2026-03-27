@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -143,7 +143,7 @@ const ContractTemplatesContent = () => {
         <div className="max-w-[1400px] mx-auto px-6">
           {/* Breadcrumbs */}
           <nav className="flex items-center gap-2 text-sm font-medium mb-6">
-            <button className="text-[#00B14F] hover:text-[#008F40] transition-colors">Trang chủ</button>
+            <button className="text-[#2563EB] hover:text-[#1D4ED8] transition-colors">Trang chủ</button>
             <ChevronRight size={14} className="text-slate-400" />
             <span className="text-slate-500 font-semibold">Mẫu Hợp Đồng</span>
           </nav>
@@ -160,12 +160,12 @@ const ContractTemplatesContent = () => {
 
             {/* Mascot Area */}
             <div className="hidden lg:block">
-              <div className="relative w-28 h-28 bg-green-50 rounded-full flex items-center justify-center p-4 ring-8 ring-green-100/50">
+              <div className="relative w-28 h-28 bg-blue-50 rounded-full flex items-center justify-center p-4 ring-8 ring-blue-100/60">
                 <motion.div
                   animate={{ y: [0, -8, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 >
-                  <FileText size={56} className="text-[#00B14F]" />
+                  <FileText size={56} className="text-[#2563EB]" />
                 </motion.div>
                 <div className="absolute -bottom-1 -right-1 bg-white p-2 rounded-xl shadow-xl border border-slate-100">
                   <div className="px-2 py-0.5 bg-amber-400 rounded-md text-white text-[10px] font-black uppercase tracking-wider">PREMIUM</div>
@@ -182,8 +182,8 @@ const ContractTemplatesContent = () => {
                   key={tab.label}
                   onClick={() => setActiveTab(tab.label)}
                   className={`flex items-center gap-2.5 px-6 py-2.5 rounded-full text-sm font-bold transition-all border ${activeTab === tab.label
-                    ? "bg-[#00B14F] border-[#00B14F] text-white shadow-lg shadow-green-500/20"
-                    : "bg-white border-slate-200 text-[#2D333F] hover:border-[#00B14F] hover:text-[#00B14F]"
+                    ? "bg-[#2563EB] border-[#2563EB] text-white shadow-lg shadow-blue-500/20"
+                    : "bg-white border-slate-200 text-[#2D333F] hover:border-[#2563EB] hover:text-[#2563EB]"
                     }`}
                 >
                   <tab.icon size={18} />
@@ -194,13 +194,13 @@ const ContractTemplatesContent = () => {
 
             <div className="flex flex-wrap items-center gap-4">
               <div className="relative group min-w-[280px]">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#00B14F] transition-colors" size={18} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#2563EB] transition-colors" size={18} />
                 <input
                   type="text"
                   placeholder="Tìm kiếm mẫu hợp đồng..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-[#00B14F]/10 focus:border-[#00B14F] transition-all"
+                  className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-[#2563EB]/10 focus:border-[#2563EB] transition-all"
                 />
               </div>
             </div>
@@ -236,7 +236,7 @@ const ContractTemplatesContent = () => {
                     <p className="text-slate-500 mt-2">Hãy thử thay đổi tiêu chí bộ lọc hoặc từ khóa tìm kiếm</p>
                     <button
                       onClick={() => { setActiveTab("Tất cả"); setSearchTerm(""); }}
-                      className="mt-6 text-[#00B14F] font-bold hover:underline"
+                      className="mt-6 text-[#2563EB] font-bold hover:underline"
                     >
                       Xóa tất cả bộ lọc
                     </button>
@@ -254,19 +254,19 @@ const ContractTemplatesContent = () => {
             >
               <button
                 onClick={handleBack}
-                className="flex items-center gap-2 text-slate-500 hover:text-[#00B14F] font-bold mb-8 group transition-colors"
+                className="flex items-center gap-2 text-slate-500 hover:text-[#2563EB] font-bold mb-8 group transition-colors"
               >
-                <div className="p-2 rounded-xl group-hover:bg-green-50 transition-colors">
+                <div className="p-2 rounded-xl group-hover:bg-blue-50 transition-colors">
                   <ArrowLeft size={20} />
                 </div>
                 Quay lại danh sách mẫu
               </button>
 
-              <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-2xl shadow-green-900/5 flex flex-col lg:flex-row border border-slate-100">
+              <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-2xl shadow-blue-900/5 flex flex-col lg:flex-row border border-slate-100">
                 {/* Visual Preview */}
                 <div className="lg:w-[45%] bg-[#F0F2F5] p-12 flex items-center justify-center border-b lg:border-b-0 lg:border-r border-slate-100">
                   <div className="w-full max-w-[350px] aspect-[1/1.41] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm p-10 flex flex-col gap-5 border border-slate-100 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-full h-1.5 bg-[#00B14F]" />
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-[#2563EB]" />
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-slate-100" />
                       <div className="h-5 w-40 bg-slate-100 rounded" />
@@ -286,8 +286,8 @@ const ContractTemplatesContent = () => {
                 {/* Detail Content */}
                 <div className="flex-1 p-12 lg:p-16 flex flex-col bg-white">
                   <div className="mb-10">
-                    <div className="flex items-center gap-3 text-[#00B14F] font-bold text-xs uppercase tracking-[0.15em] mb-6">
-                      <span className="px-4 py-1.5 bg-green-50 rounded-full border border-green-100">{selectedTemplate?.typeLabel}</span>
+                    <div className="flex items-center gap-3 text-[#2563EB] font-bold text-xs uppercase tracking-[0.15em] mb-6">
+                      <span className="px-4 py-1.5 bg-blue-50 rounded-full border border-blue-100">{selectedTemplate?.typeLabel}</span>
                       <span className="text-slate-400">Phiên bản {selectedTemplate?.version}.0.0</span>
                     </div>
                     <h1 className="text-4xl lg:text-5xl font-extrabold text-[#2D333F] tracking-tight leading-[1.15] mb-8">
@@ -301,7 +301,7 @@ const ContractTemplatesContent = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-12">
                     <div className="flex items-center gap-5 p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
                       <div className="p-3.5 bg-white rounded-2xl shadow-sm">
-                        <Calendar className="text-[#00B14F]" size={24} />
+                        <Calendar className="text-[#2563EB]" size={24} />
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Cập nhật cuối</p>
@@ -310,7 +310,7 @@ const ContractTemplatesContent = () => {
                     </div>
                     <div className="flex items-center gap-5 p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100">
                       <div className="p-3.5 bg-white rounded-2xl shadow-sm">
-                        <CheckCircle2 className="text-[#00B14F]" size={24} />
+                        <CheckCircle2 className="text-[#2563EB]" size={24} />
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Kiểm định</p>
@@ -322,11 +322,11 @@ const ContractTemplatesContent = () => {
                   <div className="mt-auto flex flex-col md:flex-row gap-5 pt-12 border-t border-slate-100">
                     <button
                       onClick={() => handleUseTemplate()}
-                      className="flex-[2] bg-[#00B14F] hover:bg-[#008F40] text-white font-black py-4.5 px-10 rounded-[1.25rem] shadow-2xl shadow-green-500/30 active:scale-[0.98] transition-all text-center text-xl tracking-wide"
+                      className="flex-[2] bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black py-4.5 px-10 rounded-[1.25rem] shadow-2xl shadow-blue-500/30 active:scale-[0.98] transition-all text-center text-xl tracking-wide"
                     >
                       DÙNG MẪU NÀY
                     </button>
-                    <button className="flex-1 px-8 py-4.5 bg-white border-2 border-slate-100 rounded-[1.25rem] font-bold text-[#2D333F] hover:bg-slate-50 hover:border-[#00B14F]/30 transition-all text-xl">
+                    <button className="flex-1 px-8 py-4.5 bg-white border-2 border-slate-100 rounded-[1.25rem] font-bold text-[#2D333F] hover:bg-slate-50 hover:border-[#2563EB]/30 transition-all text-xl">
                       Tải mẫu PDF
                     </button>
                   </div>
@@ -344,14 +344,14 @@ const ContractTemplatesContent = () => {
 
 const TemplateCard = ({ template, onUse, onPreview }: any) => {
   return (
-    <div className="bg-white rounded-[1rem] overflow-hidden border border-slate-100 hover:border-[#00B14F]/30 shadow-sm hover:shadow-2xl hover:shadow-[#00B14F]/10 transition-all duration-500 group flex flex-col h-full cursor-pointer" onClick={onPreview}>
+    <div className="bg-white rounded-[1rem] overflow-hidden border border-slate-100 hover:border-[#2563EB]/30 shadow-sm hover:shadow-2xl hover:shadow-[#2563EB]/10 transition-all duration-500 group flex flex-col h-full cursor-pointer" onClick={onPreview}>
       {/* Preview Section */}
       <div className="relative aspect-[1/1.32] bg-[#F7F8F9] p-8 overflow-hidden">
         {/* Mock Document */}
         <div className="w-full h-full bg-white shadow-[0_15px_40px_rgba(0,0,0,0.06)] rounded-sm border border-slate-200 p-6 flex flex-col gap-3.5 group-hover:scale-[1.03] transition-transform duration-700 origin-top">
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-8 h-8 rounded-full bg-[#00B14F]/10 flex items-center justify-center">
-              <FileText size={14} className="text-[#00B14F]" />
+            <div className="w-8 h-8 rounded-full bg-[#2563EB]/10 flex items-center justify-center">
+              <FileText size={14} className="text-[#2563EB]" />
             </div>
             <div className="h-2 w-24 bg-slate-100 rounded" />
           </div>
@@ -370,9 +370,9 @@ const TemplateCard = ({ template, onUse, onPreview }: any) => {
 
         {/* Status Badge "Mới" */}
         {template.templateId.includes('1') || template.isDefault ? (
-          <div className="absolute top-5 left-5 flex items-center gap-1.5 px-4 py-2 bg-white rounded-full shadow-lg border border-green-50 animate-pulse z-10">
-            <div className="w-2 h-2 bg-[#00B14F] rounded-full" />
-            <span className="text-[10px] font-black text-[#00B14F] uppercase tracking-[0.1em]">Nổi bật</span>
+          <div className="absolute top-5 left-5 flex items-center gap-1.5 px-4 py-2 bg-white rounded-full shadow-lg border border-blue-50 animate-pulse z-10">
+            <div className="w-2 h-2 bg-[#2563EB] rounded-full" />
+            <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-[0.1em]">Nổi bật</span>
           </div>
         ) : null}
 
@@ -383,7 +383,7 @@ const TemplateCard = ({ template, onUse, onPreview }: any) => {
               e.stopPropagation();
               onUse();
             }}
-            className="bg-[#00B14F] hover:bg-[#008F40] text-white font-black py-3.5 px-10 rounded-[5px] shadow-[0_10px_30px_rgba(0,177,79,0.3)] transform transition-all active:scale-95 translate-y-12 group-hover:translate-y-0 duration-500 text-base tracking-wide pointer-events-auto"
+            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black py-3.5 px-10 rounded-[5px] shadow-[0_10px_30px_rgba(0,177,79,0.3)] transform transition-all active:scale-95 translate-y-12 group-hover:translate-y-0 duration-500 text-base tracking-wide pointer-events-auto"
           >
             Dùng mẫu
           </button>
@@ -394,12 +394,12 @@ const TemplateCard = ({ template, onUse, onPreview }: any) => {
       <div className="p-8 flex flex-col flex-1 bg-white">
         {/* Style Indicators (Dots) */}
         <div className="flex gap-2.5 mb-5">
-          {['bg-[#00B14F]', 'bg-slate-200', 'bg-slate-200', 'bg-slate-200'].map((color, i) => (
-            <div key={i} className={`w-4 h-4 rounded-full ${color} ${i === 0 ? 'ring-4 ring-green-100' : ''} transition-all duration-300`} />
+          {['bg-[#2563EB]', 'bg-slate-200', 'bg-slate-200', 'bg-slate-200'].map((color, i) => (
+            <div key={i} className={`w-4 h-4 rounded-full ${color} ${i === 0 ? 'ring-4 ring-blue-100' : ''} transition-all duration-300`} />
           ))}
         </div>
 
-        <h3 className="text-2xl font-bold text-[#2D333F] mb-3 group-hover:text-[#00B14F] transition-colors line-clamp-1 leading-tight tracking-tight">
+        <h3 className="text-2xl font-bold text-[#2D333F] mb-3 group-hover:text-[#2563EB] transition-colors line-clamp-1 leading-tight tracking-tight">
           {template.templateName}
         </h3>
 
@@ -411,7 +411,7 @@ const TemplateCard = ({ template, onUse, onPreview }: any) => {
           <span className="px-4 py-2 bg-slate-100 text-[#555E68] text-[10px] font-black rounded-xl uppercase tracking-[0.1em] border border-slate-200/50">
             {template.typeLabel || "Standard"}
           </span>
-          <span className="px-4 py-2 bg-green-50 text-[#00B14F] text-[10px] font-black rounded-xl uppercase tracking-[0.1em] border border-green-100/50">
+          <span className="px-4 py-2 bg-blue-50 text-[#2563EB] text-[10px] font-black rounded-xl uppercase tracking-[0.1em] border border-blue-100/50">
             Professional
           </span>
         </div>
@@ -424,8 +424,8 @@ const ContractTemplatesPage = () => {
   return (
     <React.Suspense fallback={
       <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <div className="w-16 h-16 border-4 border-green-100 border-t-[#00B14F] rounded-full animate-spin mb-4" />
-        <p className="font-bold text-[#00B14F] animate-pulse">Đang chuẩn bị các tài liệu chuyên nghiệp...</p>
+        <div className="w-16 h-16 border-4 border-blue-100 border-t-[#2563EB] rounded-full animate-spin mb-4" />
+        <p className="font-bold text-[#2563EB] animate-pulse">Đang chuẩn bị các tài liệu chuyên nghiệp...</p>
       </div>
     }>
       <ContractTemplatesContent />
@@ -434,3 +434,4 @@ const ContractTemplatesPage = () => {
 };
 
 export default ContractTemplatesPage;
+

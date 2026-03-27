@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
   HeartOutlined,
   HeartFilled,
@@ -13,6 +13,9 @@ import type { PropertyType } from "@/types/property.type";
 
 interface PropertyInfoProps {
   property: PropertyDetailData;
+  isSaved: boolean;
+  favoriteLoading?: boolean;
+  onToggleFavorite: () => void;
 }
 
 function formatPrice(price: number): string {
@@ -36,8 +39,7 @@ function formatTimeAgo(dateStr: string): string {
   return `Cập nhật ${Math.floor(diffDays / 7)} tuần trước`;
 }
 
-export default function PropertyInfo({ property }: PropertyInfoProps) {
-  const [isSaved, setIsSaved] = useState(false);
+export default function PropertyInfo({ property, isSaved, favoriteLoading = false, onToggleFavorite }: PropertyInfoProps) {
   const meta = PROPERTY_META[property.propertyType as PropertyType];
 
   return (
@@ -48,7 +50,8 @@ export default function PropertyInfo({ property }: PropertyInfoProps) {
           {property.title}
         </h1>
         <button
-          onClick={() => setIsSaved(!isSaved)}
+          onClick={onToggleFavorite}
+          disabled={favoriteLoading}
           className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border shrink-0 transition-colors text-sm font-medium
             ${isSaved
               ? "border-red-300 text-red-500 bg-red-50"

@@ -1,5 +1,30 @@
 @import "tailwindcss";
 
+:root {
+  --bg: #f4f8ff;
+  --surface: #ffffff;
+  --surface-2: #eaf2ff;
+  --text-primary: #10213d;
+  --text-secondary: #456089;
+  --accent: #1d4ed8;
+  --border: #d3e2ff;
+  --muted: #edf4ff;
+  --shadow-soft: 0 14px 40px rgba(17, 57, 133, 0.12);
+  view-transition-name: root;
+}
+
+[data-theme="dark"] {
+  --bg: #0c1422;
+  --surface: #131f33;
+  --surface-2: #1b2b48;
+  --text-primary: #edf4ff;
+  --text-secondary: #9db3d8;
+  --accent: #6ea4ff;
+  --border: #27406d;
+  --muted: #172740;
+  --shadow-soft: 0 14px 40px rgba(0, 0, 0, 0.35);
+}
+
 
 /* Bootstrap-like Container */
 .container {
@@ -114,17 +139,17 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--muted);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #C92127 0%, #E63946 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #E63946 0%, #C92127 100%);
+  background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
 }
 
 /* Custom Button Hover Effects */
@@ -157,9 +182,95 @@
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
 }
 
-/* Smooth Transitions */
-* {
-  transition: color 0.2s ease, background-color 0.2s ease;
+/* Keep transition on major surfaces instead of every node to avoid staggered dark patches. */
+html,
+body,
+#root,
+.ant-app,
+.ant-layout,
+.ant-layout-content,
+.ant-layout-sider,
+.ant-card,
+.ant-table,
+.ant-btn,
+.ant-input,
+.ant-select-selector,
+.ant-menu,
+.ant-modal-content,
+.ant-drawer-content,
+.ant-popover-inner,
+.ant-dropdown-menu {
+  transition:
+    background-color 0.22s ease,
+    color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: ease;
+}
+
+html,
+body,
+#root {
+  background: radial-gradient(circle at 0% 0%, var(--surface-2), var(--bg) 52%);
+  color: var(--text-primary);
+  min-height: 100%;
+}
+
+html[data-theme="dark"],
+html[data-theme="dark"] body,
+html[data-theme="dark"] #root {
+  background: var(--bg);
+}
+
+.admin-page-shell {
+  min-height: calc(100vh - 64px);
+}
+
+.hero-surface {
+  border: 1px solid var(--border) !important;
+  background: linear-gradient(140deg, var(--surface), color-mix(in srgb, var(--surface), var(--surface-2) 28%)) !important;
+  box-shadow: var(--shadow-soft);
+}
+
+.theme-toggle {
+  width: 72px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted), var(--surface) 60%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 3px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.theme-toggle-thumb {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateX(0) rotate(0deg);
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.theme-toggle-thumb.is-dark {
+  transform: translateX(34px) rotate(18deg);
 }
 
 /* Hero Section Animation */
@@ -183,4 +294,21 @@
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.management-table-no-x .ant-table-content {
+  overflow-x: hidden !important;
+}
+
+.management-table-no-x .ant-table-body {
+  overflow-x: hidden !important;
+}
+
+.management-table-no-x .ant-table-cell {
+  word-break: break-word;
+  white-space: normal;
+}
+
+.management-table-no-x .ant-table-tbody .ant-space {
+  flex-wrap: wrap;
 }

@@ -120,8 +120,9 @@ class HttpClient {
       if (response.status === 401) {
         // Token expired or invalid
         this.setAccessToken(null);
-        // Optional: Window.location.href = '/login' if strictly needed,
-        // but usually handled by UI state (redux)
+        if (typeof window !== "undefined" && window.location.pathname !== "/") {
+          window.location.href = "/";
+        }
       }
       try {
         const error = await response.json();

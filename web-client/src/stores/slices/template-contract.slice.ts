@@ -44,11 +44,11 @@ export const getTemplates = createAsyncThunk<
 >("template/getTemplates", async (propertyType, { rejectWithValue }) => {
   try {
     const res = await http.get(`contract/contract-templates/property-type/${propertyType}`);
-    return res.data ?? [];
+    if (Array.isArray(res?.data)) return res.data;
+    if (Array.isArray(res)) return res;
+    return [];
   } catch (error: any) {
-    return rejectWithValue(
-      error?.response?.data?.message || "Failed to fetch templates"
-    );
+    return rejectWithValue(error?.message || "Error loading templates");
   }
 });
 
@@ -64,11 +64,9 @@ export const getTemplateDetail = createAsyncThunk<
 >("template/getTemplateDetail", async (templateId, { rejectWithValue }) => {
   try {
     const res = await http.get(`contract/contract-templates/${templateId}`);
-    return res.data ?? null;
+    return (res?.data ?? res) as ContractTemplateDetail;
   } catch (error: any) {
-    return rejectWithValue(
-      error?.response?.data?.message || "Failed to fetch template detail"
-    );
+    return rejectWithValue(error?.message || "Error loading template detail");
   }
 });
 
@@ -83,12 +81,9 @@ export const getRequestTemplateData = createAsyncThunk<
       const res = await http.get(
         `contract/contract-templates/request/${requestId}`
       );
-      return res.data ?? null;
+      return (res?.data ?? res) as ContractRequestData;
     } catch (error: any) {
-      return rejectWithValue(
-        error?.response?.data?.message ||
-        "Failed to fetch request template data"
-      );
+      return rejectWithValue(error?.message || "Error loading request template data");
     }
   }
 );

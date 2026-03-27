@@ -47,7 +47,7 @@ class HttpClient {
     return headers;
   }
 
-  private async request<T>(
+  private async request(
     method: HttpMethod,
     endpoint: string,
     data?: any,
@@ -74,6 +74,14 @@ class HttpClient {
     const response: Response = await fetch(url, config);
 
     if (!response.ok) {
+      if (response.status === 401 && typeof window !== "undefined") {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        if (window.location.pathname !== "/") {
+          window.location.href = "/";
+        }
+      }
+
       try {
         const error = await response.json();
         throw new Error(error.message || `HTTP Error: ${response.status}`);

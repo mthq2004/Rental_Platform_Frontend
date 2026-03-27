@@ -149,29 +149,33 @@ const Header = () => {
                         className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
                         onClick={() => {
                           console.log("Favorites clicked");
-                          router.push("/favorites");
+                          router.push("/dashboard/favorites");
                         }}
                       >
                         <HeartOutlined style={{ fontSize: 18 }} />
                       </button>
                     </Tooltip>
+                    </>
+                )}
 
-                    {/* Chat - Only show when logged in */}
-                    <Tooltip title="Tin nhắn">
-                      <button
-                        className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
-                        onClick={() => {
-                          console.log("Chat clicked");
-                          router.push("/chat");
-                        }}
-                      >
-                        <MessageOutlined style={{ fontSize: 18 }} />
-                      </button>
-                    </Tooltip>
+                {/* Chat - Only show when logged in */}
+                <Tooltip title="Tin nhắn">
+                  <button
+                    className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:text-orange-500 hover:border-orange-500 transition-colors bg-white"
+                    onClick={() => {
+                      console.log("Chat clicked");
+                      router.push("/chat");
+                    }}
+                  >
+                    <MessageOutlined style={{ fontSize: 18 }} />
+                  </button>
+                </Tooltip>
 
-                    {/* Notification - Only show when logged in */}
-                    <NotificationDropdown />
+                {/* Notification - Only show when logged in */}
+                <NotificationDropdown />
 
+                {!isDashboard && (
+                  <>
                     {/* Manage Posts Button - Only show when logged in */}
                     <Button
                       size="middle"

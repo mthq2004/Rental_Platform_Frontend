@@ -2,11 +2,9 @@ import React, { useState, useEffect } from "react";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  DashboardOutlined,
   UserOutlined,
   HomeOutlined,
   FileTextOutlined,
-  ApartmentOutlined,
   BarChartOutlined,
   SettingOutlined,
   LogoutOutlined,
@@ -31,10 +29,10 @@ import { useAppDispatch, useAppSelector } from "../../stores/hooks";
 import { logout } from "../../stores/slices/auth.slice";
 import {
   getNotification,
-  markAsRead,
-  selectNotifications,
   selectUnreadCount,
 } from "../../stores/slices/notification.slice";
+import ThemeToggle from "../theme/ThemeToggle";
+import { useTheme } from "../../contexts/ThemeContext";
 const { Header, Sider, Content } = Layout;
 
 const Sidebar: React.FC = () => {
@@ -42,9 +40,10 @@ const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
+  const { theme: currentTheme } = useTheme();
 
-  const notifications = useAppSelector(selectNotifications);
   const unreadCount = useAppSelector(selectUnreadCount);
+  const authUser = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
     dispatch(getNotification());
@@ -54,17 +53,32 @@ const Sidebar: React.FC = () => {
     dispatch(logout());
   };
   const {
-    token: { colorBgContainer, borderRadiusLG },
+    token: { borderRadiusLG },
   } = theme.useToken();
+  const managementTableRoutes = new Set([
+    "/dashboard/users",
+    "/dashboard/admins",
+    "/dashboard/contracts",
+    "/dashboard/properties/pending",
+    "/dashboard/properties/approved",
+    "/dashboard/properties/rejected",
+  ]);
+  const isManagementTablePage = managementTableRoutes.has(location.pathname);
 
   /* =========================
      ACTIVE MENU KEY
   ========================= */
   const getSelectedKey = () => {
     const path = location.pathname;
+    if (path.includes("/users/")) return "users";
+    if (path.includes("/users")) return "users";
+    if (path.includes("/admins/")) return "admins";
+    if (path.includes("/admins")) return "admins";
     if (path.includes("/properties/pending")) return "pending";
     if (path.includes("/properties/approved")) return "approved";
     if (path.includes("/properties/rejected")) return "rejected";
+    if (path.includes("/settings")) return "settings";
+    if (path.includes("/profile")) return "profile";
     if (path.includes("/owners")) return "owners";
     if (path.includes("/tenants")) return "tenants";
     if (path.includes("/contracts")) return "contracts";
@@ -85,6 +99,12 @@ const Sidebar: React.FC = () => {
       items.push({ title: "Bất động sản Đã duyệt" });
     } else if (path.includes("/properties/rejected")) {
       items.push({ title: "Bất động sản Bị từ chối" });
+    } else if (path.includes("/users")) {
+      items.push({ title: "Quản lý tài khoản người dùng" });
+    } else if (path.includes("/admins")) {
+      items.push({ title: "Quản lý tài khoản quản trị viên" });
+    } else if (path.includes("/profile")) {
+      items.push({ title: "Hồ sơ cá nhân" });
     } else if (path.includes("/owners")) {
       items.push({ title: "Quản lý Chủ sở hữu" });
     } else if (path.includes("/tenants")) {
@@ -131,7 +151,7 @@ const Sidebar: React.FC = () => {
     {
       key: "dashboard",
       icon: <BarChartOutlined />,
-      label: "Thống kê",
+      label: "Bảng điều khiển",
       onClick: () => navigate("/dashboard"),
     },
     {
@@ -157,19 +177,19 @@ const Sidebar: React.FC = () => {
       ],
     },
     {
-      key: "users",
+      key: "accounts",
       icon: <UserOutlined />,
-      label: "Người dùng",
+      label: "Quản lý tài khoản",
       children: [
         {
-          key: "owners",
-          label: "Chủ sở hữu",
-          onClick: () => navigate("/dashboard/owners"),
+          key: "users",
+          label: "Người dùng",
+          onClick: () => navigate("/dashboard/users"),
         },
         {
-          key: "tenants",
-          label: "Người thuê",
-          onClick: () => navigate("/dashboard/tenants"),
+          key: "admins",
+          label: "Quản trị viên",
+          onClick: () => navigate("/dashboard/admins"),
         },
       ],
     },
@@ -210,13 +230,16 @@ const Sidebar: React.FC = () => {
         collapsed={collapsed}
         width={250}
         style={{
-          background: "#fff",
+          background: "var(--surface)",
           position: "fixed",
           left: 0,
           top: 0,
           bottom: 0,
           height: "100vh",
           zIndex: 100,
+          borderRight: "1px solid var(--border)",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
 
@@ -247,39 +270,34 @@ const Sidebar: React.FC = () => {
             >
               <img
                 src={logoImg}
-                alt="EstateAdmin Logo"
+                alt="Logo quản trị"
                 className="w-full h-full object-contain"
               />
             </div>
 
             {!collapsed && (
               <div style={{ lineHeight: 1.2 }}>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>EstateAdmin</div>
-                <div style={{ fontSize: 12, color: "#606e8a" }}>
-                  Management Portal
+                <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)" }}>EstateAdmin</div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                  Cổng quản trị hệ thống
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* =========================
-           MAIN MENU
-        ========================= */}
-        <Menu
-          mode="inline"
-          theme="light"
-          selectedKeys={[getSelectedKey()]}
-          items={menuItems}
-          style={{
-            borderRight: 0,
-          }}
-        />
-
-        {/* =========================
-           PUSH FOOTER DOWN
-        ========================= */}
-        <div style={{ flex: 1 }} />
+        <div style={{ flex: 1, overflow: "auto" }}>
+          <Menu
+            mode="inline"
+            theme={currentTheme === "dark" ? "dark" : "light"}
+            selectedKeys={[getSelectedKey()]}
+            items={menuItems}
+            style={{
+              borderRight: 0,
+              background: "transparent",
+            }}
+          />
+        </div>
 
         {/* =========================
            FOOTER MENU (STICKY BOTTOM)
@@ -289,17 +307,17 @@ const Sidebar: React.FC = () => {
             position: "absolute",
             bottom: 0,
             width: "100%",
-            borderTop: "1px solid #f0f0f0",
-            background: "#fff",
+            borderTop: "1px solid var(--border)",
+            background: "var(--surface)",
             paddingBottom: collapsed ? 8 : 16,
           }}
         >
           <Menu
             mode="inline"
-            theme="light"
+            theme={currentTheme === "dark" ? "dark" : "light"}
             items={footerMenuItems}
             selectable={false}
-            style={{ borderRight: 0 }}
+            style={{ borderRight: 0, background: "transparent" }}
           />
         </div>
       </Sider>
@@ -323,11 +341,12 @@ const Sidebar: React.FC = () => {
             left: collapsed ? 80 : 250,
             height: 64,
             padding: "0 24px",
-            background: colorBgContainer,
+            background: "var(--surface)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.06)",
+            boxShadow: "0 4px 18px rgba(15, 41, 89, 0.08)",
+            borderBottom: "1px solid var(--border)",
             zIndex: 99,
             transition: "all 0.3s",
           }}
@@ -347,11 +366,13 @@ const Sidebar: React.FC = () => {
 
           {/* RIGHT SECTION */}
           <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+            <ThemeToggle />
+
             {/* SEARCH */}
             <Input
               placeholder="Tìm kiếm..."
               prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
-              style={{ width: 250, borderRadius: 6 }}
+              style={{ width: 250, borderRadius: 10 }}
               size="large"
             />
 
@@ -401,15 +422,17 @@ const Sidebar: React.FC = () => {
                   cursor: "pointer",
                 }}
               >
-                <Avatar size={40} src={logoImg} />
+                <Avatar size={40} src={authUser?.avatarUrl || logoImg}>
+                  {authUser?.fullName?.slice(0, 1)}
+                </Avatar>
                 <div style={{ lineHeight: 1.4 }}>
                   <div
-                    style={{ fontSize: 14, fontWeight: 600, color: "#262626" }}
+                    style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}
                   >
-                    Super Admin
+                    {authUser?.fullName || "Quản trị viên hệ thống"}
                   </div>
-                  <div style={{ fontSize: 12, color: "#8c8c8c" }}>
-                    Quản trị viên
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    {authUser?.role === "admin" ? "Quản trị viên" : "Người dùng"}
                   </div>
                 </div>
               </div>
@@ -422,9 +445,10 @@ const Sidebar: React.FC = () => {
             marginTop: 64,
             padding: 24,
             height: "calc(100vh - 64px)",
-            overflow: "auto",
-            background: colorBgContainer,
+            overflow: isManagementTablePage ? "hidden" : "auto",
+            background: "var(--bg)",
             borderRadius: borderRadiusLG,
+            minHeight: 0,
           }}
         >
           <Outlet />

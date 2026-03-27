@@ -92,6 +92,64 @@ export const getListProperty = createAsyncThunk(
   }
 );
 
+export const getFavoritePropertiesThunk = createAsyncThunk(
+  "estate/getFavoriteProperties",
+  async (params: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+    try {
+      const page = params.page ?? 1;
+      const limit = params.limit ?? 20;
+      const res = await apiClient.get(`/estate/properties/favorites?page=${page}&limit=${limit}`);
+      return res.data as {
+        items: PropertyListItem[];
+        meta: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Lấy danh sách tin yêu thích thất bại");
+    }
+  }
+);
+
+export const getFavoriteStatusThunk = createAsyncThunk(
+  "estate/getFavoriteStatus",
+  async (propertyId: string, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.get(`/estate/properties/${propertyId}/favorite-status`);
+      return res.data as { propertyId: string; isFavorited: boolean };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Không thể kiểm tra trạng thái yêu thích");
+    }
+  }
+);
+
+export const addFavoriteThunk = createAsyncThunk(
+  "estate/addFavorite",
+  async (propertyId: string, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.post(`/estate/properties/${propertyId}/favorite`);
+      return (res.data as { propertyId: string; isFavorited: boolean }) ?? { propertyId, isFavorited: true };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Không thể lưu tin yêu thích");
+    }
+  }
+);
+
+export const removeFavoriteThunk = createAsyncThunk(
+  "estate/removeFavorite",
+  async (propertyId: string, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.put(`/estate/properties/${propertyId}/unfavorite`);
+      return (res.data as { propertyId: string; isFavorited: boolean }) ?? { propertyId, isFavorited: false };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Không thể bỏ lưu tin yêu thích");
+    }
+  }
+);
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 interface EstateState {
@@ -121,6 +179,19 @@ interface EstateState {
     total: number;
     error: string | null;
   };
+  favorites: {
+    loading: boolean;
+    items: PropertyListItem[];
+    meta: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+    error: string | null;
+  };
+  favoriteStatusMap: Record<string, boolean>;
+  favoriteActionLoading: boolean;
 }
 
 const initialState: EstateState = {
@@ -128,6 +199,19 @@ const initialState: EstateState = {
   similar: { loading: false, data: [], error: null },
   detail: { loading: false, data: null, error: null },
   featured: { loading: false, data: [], error: null, hasMore: false, nextCursor: null, total: 0 },
+  favorites: {
+    loading: false,
+    items: [],
+    meta: {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
+    },
+    error: null,
+  },
+  favoriteStatusMap: {},
+  favoriteActionLoading: false,
 };
 
 // ─── Slice ────────────────────────────────────────────────────────────────────
@@ -227,6 +311,59 @@ export const estateSlice = createSlice({
         state.featured.loading = false;
         state.featured.error = (action.payload as string) || "Lấy tin nổi bật thất bại";
       });
+
+    builder
+      .addCase(getFavoritePropertiesThunk.pending, (state) => {
+        state.favorites.loading = true;
+        state.favorites.error = null;
+      })
+      .addCase(getFavoritePropertiesThunk.fulfilled, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.items = action.payload.items || [];
+        state.favorites.meta = action.payload.meta;
+      })
+      .addCase(getFavoritePropertiesThunk.rejected, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.error = (action.payload as string) || "Lấy danh sách yêu thích thất bại";
+        state.favorites.items = [];
+      });
+
+    builder
+      .addCase(getFavoriteStatusThunk.pending, (state) => {
+        state.favoriteActionLoading = true;
+      })
+      .addCase(getFavoriteStatusThunk.fulfilled, (state, action) => {
+        state.favoriteActionLoading = false;
+        state.favoriteStatusMap[action.payload.propertyId] = action.payload.isFavorited;
+      })
+      .addCase(getFavoriteStatusThunk.rejected, (state) => {
+        state.favoriteActionLoading = false;
+      });
+
+    builder
+      .addCase(addFavoriteThunk.pending, (state) => {
+        state.favoriteActionLoading = true;
+      })
+      .addCase(addFavoriteThunk.fulfilled, (state, action) => {
+        state.favoriteActionLoading = false;
+        state.favoriteStatusMap[action.payload.propertyId] = true;
+      })
+      .addCase(addFavoriteThunk.rejected, (state) => {
+        state.favoriteActionLoading = false;
+      });
+
+    builder
+      .addCase(removeFavoriteThunk.pending, (state) => {
+        state.favoriteActionLoading = true;
+      })
+      .addCase(removeFavoriteThunk.fulfilled, (state, action) => {
+        state.favoriteActionLoading = false;
+        state.favoriteStatusMap[action.payload.propertyId] = false;
+        state.favorites.items = state.favorites.items.filter((item) => item.id !== action.payload.propertyId);
+      })
+      .addCase(removeFavoriteThunk.rejected, (state) => {
+        state.favoriteActionLoading = false;
+      });
   },
 });
 
@@ -239,3 +376,5 @@ export const selectSearchState = (state: { estate: EstateState }) => state.estat
 export const selectSimilarState = (state: { estate: EstateState }) => state.estate.similar;
 export const selectDetailState = (state: { estate: EstateState }) => state.estate.detail;
 export const selectFeaturedState = (state: { estate: EstateState }) => state.estate.featured;
+export const selectFavoritesState = (state: { estate: EstateState }) => state.estate.favorites;
+export const selectFavoriteStatusMap = (state: { estate: EstateState }) => state.estate.favoriteStatusMap;

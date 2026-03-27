@@ -4,7 +4,13 @@ import React, { useMemo, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { extractIdFromSlug } from "@/utils/slug";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
-import { getPropertyDetailThunk, clearDetail } from "@/stores/slices/estate.slice";
+import {
+  addFavoriteThunk,
+  clearDetail,
+  getFavoriteStatusThunk,
+  getPropertyDetailThunk,
+  removeFavoriteThunk,
+} from "@/stores/slices/estate.slice";
 
 import type { PropertyDetailData } from "./types";
 import StickyHeader from "./StickyHeader";
@@ -28,6 +34,8 @@ export default function PropertyDetailPage({ slug }: PropertyDetailPageProps) {
   // Redux
   const dispatch = useAppDispatch();
   const { data: apiData, loading, error } = useAppSelector((state) => state.estate.detail);
+  const favoriteStatusMap = useAppSelector((state) => state.estate.favoriteStatusMap);
+  const favoriteActionLoading = useAppSelector((state) => state.estate.favoriteActionLoading);
   const currentUser = useAppSelector((state) => state.auth.user);
 
   // Fetch property data
@@ -35,6 +43,33 @@ export default function PropertyDetailPage({ slug }: PropertyDetailPageProps) {
     dispatch(getPropertyDetailThunk(propertyId));
     return () => { dispatch(clearDetail()); };
   }, [dispatch, propertyId]);
+
+  useEffect(() => {
+    if (!currentUser?.id) {
+      return;
+    }
+    dispatch(getFavoriteStatusThunk(propertyId));
+  }, [currentUser?.id, dispatch, propertyId]);
+
+  const isSaved = favoriteStatusMap[propertyId] ?? false;
+
+  const handleToggleFavorite = async () => {
+    if (!currentUser?.id) {
+      router.push("/?auth=login");
+      return;
+    }
+
+    if (favoriteActionLoading) {
+      return;
+    }
+
+    if (isSaved) {
+      await dispatch(removeFavoriteThunk(propertyId));
+      return;
+    }
+
+    await dispatch(addFavoriteThunk(propertyId));
+  };
 
   // Map API response to component PropertyDetailData shape
   const property = useMemo((): PropertyDetailData | null => {
@@ -201,7 +236,12 @@ export default function PropertyDetailPage({ slug }: PropertyDetailPageProps) {
         <div className="flex gap-6 mt-6" ref={infoRef}>
           {/* Left column */}
           <div className="flex-1 min-w-0">
-            <PropertyInfo property={property} />
+            <PropertyInfo
+              property={property}
+              isSaved={isSaved}
+              favoriteLoading={favoriteActionLoading}
+              onToggleFavorite={handleToggleFavorite}
+            />
             <PropertyTabs property={property} />
             <SimilarListings currentPropertyId={property.id} city={property.city} />
           </div>

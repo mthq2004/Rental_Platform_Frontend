@@ -62,8 +62,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
 
   const visibleQuestions = QUICK_QUESTIONS.slice(questionIdx, questionIdx + 2);
 
-  console.log("số tháng thuê tối thiểu: ", detail?.data?.minimumLeaseMonths);
-  console.log("số tháng thuê tối đa: ", detail?.data?.maximumLeaseMonths);
+  const minimumLeaseMonths = Number(detail?.data?.minimumLeaseMonths || 0);
 
 
   const handleSendMessage = () => {
@@ -113,6 +112,24 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
       return;
     }
     setRentalModalOpen(true);
+  };
+
+  const handleStartDateChange = (value: dayjs.Dayjs | null) => {
+    setStartDate(value);
+
+    if (!value) {
+      setEndDate(null);
+      return;
+    }
+
+    if (minimumLeaseMonths > 0) {
+      setEndDate(value.add(minimumLeaseMonths, "month"));
+      return;
+    }
+
+    if (!endDate || endDate.isBefore(value, "day")) {
+      setEndDate(value);
+    }
   };
 
   const handleSubmitRentalRequest = async () => {
@@ -458,7 +475,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
             <label className="block text-sm font-medium text-gray-700 mb-1">Ngày bắt đầu thuê *</label>
             <DatePicker
               value={startDate}
-              onChange={setStartDate}
+              onChange={handleStartDateChange}
               className="w-full"
               placeholder="Chọn ngày bắt đầu"
               disabledDate={(d) => d.isBefore(dayjs(), "day")}

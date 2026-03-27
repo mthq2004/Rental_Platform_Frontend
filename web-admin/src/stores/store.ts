@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import authReducer from './slices/auth.slice'
 import propertyReducer from './slices/property.slice'
 import notificationReducer from './slices/notification.slice'
+import userReducer from './slices/user.slice'
 
 export const makeStore = () => {
   return configureStore({
@@ -9,6 +10,7 @@ export const makeStore = () => {
       auth: authReducer,
       property: propertyReducer,
       notification: notificationReducer,
+      user: userReducer,
     },
   })
 }

@@ -46,6 +46,50 @@ const initialState: ContractState = {
   actionLoading: false,
 };
 
+const normalizeRentMagnitude = (value: number): number => {
+  // Guard against micro-unit values accidentally returned by some serializers.
+  if (value >= 1e11) {
+    return value / 1e6;
+  }
+  return value;
+};
+
+const parseNumberSafe = (value: unknown): number => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? normalizeRentMagnitude(value) : 0;
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const dotGrouped = /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(trimmed);
+    const normalized = dotGrouped
+      ? trimmed.replace(/\./g, "").replace(/,/g, ".")
+      : trimmed.replace(/,/g, "");
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? normalizeRentMagnitude(parsed) : 0;
+  }
+
+  if (value && typeof value === "object" && "toString" in value) {
+    const parsed = Number((value as { toString: () => string }).toString());
+    return Number.isFinite(parsed) ? normalizeRentMagnitude(parsed) : 0;
+  }
+
+  return 0;
+};
+
+const normalizeRentalRequest = (request: any): RentalRequest => {
+  const proposedRentRaw =
+    request?.proposedRent ??
+    request?.proposed_rent ??
+    request?.proposedPrice ??
+    request?.suggestedRent;
+
+  return {
+    ...request,
+    proposedRent: parseNumberSafe(proposedRentRaw),
+  } as RentalRequest;
+};
+
 // ─── Rental Request Actions ──────────────────────────────────────
 
 export const createRentalRequest = createAsyncThunk(
@@ -246,7 +290,12 @@ export const contractSlice = createSlice({
       .addCase(getMyRequests.pending, (state) => { state.requestsLoading = true; })
       .addCase(getMyRequests.fulfilled, (state, action) => {
         state.requestsLoading = false;
-        state.myRequests = action.payload.data ?? [];
+        const items = Array.isArray(action.payload?.data)
+          ? action.payload.data
+          : Array.isArray(action.payload)
+            ? action.payload
+            : [];
+        state.myRequests = items.map(normalizeRentalRequest);
       })
       .addCase(getMyRequests.rejected, (state) => { state.requestsLoading = false; });
 
@@ -254,7 +303,12 @@ export const contractSlice = createSlice({
       .addCase(getOwnerRequests.pending, (state) => { state.requestsLoading = true; })
       .addCase(getOwnerRequests.fulfilled, (state, action) => {
         state.requestsLoading = false;
-        state.ownerRequests = action.payload.data ?? [];
+        const items = Array.isArray(action.payload?.data)
+          ? action.payload.data
+          : Array.isArray(action.payload)
+            ? action.payload
+            : [];
+        state.ownerRequests = items.map(normalizeRentalRequest);
       })
       .addCase(getOwnerRequests.rejected, (state) => { state.requestsLoading = false; });
 

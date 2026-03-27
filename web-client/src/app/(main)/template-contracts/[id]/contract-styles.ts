@@ -241,8 +241,8 @@ export const CONTRACT_EDITOR_STYLES = `
     z-index: 1;
   }
   .a4-paper-container {
-    width: 240mm;
-    min-height: 320mm;
+    width: 210mm;
+    min-height: 297mm;
     padding: 22mm 28mm 25mm 28mm;
     background: white;
     box-shadow:
@@ -252,7 +252,7 @@ export const CONTRACT_EDITOR_STYLES = `
       0 24px 48px rgba(0,0,0,0.06);
     border-radius: 3px;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
   }
   /* Subtle corner fold effect */
   .a4-paper-container::before {
@@ -278,6 +278,20 @@ export const CONTRACT_EDITOR_STYLES = `
     color: #1a1a1a;
     word-wrap: break-word;
     letter-spacing: 0.01em;
+    overflow: visible;
+  }
+
+  /* Force imported template wrappers to render as long flowing A4 text (no inner scroll frame). */
+  .contract-content [style*="overflow"] {
+    overflow: visible !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+  }
+  .contract-content [style*="max-height"] {
+    max-height: none !important;
+  }
+  .contract-content [style*="height:"][style*="vh"] {
+    height: auto !important;
   }
   .contract-content h1 {
     font-size: 16pt;

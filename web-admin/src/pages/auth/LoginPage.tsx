@@ -7,11 +7,14 @@ import { isValidPhone } from "../../utils/validators";
 import logoImg from "../../assets/logo.png";
 import { useAppDispatch, useAppSelector } from "../../stores/hooks";
 import { loginUser } from "../../stores/slices/auth.slice";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const LoginPage = () => {
   const [form] = Form.useForm();
   const dispatch = useAppDispatch();
-  const { loading } = useAppSelector(state => state.auth)
+  const { loading } = useAppSelector(state => state.auth);
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const onFinish = async (values: Record<string, any>) => {
     console.log("Dữ liệu đăng nhập:", values);
@@ -36,9 +39,15 @@ const LoginPage = () => {
       }}
     >
       {/* Layout tổng */}
-      <div className="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden font-['Inter'] bg-[#f5f6f8] dark:bg-[#101622]">
+      <div
+        className="min-h-screen w-full flex flex-col lg:flex-row overflow-hidden font-['Inter']"
+        style={{ background: "var(--bg)" }}
+      >
         {/* LEFT - FORM (60%) */}
-        <div className="flex-[0.6] flex flex-col justify-center items-center p-6 lg:p-12 xl:p-24 bg-white dark:bg-[#1e2532] border-r border-[#dbdfe6] dark:border-gray-800">
+        <div
+          className="flex-[0.6] flex flex-col justify-center items-center p-6 lg:p-12 xl:p-24"
+          style={{ background: "var(--surface)", borderRight: "1px solid var(--border)" }}
+        >
           <div className="w-full max-w-[440px] flex flex-col gap-6">
             {/* Logo + Heading */}
             <div className="flex flex-col gap-2">
@@ -50,15 +59,15 @@ const LoginPage = () => {
                     className="w-full h-full object-contain"
                   />
                 </div>
-                <span className="text-2xl font-bold tracking-tight text-[#111318] dark:text-white">
+                <span className="text-2xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
                   EstateAdmin
                 </span>
               </div>
 
-              <h1 className="text-[#111318] dark:text-white text-3xl font-extrabold tracking-tight">
+              <h1 className="text-3xl font-extrabold tracking-tight" style={{ color: "var(--text-primary)" }}>
                 Chào mừng trở lại
               </h1>
-              <p className="text-[#606e8a] dark:text-gray-400 text-lg">
+              <p className="text-lg" style={{ color: "var(--text-secondary)" }}>
                 Vui lòng nhập thông tin để truy cập hệ thống.
               </p>
             </div>
@@ -73,7 +82,7 @@ const LoginPage = () => {
             >
               <Form.Item
                 label={
-                  <span className="dark:text-gray-200 text-base">
+                  <span className="text-base" style={{ color: "var(--text-primary)" }}>
                     Số điện thoại
                   </span>
                 }
@@ -94,13 +103,18 @@ const LoginPage = () => {
                   size="large"
                   placeholder="09xxxxxxxx"
                   suffix={<PhoneOutlined className="text-gray-400 text-xl" />}
-                  className="text-lg dark:bg-[#101622] dark:border-gray-700 dark:text-white"
+                  className="text-lg"
+                  style={{
+                    background: isDark ? "#0f1a2c" : "#ffffff",
+                    borderColor: "var(--border)",
+                    color: "var(--text-primary)",
+                  }}
                 />
               </Form.Item>
 
               <Form.Item
                 label={
-                  <span className="dark:text-gray-200 text-base">Mật khẩu</span>
+                  <span className="text-base" style={{ color: "var(--text-primary)" }}>Mật khẩu</span>
                 }
                 name="password"
                 rules={[{ required: true, message: "Vui lòng nhập mật khẩu!" }]}
@@ -108,7 +122,12 @@ const LoginPage = () => {
                 <Input.Password
                   size="large"
                   placeholder="Nhập mật khẩu"
-                  className="text-lg dark:bg-[#101622] dark:border-gray-700 dark:text-white"
+                  className="text-lg"
+                  style={{
+                    background: isDark ? "#0f1a2c" : "#ffffff",
+                    borderColor: "var(--border)",
+                    color: "var(--text-primary)",
+                  }}
                 />
               </Form.Item>
 
@@ -128,7 +147,7 @@ const LoginPage = () => {
 
             {/* Support */}
             <div className="flex flex-col items-center gap-4 mt-4">
-              <p className="text-[#606e8a] dark:text-gray-500 text-base">
+              <p className="text-base" style={{ color: "var(--text-secondary)" }}>
                 Bạn cần trợ giúp?{" "}
                 <a
                   className="text-[#0b50da] font-semibold hover:underline"

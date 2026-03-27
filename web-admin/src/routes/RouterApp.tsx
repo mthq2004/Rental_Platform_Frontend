@@ -3,20 +3,21 @@ import App from "../App";
 import LoginPage from "../pages/auth/LoginPage";
 import Sidebar from "../components/layout/Sidebar";
 import DashboardPage from "../pages/dashboard/DashboardPage";
-import PropertyListPage from "../pages/properties/PropertyListPage";
 import PropertyDetailPage from "../pages/properties/PropertyDetailPage";
-import ContractListPage from "../pages/contracts/ContractListPage";
+import ContractTemplatePage from "../pages/contracts/ContractTemplatePage";
 import ContractDetailPage from "../pages/contracts/ContractDetailPage";
-import OwnerDetailPage from "../pages/owners/OwnerDetailPage";
-import TenantListPage from "../pages/tenants/TenantListPage";
-import TenantDetailPage from "../pages/tenants/TenantDetailPage";
-import OwnerListPage from "../pages/owners/OwnerListPage";
 import { PublicRoute } from "../components/auth/PublicRoute";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import PropertyPendingPage from "../pages/properties/PropertyPendingPage";
 import PropertyApprovedPage from "../pages/properties/PropertyApprovedPage";
 import PropertyRejectPage from "../pages/properties/PropertyRejectPage";
 import NotificationsPage from "../pages/notifications/NotificationsPage";
+import UserListPage from "../pages/users/UserListPage";
+import UserDetailPage from "../pages/users/UserDetailPage";
+import AdminListPage from "../pages/admins/AdminListPage";
+import AdminDetailPage from "../pages/admins/AdminDetailPage";
+import SettingsPage from "../pages/settings/SettingsPage";
+import ProfilePage from "../pages/profile/ProfilePage";
 
 const router = createBrowserRouter([
   {
@@ -39,24 +40,24 @@ const router = createBrowserRouter([
             element: <DashboardPage />,
           },
           {
-            path: "owners",
-            element: <OwnerListPage />,
+            path: "users",
+            element: <UserListPage />,
           },
           {
-            path: "owners/:id",
-            element: <OwnerDetailPage />,
+            path: "users/:id",
+            element: <UserDetailPage />,
           },
           {
-            path: "tenants",
-            element: <TenantListPage />,
+            path: "admins",
+            element: <AdminListPage />,
           },
           {
-            path: "tenants/:id",
-            element: <TenantDetailPage />,
+            path: "admins/:id",
+            element: <AdminDetailPage />,
           },
           {
-            path: "properties",
-            element: <PropertyListPage />,
+            path: "profile",
+            element: <ProfilePage />,
           },
           {
             path: "properties/pending",
@@ -76,7 +77,7 @@ const router = createBrowserRouter([
           },
           {
             path: "contracts",
-            element: <ContractListPage />,
+            element: <ContractTemplatePage />,
           },
           {
             path: "contracts/:id",
@@ -85,6 +86,10 @@ const router = createBrowserRouter([
           {
             path: "notifications",
             element: <NotificationsPage />,
+          },
+          {
+            path: "settings",
+            element: <SettingsPage />,
           },
         ],
       },

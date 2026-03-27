@@ -41,6 +41,7 @@ import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import {
   getPostStatusCounts,
   getPropertiesByStatus,
+  updatePropertyVisibility,
   type PropertyData,
   type StatusCount,
 } from "@/stores/slices/property.slice";
@@ -324,6 +325,29 @@ const PostsPage = () => {
                 >
                   Đăng tin
                 </Button>
+              </Tooltip>
+            )}
+            {(status === "active" || status === "inactive") && (
+              <Tooltip title={status === "active" ? "Ẩn tin" : "Hiện tin"}>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={status === "active" ? <StopOutlined /> : <CheckCircleOutlined />}
+                  onClick={async () => {
+                    try {
+                      await dispatch(
+                        updatePropertyVisibility({
+                          id: propertyId,
+                          visible: status !== "active",
+                        }),
+                      ).unwrap();
+                      message.success(status === "active" ? "Đã ẩn tin" : "Đã hiển thị lại tin");
+                      dispatch(getPostStatusCounts());
+                    } catch (error) {
+                      message.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái hiển thị");
+                    }
+                  }}
+                />
               </Tooltip>
             )}
           </Space>

@@ -2,6 +2,12 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import http from "../../utils/api";
 import type { UserType } from "../../types/user.type";
 
+type UpdateProfilePayload = {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+};
+
 type initialStateType = {
     loading: boolean,
     isAuth: boolean,
@@ -26,6 +32,24 @@ export const getProfileUser = createAsyncThunk(
     "auth/getProfile",
     async () => {
         const response = await http.get("/estate/auth/profile");
+        return response;
+    }
+);
+
+export const updateAvatarUser = createAsyncThunk(
+    "auth/updateAvatar",
+    async (file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        const response = await http.put("/estate/auth/avatar", formData);
+        return response;
+    }
+);
+
+export const updateProfileUser = createAsyncThunk(
+    "auth/updateProfile",
+    async (data: UpdateProfilePayload) => {
+        const response = await http.put("/estate/auth/profile", data);
         return response;
     }
 );
@@ -72,6 +96,34 @@ export const authSlice = createSlice({
                 state.loading = false;
                 state.isAuth = false;
                 state.user = null;
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
+            })
+
+        builder
+            .addCase(updateAvatarUser.pending, state => {
+                state.loading = true;
+            })
+            .addCase(updateAvatarUser.fulfilled, (state, action) => {
+                state.loading = false;
+                if (state.user) {
+                    state.user.avatarUrl = action.payload.data.avatarUrl;
+                }
+            })
+            .addCase(updateAvatarUser.rejected, state => {
+                state.loading = false;
+            })
+
+        builder
+            .addCase(updateProfileUser.pending, state => {
+                state.loading = true;
+            })
+            .addCase(updateProfileUser.fulfilled, (state, action) => {
+                state.loading = false;
+                state.user = action.payload.data;
+            })
+            .addCase(updateProfileUser.rejected, state => {
+                state.loading = false;
             })
 
     }

@@ -1,16 +1,13 @@
 // src/components/auth/PublicRoute.tsx
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../stores/hooks";
 import { getProfileUser } from "../../stores/slices/auth.slice";
-import { LoadingOutlined } from "@ant-design/icons";
-import { Spin } from "antd";
 
 export const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isAuth, loading } = useAppSelector((state) => state.auth);
-  const [checking, setChecking] = useState(true);
+  const { isAuth } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -21,12 +18,10 @@ export const PublicRoute = ({ children }: { children: React.ReactNode }) => {
           await dispatch(getProfileUser()).unwrap();
           navigate("/dashboard");
         } catch (error) {
-          setChecking(false);
+          return;
         }
       } else if (isAuth) {
         navigate("/dashboard");
-      } else {
-        setChecking(false);
       }
     };
 

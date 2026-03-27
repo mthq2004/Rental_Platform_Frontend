@@ -120,6 +120,22 @@ export const updateProperty = createAsyncThunk(
     }
 );
 
+export const updatePropertyVisibility = createAsyncThunk(
+    "property/updatePropertyVisibility",
+    async (payload: { id: string; visible: boolean }, { rejectWithValue }) => {
+        try {
+            const res = await apiClient.put(`/estate/properties/${payload.id}/visibility`, { visible: payload.visible });
+            return {
+                ...res.data,
+                id: payload.id,
+                visible: payload.visible,
+            };
+        } catch (error: any) {
+            return rejectWithValue(error.message || "Cập nhật trạng thái hiển thị thất bại");
+        }
+    }
+);
+
 // Slice
 export const propertySlice = createSlice({
     name: "property",
@@ -238,6 +254,36 @@ export const propertySlice = createSlice({
                 state.message = {
                     type: "error",
                     message: (action.payload as string) || "Cập nhật bài đăng thất bại!",
+                };
+            });
+
+        builder
+            .addCase(updatePropertyVisibility.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(updatePropertyVisibility.fulfilled, (state, action) => {
+                state.loading = false;
+                state.properties = state.properties.map((item) => {
+                    const itemId = item.id || item.propertyId;
+                    if (itemId !== action.payload.id) {
+                        return item;
+                    }
+
+                    return {
+                        ...item,
+                        status: action.payload.visible ? "active" : "inactive",
+                    };
+                });
+                state.message = {
+                    type: "success",
+                    message: action.payload.visible ? "Đã hiển thị lại tin" : "Đã ẩn tin",
+                };
+            })
+            .addCase(updatePropertyVisibility.rejected, (state, action) => {
+                state.loading = false;
+                state.message = {
+                    type: "error",
+                    message: (action.payload as string) || "Cập nhật trạng thái hiển thị thất bại",
                 };
             });
     },
