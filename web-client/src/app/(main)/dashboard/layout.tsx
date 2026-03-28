@@ -96,6 +96,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [isHydrated, setIsHydrated] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
@@ -114,6 +115,10 @@ export default function DashboardLayout({
   const {
     token: { borderRadiusLG },
   } = theme.useToken();
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -214,7 +219,7 @@ export default function DashboardLayout({
     { key: "/dashboard/statistics", icon: <BarChartOutlined />, label: "Thống kê" },
     { type: "divider" },
     { key: "/dashboard/profile", icon: <UserOutlined />, label: "Thông tin cá nhân" },
-    ...(!isOAuthUser
+    ...((!isHydrated || !isOAuthUser)
       ? [{ key: "/dashboard/change-password", icon: <LockOutlined />, label: "Đổi mật khẩu" }]
       : []),
   ];

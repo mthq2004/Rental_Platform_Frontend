@@ -227,7 +227,7 @@ export default function ContractDetailModal({
                 <Timeline
                   items={contractDetail.signatureLog?.map((log) => ({
                     color: log.action.includes("SIGNED") ? "green" : "blue",
-                    children: (
+                    content: (
                       <div className="flex flex-col">
                         <span className="font-medium text-gray-700">
                           {log.action === "SENT_TO_TENANT" && "Gửi hợp đồng cho người thuê"}

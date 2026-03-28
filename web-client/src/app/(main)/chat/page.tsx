@@ -14,7 +14,7 @@ import {
   sendMessage,
   SendMessagePayload,
 } from "@/stores/slices/message.slice";
-import { Spin } from "antd";
+import { Spin, Empty } from "antd";
 import { MessageOutlined } from "@ant-design/icons";
 
 export default function ChatPage() {
@@ -30,7 +30,7 @@ export default function ChatPage() {
     nextCursor,
   } = useAppSelector((state) => state.message);
   
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, isAuth } = useAppSelector((state) => state.auth);
   const { onlineUsers } = useAppSelector((state) => state.conversation);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -72,6 +72,13 @@ export default function ChatPage() {
     return (
       <div className="h-full flex items-center justify-center bg-white">
         <Spin size="large" />
+      </div>
+    );
+  }
+    if (!isAuth) {
+    return (
+      <div className="flex h-[calc(100vh-73px)] items-center justify-center bg-slate-50">
+        <Empty description="Bạn cần đăng nhập để sử dụng chức năng chat" />
       </div>
     );
   }

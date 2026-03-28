@@ -11,6 +11,7 @@ import Cookies from "js-cookie";
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const hasFetched = useRef(false);
   const isCheckingSession = useRef(false);
+  const lastSessionCheckAt = useRef(0);
 
   useEffect(() => {
     // Only run once on mount
@@ -28,13 +29,20 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const checkSession = async () => {
+      const now = Date.now();
+      const SESSION_CHECK_COOLDOWN_MS = 60 * 1000;
       const tokenFromCookie = Cookies.get("accessToken");
 
-      if (!tokenFromCookie || isCheckingSession.current) {
+      if (
+        !tokenFromCookie ||
+        isCheckingSession.current ||
+        now - lastSessionCheckAt.current < SESSION_CHECK_COOLDOWN_MS
+      ) {
         return;
       }
 
       isCheckingSession.current = true;
+      lastSessionCheckAt.current = now;
 
       try {
         await store.dispatch(getProfileUser()).unwrap();
@@ -48,19 +56,22 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const intervalId = window.setInterval(checkSession, 15000);
-
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         void checkSession();
       }
     };
 
+    const onWindowFocus = () => {
+      void checkSession();
+    };
+
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onWindowFocus);
 
     return () => {
-      window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onWindowFocus);
     };
   }, []);
 

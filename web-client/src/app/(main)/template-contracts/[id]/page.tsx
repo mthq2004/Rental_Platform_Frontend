@@ -59,6 +59,25 @@ interface ContractTemplate extends Omit<ContractTemplateRaw, "templateVariables"
   templateVariables: TemplateVariable[];
 }
 
+const TERM_VARIABLES: TemplateVariable[] = [
+  {
+    name: "custom.generalTerms",
+    type: "string",
+    label: "Điều khoản chung",
+    required: false,
+    source: "custom",
+    readonly: false,
+  },
+  {
+    name: "custom.specialTerms",
+    type: "string",
+    label: "Điều khoản riêng / Thỏa thuận đặc biệt",
+    required: false,
+    source: "custom",
+    readonly: false,
+  },
+];
+
 interface FormErrors {
   [key: string]: string;
 }
@@ -247,12 +266,40 @@ const RentalContractPage = () => {
   formDataRef.current = formData;
   const [ckeditorPortals, setCkeditorPortals] = useState<{ id: string; key: string; el: HTMLElement }[]>([]);
 
+  const syncCkeditorPortals = useCallback((tmpl: ContractTemplate) => {
+    if (!paperRef.current) {
+      setCkeditorPortals([]);
+      return;
+    }
+
+    const foundPortals: { id: string; key: string; el: HTMLElement }[] = [];
+    tmpl.templateVariables.forEach((v) => {
+      if (v.name.toLowerCase().includes("terms")) {
+        const elId = `ckeditor-placeholder-${v.name.replace(/\./g, "-")}`;
+        const el = paperRef.current?.querySelector(`#${elId}`) as HTMLElement | null;
+        if (el) {
+          foundPortals.push({ id: elId, key: v.name, el });
+        }
+      }
+    });
+
+    setCkeditorPortals(foundPortals);
+  }, []);
+
   // ──── Computed Template ────
   const template = useMemo<ContractTemplate | null>(() => {
     if (!templateDetail) return null;
     const raw = templateDetail as unknown as ContractTemplateRaw;
     if (!raw.templateVariables || typeof raw.templateVariables !== "object") return null;
-    return { ...raw, templateVariables: normaliseTemplateVariables(raw.templateVariables) };
+    const normalizedVariables = normaliseTemplateVariables(raw.templateVariables);
+
+    for (const termField of TERM_VARIABLES) {
+      if (!normalizedVariables.some((v) => v.name === termField.name)) {
+        normalizedVariables.push(termField);
+      }
+    }
+
+    return { ...raw, templateVariables: normalizedVariables };
   }, [templateDetail]);
 
   const normalizedTemplateContent = useMemo(() => {
@@ -291,13 +338,17 @@ const RentalContractPage = () => {
 
   // ──── Load Request Data ────
   useEffect(() => {
-    if (requestData && template) {
+    if (!template) return;
+
+    const allowedKeys = template.templateVariables.map((v) => v.name);
+    let initialFormData: Record<string, unknown> = {};
+
+    if (requestData) {
       // 1. Initialize logic
       const mapped = { ...requestData, contract: requestData.contract };
       const flatData = flattenObject(mapped);
-      const allowedKeys = template.templateVariables.map((v) => v.name);
 
-      let initialFormData = Object.fromEntries(
+      initialFormData = Object.fromEntries(
         Object.entries(flatData).filter(([key]) => allowedKeys.includes(key))
       );
 
@@ -310,7 +361,8 @@ const RentalContractPage = () => {
           office: "Văn phòng",
           shop: "Mặt bằng kinh doanh",
         };
-        initialFormData["property.type"] = typeMap[initialFormData["property.type"]] || initialFormData["property.type"];
+        const propertyTypeValue = String(initialFormData["property.type"]);
+        initialFormData["property.type"] = typeMap[propertyTypeValue] || propertyTypeValue;
       }
 
       // 🔥 SMART MAPPING: Map property defaults to contract fields if empty
@@ -331,47 +383,90 @@ const RentalContractPage = () => {
           }
         }
       }
+    }
 
-      // 2. Add New Requirements: Contract Number & Signature Date if not already present
-      if (!initialFormData["contract.contractNumber"]) {
-        initialFormData["contract.contractNumber"] = generateContractCode();
+    // Apply template default terms (supports both prefixed and short keys)
+    const defaultTerms =
+      template.defaultTerms && typeof template.defaultTerms === "object"
+        ? (template.defaultTerms as Record<string, unknown>)
+        : {};
+
+    const defaultTermKeyMap: Record<string, string> = {
+      paymentDueDay: "contract.paymentDueDay",
+      gracePeriodDays: "contract.gracePeriodDays",
+      lateFeePerDay: "contract.lateFeePerDay",
+      autoRenewal: "contract.autoRenewal",
+      renewalNoticeDays: "contract.renewalNoticeDays",
+      earlyTerminationFee: "contract.earlyTerminationFee",
+    };
+
+    Object.entries(defaultTerms).forEach(([key, val]) => {
+      const mappedKey = defaultTermKeyMap[key] ?? key;
+      if (
+        allowedKeys.includes(mappedKey) &&
+        (initialFormData[mappedKey] == null || initialFormData[mappedKey] === "")
+      ) {
+        initialFormData[mappedKey] = val;
       }
-      if (!initialFormData["contract.contractDate"]) {
-        initialFormData["contract.contractDate"] = new Date().toISOString().split('T')[0];
-      }
+    });
 
-      // 3. Override with existing contract draft data if present (nested contract)
-      const existingContract = (requestData.contract as any)?.contract || (requestData as any).draftContract || contractDetail;
-
-      if (existingContract) {
-        if (existingContract.rentalId) setContractId(existingContract.rentalId);
-        if (existingContract.status) setContractStatus(existingContract.status);
-
-        if (existingContract.contractData) {
-          initialFormData = { ...initialFormData, ...existingContract.contractData };
-        }
-
-        if (existingContract.contractHtml) {
-          setEditorContent(existingContract.contractHtml);
-        }
-      } else {
-        setContractStatus("draft");
-      }
-
-      setFormData(initialFormData);
-
-      // Re-render editor content if not using existing HTML
-      if (!existingContract?.contractHtml) {
-        setEditorContent(renderTemplate(normalizedTemplateContent, initialFormData));
-      }
-
-      // Directly apply HTML with the mapped data to the paperRef
-      if (paperRef.current && isEditMode) {
-        paperRef.current.innerHTML = generateEditableHtml(initialFormData, template);
+    for (const termField of TERM_VARIABLES) {
+      if (allowedKeys.includes(termField.name) && initialFormData[termField.name] == null) {
+        initialFormData[termField.name] = "";
       }
     }
+
+    // 2. Add New Requirements: Contract Number & Signature Date if not already present
+    if (!initialFormData["contract.contractNumber"]) {
+      initialFormData["contract.contractNumber"] = generateContractCode();
+    }
+    if (!initialFormData["contract.contractDate"]) {
+      initialFormData["contract.contractDate"] = new Date().toISOString().split('T')[0];
+    }
+
+    // 3. Override with existing contract draft data if present (nested contract)
+    const existingContract = (requestData?.contract as any)?.contract || (requestData as any)?.draftContract || contractDetail;
+
+    if (existingContract) {
+      if (existingContract.rentalId) setContractId(existingContract.rentalId);
+      if (existingContract.status) setContractStatus(existingContract.status);
+
+      if (existingContract.contractData) {
+        initialFormData = { ...initialFormData, ...existingContract.contractData };
+      }
+
+      if (existingContract.contractHtml) {
+        setEditorContent(existingContract.contractHtml);
+      }
+    } else {
+      setContractStatus("draft");
+    }
+
+    // Re-apply template defaults for fields that still end up empty after draft merge.
+    Object.entries(defaultTerms).forEach(([key, val]) => {
+      const mappedKey = defaultTermKeyMap[key] ?? key;
+      if (
+        allowedKeys.includes(mappedKey) &&
+        (initialFormData[mappedKey] == null || String(initialFormData[mappedKey]).trim() === "")
+      ) {
+        initialFormData[mappedKey] = val;
+      }
+    });
+
+    setFormData(initialFormData);
+
+    // Re-render editor content if not using existing HTML
+    if (!existingContract?.contractHtml) {
+      setEditorContent(renderTemplate(normalizedTemplateContent, initialFormData));
+    }
+
+    // Directly apply HTML with the mapped data to the paperRef
+    if (paperRef.current && isEditMode) {
+      paperRef.current.innerHTML = generateEditableHtml(initialFormData, template);
+      syncCkeditorPortals(template);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requestData, template, isEditMode, contractDetail]);
+  }, [requestData, template, isEditMode, contractDetail, syncCkeditorPortals]);
 
   // ──── Required Fields Logic ────
   const requiredFields = useMemo(
@@ -446,19 +541,9 @@ const RentalContractPage = () => {
   useEffect(() => {
     if (!paperRef.current || !isEditMode || !template) return;
     paperRef.current.innerHTML = generateEditableHtml(formDataRef.current, template);
-
-    // Find portals for CKEditor dynamically based on template variables
-    const foundPortals: { id: string; key: string; el: HTMLElement }[] = [];
-    template.templateVariables.forEach(v => {
-      if (v.name.toLowerCase().includes("terms")) {
-        const elId = `ckeditor-placeholder-${v.name.replace(/\./g, '-')}`;
-        const el = paperRef.current?.querySelector(`#${elId}`) as HTMLElement;
-        if (el) foundPortals.push({ id: elId, key: v.name, el });
-      }
-    });
-    setCkeditorPortals(foundPortals);
+    syncCkeditorPortals(template);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, template]);
+  }, [isEditMode, template, syncCkeditorPortals]);
 
   // ──── Sync Data to DOM (Handle Late Loading) ────
   useEffect(() => {
