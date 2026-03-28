@@ -90,6 +90,57 @@ const normalizeRentalRequest = (request: any): RentalRequest => {
   } as RentalRequest;
 };
 
+const normalizeContract = (contract: any): RentalContract => {
+  const normalizedContract = {
+    ...contract,
+    rentalId: contract?.rentalId ?? contract?.id,
+    monthlyRent: parseNumberSafe(contract?.monthlyRent),
+    depositAmount: parseNumberSafe(contract?.depositAmount),
+    electricityCostPerKwh:
+      contract?.electricityCostPerKwh == null
+        ? undefined
+        : parseNumberSafe(contract?.electricityCostPerKwh),
+    waterCostPerM3:
+      contract?.waterCostPerM3 == null
+        ? undefined
+        : parseNumberSafe(contract?.waterCostPerM3),
+    managementFee:
+      contract?.managementFee == null
+        ? undefined
+        : parseNumberSafe(contract?.managementFee),
+    parkingFee:
+      contract?.parkingFee == null
+        ? undefined
+        : parseNumberSafe(contract?.parkingFee),
+    internetFee:
+      contract?.internetFee == null
+        ? undefined
+        : parseNumberSafe(contract?.internetFee),
+    lateFeePerDay:
+      contract?.lateFeePerDay == null
+        ? undefined
+        : parseNumberSafe(contract?.lateFeePerDay),
+  } as RentalContract;
+
+  return normalizedContract;
+};
+
+const dedupeContractsByRentalId = (items: RentalContract[]): RentalContract[] => {
+  const seen = new Set<string>();
+  const deduped: RentalContract[] = [];
+
+  for (const item of items) {
+    const id = item.rentalId;
+    if (!id || seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+    deduped.push(item);
+  }
+
+  return deduped;
+};
+
 // ─── Rental Request Actions ──────────────────────────────────────
 
 export const createRentalRequest = createAsyncThunk(
@@ -328,7 +379,13 @@ export const contractSlice = createSlice({
       .addCase(getMyContracts.pending, (state) => { state.contractsLoading = true; })
       .addCase(getMyContracts.fulfilled, (state, action) => {
         state.contractsLoading = false;
-        state.contracts = action.payload.data?.items ?? [];
+        const rawItems = Array.isArray(action.payload?.data?.items)
+          ? action.payload.data.items
+          : [];
+        const normalizedItems = rawItems
+          .map(normalizeContract)
+          .filter((item: RentalContract) => Boolean(item?.rentalId));
+        state.contracts = dedupeContractsByRentalId(normalizedItems);
         state.contractsMeta = action.payload.data?.meta ?? null;
       })
       .addCase(getMyContracts.rejected, (state) => { state.contractsLoading = false; });
@@ -337,7 +394,7 @@ export const contractSlice = createSlice({
       .addCase(getContractDetail.pending, (state) => { state.contractsLoading = true; })
       .addCase(getContractDetail.fulfilled, (state, action) => {
         state.contractsLoading = false;
-        state.contractDetail = action.payload.data ?? null;
+        state.contractDetail = action.payload?.data ? normalizeContract(action.payload.data) : null;
       })
       .addCase(getContractDetail.rejected, (state) => { state.contractsLoading = false; });
 
@@ -375,23 +432,23 @@ export const contractSlice = createSlice({
       .addCase(createContract.fulfilled, (state, action) => {
         state.actionLoading = false;
 
-        const contract = action.payload?.data;
+        const rawContract = action.payload?.data;
+        const contract = rawContract ? normalizeContract(rawContract) : null;
         if (!contract) return;
 
-        // 🔍 check contract đã tồn tại chưa
+        // Update if contract exists, otherwise prepend.
         const index = state.contracts.findIndex(
-          (c) => c.rentalId === contract.id
+          (c) => c.rentalId === contract.rentalId
         );
 
         if (index !== -1) {
-          // ✅ update nếu đã tồn tại
           state.contracts[index] = contract;
         } else {
-          // ✅ thêm mới
           state.contracts.unshift(contract);
         }
 
-        // ✅ đồng bộ detail
+        state.contracts = dedupeContractsByRentalId(state.contracts);
+
         state.contractDetail = contract;
       })
       .addCase(createContract.rejected, (state) => {

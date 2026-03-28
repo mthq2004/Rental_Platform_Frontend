@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Tabs, Table, Badge, Button, Empty, App, Modal, Radio, Spin, Alert, Typography, Progress } from "antd";
 import {
@@ -219,6 +219,8 @@ export default function ContractsPage() {
         detail = result.payload;
       }
     }
+    setEditOpen(true);
+
     editForm.setFieldsValue({
       monthlyRent: Number(detail?.monthlyRent ?? record.monthlyRent ?? 0),
       depositAmount: Number(detail?.depositAmount ?? record.depositAmount ?? 0),
@@ -234,7 +236,6 @@ export default function ContractsPage() {
       notes: detail?.notes ?? record.notes,
       terms: detail?.terms?.map((t: any) => t.content) ?? [],
     });
-    setEditOpen(true);
   };
 
   const handleEditSubmit = async () => {
@@ -327,6 +328,19 @@ export default function ContractsPage() {
   const progressPercent = smartca.initialExpiredIn > 0
     ? Math.max(0, Math.min(100, (smartca.expiredIn / smartca.initialExpiredIn) * 100))
     : 0;
+  const displayContracts = useMemo(() => {
+    const source = Array.isArray(contracts) ? contracts : [];
+    const seen = new Set<string>();
+
+    return source.filter((item) => {
+      const id = item?.rentalId;
+      if (!id || seen.has(id)) {
+        return false;
+      }
+      seen.add(id);
+      return true;
+    });
+  }, [contracts]);
 
   // Build tab items
   const statusTabs = contractStatusCounts.length
@@ -393,10 +407,10 @@ export default function ContractsPage() {
         />
 
         <Table
-          dataSource={Array.isArray(contracts) ? contracts : []}
+          dataSource={displayContracts}
           columns={columns}
           loading={contractsLoading}
-          rowKey="rentalId"
+          rowKey={(record) => record.rentalId || record.contractCode}
           pagination={{
             current: page,
             pageSize: 10,

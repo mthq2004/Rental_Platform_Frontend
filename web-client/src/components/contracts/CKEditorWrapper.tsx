@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React from "react";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 
@@ -8,6 +8,8 @@ interface CKEditorWrapperProps {
   value: string;
   onChange: (value: string) => void;
 }
+
+const CKEDITOR_LICENSE_KEY = process.env.NEXT_PUBLIC_CKEDITOR_LICENSE_KEY || "GPL";
 
 export default function CKEditorWrapper({ value, onChange }: CKEditorWrapperProps) {
   return (
@@ -33,6 +35,7 @@ export default function CKEditorWrapper({ value, onChange }: CKEditorWrapperProp
           onChange(data);
         }}
         config={{
+          licenseKey: CKEDITOR_LICENSE_KEY,
           toolbar: ["bold", "italic", "bulletedList", "numberedList", "link", "blockQuote"],
         }}
       />

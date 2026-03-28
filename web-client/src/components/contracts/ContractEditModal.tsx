@@ -62,7 +62,8 @@ export default function ContractEditModal({
       cancelText="Để sau"
       onOk={onSubmit}
       confirmLoading={actionLoading}
-      destroyOnClose
+      destroyOnHidden
+      forceRender
       width={720}
       centered
       className="professional-modal"
