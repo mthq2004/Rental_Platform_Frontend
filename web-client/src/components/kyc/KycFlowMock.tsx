@@ -5,16 +5,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BRAND, STEP_LABELS } from "./constants";
 import { ActionButton, BottomActionBar, KycErrorModal } from "./KycPrimitives";
 import { StepContent } from "./KycSteps";
-import http from "../../utils/api";
-import { message } from "antd";
+import { message, Modal, Spin } from "antd";
 import { StepBadge, StepperDots } from "./KycStepper";
 import { StepKey } from "./types";
 import { useAppDispatch } from "@/stores/hooks";
-import { saveForAdmin, verifyKyc } from "@/stores/slices/kyc.slice";
+import { verifyKyc } from "@/stores/slices/kyc.slice";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
-import { Modal } from "antd";
 import { RootState } from "@/stores/store";
+import { getProfileUser } from "@/stores/slices/auth.slice";
 
 type KycImages = {
   front?: string;
@@ -31,6 +30,9 @@ export default function KycFlowMock() {
   const [kycData, setKycData] = useState<any>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const imageRef = useRef<KycImages>({});
+
+  const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+  const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 
   const dispatch = useAppDispatch()
   const router = useRouter()
@@ -132,10 +134,18 @@ export default function KycFlowMock() {
 
         if (verifyKyc.fulfilled.match(action)) {
           const response = action.payload;
-          if (response.success) {
-            message.success("Xác thực khuôn mặt thành công!");
-            setKycData(response);
-            setStep(4);
+          setKycData(response);
+          setStep(4);
+
+          if (response?.status === "verified") {
+            message.success("KYC đã được xác thực thành công");
+            dispatch(getProfileUser());
+          } else if (response?.status === "in_review") {
+            message.info("Your KYC is being reviewed by admin");
+            dispatch(getProfileUser());
+          } else if (response?.status === "rejected") {
+            message.error(response?.rejectionReason || "Hồ sơ KYC bị từ chối. Vui lòng gửi lại.");
+            dispatch(getProfileUser());
           } else {
             setShowErrorModal(true);
           }
@@ -152,13 +162,13 @@ export default function KycFlowMock() {
     }
 
     if (step === 4) {
+      if (kycData?.status === "rejected") {
+        setStep(2);
+        message.info("Bạn có thể chỉnh ảnh và gửi lại KYC.");
+        return;
+      }
       setDone(true);
     }
-  };
-
-  const resetFlow = () => {
-    setDone(false);
-    setStep(1);
   };
 
   const handleStepClick = (nextStep: StepKey) => {
@@ -166,7 +176,25 @@ export default function KycFlowMock() {
     setStep(nextStep);
   };
 
+  const validateFile = (file: File) => {
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      message.error("Chỉ hỗ trợ JPG, PNG hoặc WEBP.");
+      return false;
+    }
+
+    if (file.size > MAX_SIZE_BYTES) {
+      message.error("Kích thước ảnh tối đa 5MB.");
+      return false;
+    }
+
+    return true;
+  };
+
   const setImageFromFile = (key: keyof KycImages, file: File) => {
+    if (!validateFile(file)) {
+      return;
+    }
+
     const url = URL.createObjectURL(file);
     setFiles((prev) => ({ ...prev, [key]: file }));
     setImages((prev) => {
@@ -185,6 +213,9 @@ export default function KycFlowMock() {
     // Convert Data URL to File for API upload
     const file = dataURLtoFile(dataUrl, `kyc-${key}-${Date.now()}.jpg`);
     if (file) {
+      if (!validateFile(file)) {
+        return;
+      }
       setFiles((prev) => ({ ...prev, [key]: file }));
     }
 
@@ -214,38 +245,21 @@ export default function KycFlowMock() {
     return new File([u8arr], filename, { type: mime });
   };
 
-  const handleSendToAdmin = async () => {
-    try {
-      setIsVerifying(true);
-      const formData = new FormData();
-      if (files.front) formData.append("files", files.front);
-      if (files.back) formData.append("files", files.back);
-      if (files.selfie) formData.append("files", files.selfie);
-
-      // Call thunk dedicated for manual verification review
-      const action = await dispatch(saveForAdmin(formData));
-
-      if (saveForAdmin.fulfilled.match(action)) {
-        message.info("Đã gửi thông tin cho Admin. Vui lòng chờ kết quả!");
-        setShowErrorModal(false);
-        setDone(true); // Proceed to completion page
-      } else {
-        message.error("Gửi yêu cầu thất bại. Vui lòng thử lại sau.");
-      }
-    } catch (error) {
-      message.error("Lỗi hệ thống khi gửi yêu cầu.");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
+  const isCurrentStepInvalid =
+    (step === 2 && (!files.front || !files.back)) ||
+    (step === 3 && !files.selfie);
 
   return (
     <div className="h-[calc(100dvh-76px)] overflow-hidden" style={{ background: BRAND.background }}>
+      <Spin spinning={isVerifying} fullscreen tip="Đang phân tích AI KYC..." />
       {showErrorModal && (
         <KycErrorModal
           onClose={() => setShowErrorModal(false)}
           onRetry={() => setShowErrorModal(false)}
-          onSendToAdmin={handleSendToAdmin}
+          onSendToAdmin={() => {
+            setShowErrorModal(false);
+            message.info("Vui lòng gửi lại ảnh rõ nét để hệ thống tiếp tục xử lý.");
+          }}
         />
       )}
       <div className="h-full px-3 pb-2 pt-2 md:px-6 md:pt-4">
@@ -283,14 +297,15 @@ export default function KycFlowMock() {
               {done ? (
                 <>
                   {/* <ActionButton text="Làm lại" onClick={resetFlow} /> */}
-                  <ActionButton text="Tiếp tục đăng tin" primary icon={<ArrowRight className="h-4 w-4" />} onClick={() => router.push("/post/create")} />
+                  <ActionButton text="Tiếp tục đăng tin" primary icon={<ArrowRight className="h-4 w-4" />} onClick={() => router.push("/post/create")} disabled={user?.kycStatus !== "verified"} />
                 </>
               ) : (
                 <ActionButton
-                  text={isVerifying ? "Đang xác thực..." : step === 4 ? "Hoàn tất" : "Tiếp tục"}
+                  text={isVerifying ? "Đang xác thực..." : step === 4 && kycData?.status === "rejected" ? "Resubmit KYC" : step === 4 ? "Hoàn tất" : "Tiếp tục"}
                   primary
                   icon={<ArrowRight className="h-4 w-4" />}
                   onClick={goNext}
+                  disabled={isVerifying || isCurrentStepInvalid}
                 />
               )}
             </div>

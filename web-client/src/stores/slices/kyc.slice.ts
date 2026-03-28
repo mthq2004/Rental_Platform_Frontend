@@ -4,7 +4,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 export const verifyKyc = createAsyncThunk(
     "kyc/verify",
     async (data: FormData) => {
-        const response = await http.post("/estate/kyc/verify", data);
+        const response = await http.post("/estate/kyc/submit", data);
         // If the backend wraps the result in a .data property, use it, 
         // otherwise return the whole response as it's the structure provided by user.
         return response.data || response;
@@ -35,11 +35,16 @@ export const kycSlice = createSlice({
     name: "kyc",
     initialState,
     reducers: {
-
+        resetKycState: (state) => {
+            state.kycData = null;
+            state.error = null;
+            state.loading = false;
+        }
     },
     extraReducers: (builder) => {
         builder.addCase(verifyKyc.pending, (state) => {
             state.loading = true;
+            state.error = null;
         })
         builder.addCase(verifyKyc.fulfilled, (state, action) => {
             state.loading = false;
@@ -62,5 +67,5 @@ export const kycSlice = createSlice({
     }
 })
 
-export const { } = kycSlice.actions
+export const { resetKycState } = kycSlice.actions
 export default kycSlice.reducer

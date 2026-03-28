@@ -5,7 +5,7 @@ type HttpOptions = {
   contentType?: string;
 };
 
-type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 class HttpClient {
   private baseUrl: string;
@@ -117,7 +117,7 @@ class HttpClient {
   }
 
   patch(endpoint: string, data?: any, options?: HttpOptions) {
-    return this.request("PUT", endpoint, data, options);
+    return this.request("PATCH", endpoint, data, options);
   }
 }
 

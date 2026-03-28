@@ -15,6 +15,20 @@ export type Role = "user" | "admin";
 
 export type KycStatus = "pending" | "in_review" | "verified" | "rejected" | "expired";
 
+export type KycDocumentSummary = {
+  kycId: string;
+  status: "pending" | "in_review" | "approved" | "rejected";
+  frontImageUrl?: string | null;
+  backImageUrl?: string | null;
+  selfieUrl?: string | null;
+  ocrData?: Record<string, unknown> | null;
+  score?: number | null;
+  flags?: string[];
+  rejectionReason?: string | null;
+  submittedAt?: string;
+  reviewedAt?: string | null;
+};
+
 export type AccountItem = {
   id: string;
   fullName: string;
@@ -32,6 +46,11 @@ export type AccountItem = {
   bannedAt?: string | null;
   bannedReason?: string | null;
   bannedUntil?: string | null;
+  kycScore?: number | null;
+  kycFlags?: string[];
+  kycOcrData?: Record<string, unknown> | null;
+  kycRejectionReason?: string | null;
+  latestKycDocument?: KycDocumentSummary | null;
 };
 
 export type AccountListResponse = {

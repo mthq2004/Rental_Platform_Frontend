@@ -310,16 +310,27 @@ export function StepThree({
 
 export function StepFour({
   frontImage,
+  backImage,
   selfieImage,
   kycData,
 }: {
   frontImage?: string;
+  backImage?: string;
   selfieImage?: string;
   kycData?: any;
 }) {
-  const ocrData = kycData?.ocr; // Case if backend returns nested OCR
-  const similarity = kycData?.similarity ?? (kycData ? 98 : 0);
-  const status = kycData?.status === "verified" ? "Đã xác minh" : (kycData ? "Chờ duyệt" : "Chưa xác minh");
+  const score = kycData?.score ?? kycData?.similarity ?? (kycData ? 0 : 0);
+  const flags = Array.isArray(kycData?.flags) ? kycData.flags : [];
+
+  const statusMap: Record<string, string> = {
+    pending: "Chờ xác thực",
+    in_review: "Đang thẩm định",
+    verified: "Đã xác minh",
+    rejected: "Bị từ chối",
+    expired: "Hết hạn",
+  };
+
+  const status = statusMap[String(kycData?.status || "pending")] || "Chờ xác thực";
 
   return (
     <section className="rounded-3xl border bg-white p-5 shadow-sm md:p-8 mb-6" style={{ borderColor: BRAND.border }}>
@@ -338,7 +349,7 @@ export function StepFour({
         />
         <Tag
           icon={<BadgeCheck className="h-4 w-4" />}
-          text={`Độ tin cậy: ${similarity}%`}
+          text={`Độ tin cậy: ${Math.round(score)}%`}
           color="#1E63F0" bg="#EAF1FF"
         />
         <Tag
@@ -353,9 +364,23 @@ export function StepFour({
         <div className="grid gap-4 text-sm md:grid-cols-2 md:text-base">
           <ReadOnlyCell label="Họ và tên" value={kycData?.fullName || "Bùi Kim Nam"} />
           <ReadOnlyCell label="Số định danh" value={kycData?.idNumber || "031092004567"} />
-          <ReadOnlyCell label="Ngày mời" value={kycData?.dob || "15 / 08 / 1992"} />
+          <ReadOnlyCell label="Ngày sinh" value={kycData?.dob || "15 / 08 / 1992"} />
           <ReadOnlyCell label="Giới tính" value={kycData?.gender || "Nam"} />
         </div>
+
+        {flags.length > 0 && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <p className="font-semibold">Cảnh báo hệ thống</p>
+            <p className="mt-1">{flags.join(", ")}</p>
+          </div>
+        )}
+
+        {kycData?.status === "rejected" && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            <p className="font-semibold">Lý do từ chối</p>
+            <p className="mt-1">{kycData?.rejectionReason || "Hồ sơ chưa đạt yêu cầu xác thực"}</p>
+          </div>
+        )}
 
         {kycData?.kycDocumentId && (
           <div className="mt-4 pt-4 border-t border-dashed">
@@ -363,8 +388,9 @@ export function StepFour({
           </div>
         )}
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <PreviewBox title="CCCD Mặt trước" imageUrl={frontImage} />
+          <PreviewBox title="CCCD Mặt sau" imageUrl={backImage} />
           <PreviewBox title="Ảnh Selfie" imageUrl={selfieImage} />
         </div>
       </div>
@@ -451,5 +477,5 @@ export function StepContent({
     return <StepThree selfieImage={selfieImage} onCaptureSelfie={onCaptureSelfie} onPickSelfie={onPickSelfie} />;
   }
 
-  return <StepFour frontImage={frontImage} selfieImage={selfieImage} kycData={kycData} />;
+  return <StepFour frontImage={frontImage} backImage={backImage} selfieImage={selfieImage} kycData={kycData} />;
 }

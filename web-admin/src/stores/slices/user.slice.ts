@@ -8,6 +8,7 @@ import type {
 } from "../../types/user.type";
 
 const BASE_ENDPOINT = "/estate/admin/user";
+const KYC_ADMIN_ENDPOINT = "/estate/admin/kyc";
 
 type AccountRolePath = "users" | "admins";
 
@@ -110,6 +111,24 @@ export const unbanAccount = createAsyncThunk(
   },
 );
 
+export const approveKyc = createAsyncThunk(
+  "user/approveKyc",
+  async (kycId: string): Promise<{ status: string; score: number; flags: string[]; rejectionReason: string | null }> => {
+    const response = await http.patch(`${KYC_ADMIN_ENDPOINT}/${kycId}/approve`, {});
+    return response.data;
+  },
+);
+
+export const rejectKyc = createAsyncThunk(
+  "user/rejectKyc",
+  async (
+    { kycId, rejectionReason }: { kycId: string; rejectionReason: string },
+  ): Promise<{ status: string; score: number; flags: string[]; rejectionReason: string | null }> => {
+    const response = await http.patch(`${KYC_ADMIN_ENDPOINT}/${kycId}/reject`, { rejectionReason });
+    return response.data;
+  },
+);
+
 export const userSlice = createSlice({
   name: "user",
   initialState,
@@ -166,6 +185,24 @@ export const userSlice = createSlice({
         state.detail = action.payload;
       })
       .addCase(unbanAccount.rejected, (state) => {
+        state.loading = false;
+      })
+      .addCase(approveKyc.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(approveKyc.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(approveKyc.rejected, (state) => {
+        state.loading = false;
+      })
+      .addCase(rejectKyc.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(rejectKyc.fulfilled, (state) => {
+        state.loading = false;
+      })
+      .addCase(rejectKyc.rejected, (state) => {
         state.loading = false;
       })
       .addCase(createUserAccount.pending, (state) => {

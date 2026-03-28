@@ -44,8 +44,8 @@ type FilterState = {
 
 const getKycTag = (kycStatus: KycStatus) => {
   const map: Record<KycStatus, { color: string; label: string }> = {
-    pending: { color: "gold", label: "Chờ xác thực" },
-    in_review: { color: "processing", label: "Đang thẩm định" },
+    pending: { color: "default", label: "Chờ xác thực" },
+    in_review: { color: "gold", label: "Đang thẩm định" },
     verified: { color: "success", label: "Đã xác thực" },
     rejected: { color: "error", label: "Từ chối" },
     expired: { color: "default", label: "Hết hạn" },
@@ -256,6 +256,15 @@ const AccountManagementPage = ({ role, title, detailBasePath }: Props) => {
           width: 140,
           render: (kycStatus: KycStatus) => getKycTag(kycStatus),
         },
+        {
+          title: "AI Score",
+          key: "kycScore",
+          width: 100,
+          render: (_: unknown, record: AccountItem) => {
+            const score = record.kycScore ?? record.latestKycDocument?.score;
+            return typeof score === "number" ? Math.round(score) : "-";
+          },
+        },
       ]
     : []),
     {
@@ -400,6 +409,9 @@ const AccountManagementPage = ({ role, title, detailBasePath }: Props) => {
             columns={columns}
             dataSource={items}
             loading={loading}
+            onRow={(record) => ({
+              style: record.kycStatus === "in_review" ? { background: "#fffbe6" } : undefined,
+            })}
             scroll={{ y: tableScrollY }}
             tableLayout="fixed"
             pagination={{

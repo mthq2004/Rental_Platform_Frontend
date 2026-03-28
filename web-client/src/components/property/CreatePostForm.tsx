@@ -33,6 +33,8 @@ import {
   resetMessage,
 } from "@/stores/slices/property.slice";
 import { AppDispatch } from "@/stores/store";
+import { getMissingPostingRequirements } from "@/utils/profile-completeness";
+import { useAppSelector } from "@/stores/hooks";
 
 /* =========================
    Initial Data
@@ -126,6 +128,9 @@ export default function CreatePostForm() {
   const [showCategoryModal, setShowCategoryModal] = useState(true);
   const [categorySelected, setCategorySelected] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [blockedByProfile, setBlockedByProfile] = useState(false);
+  const authUser = useAppSelector((state) => state.auth.user);
+  const authLoading = useAppSelector((state) => state.auth.loading);
 
   const propertyMeta = PROPERTY_META[formData.propertyType];
 
@@ -197,6 +202,25 @@ export default function CreatePostForm() {
 
     dispatch(resetMessage());
   }, [propertyMessage, dispatch, message, router, isEditMode, lastAction]);
+
+  useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    const missingRequirements = getMissingPostingRequirements(authUser);
+    if (missingRequirements.length > 0) {
+      setBlockedByProfile(true);
+
+      const onlyMissingKyc = missingRequirements.length === 1 && missingRequirements[0] === "Xác thực KYC";
+      const notLoggedIn = missingRequirements.includes("Bạn chưa đăng nhập");
+      message.warning(`Bạn cần bổ sung: ${missingRequirements.join(", ")}`);
+      router.replace(notLoggedIn ? "/" : onlyMissingKyc ? "/kyc" : "/dashboard/profile");
+      return;
+    }
+
+    setBlockedByProfile(false);
+  }, [authUser, authLoading, message, router]);
 
   /* =========================
      Helpers
@@ -299,6 +323,14 @@ export default function CreatePostForm() {
      Render
   ========================= */
   if (isEditMode && isLoadingDetail) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (blockedByProfile) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Spin size="large" />

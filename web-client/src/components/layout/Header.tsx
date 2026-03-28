@@ -9,6 +9,7 @@ import NotificationDropdown from "@/components/layout/NotificationDropdown";
 import UserDropdown from "@/components/layout/UserDropdown";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { logout } from "@/stores/slices/auth.slice";
+import { getMissingPostingRequirements } from "@/utils/profile-completeness";
 
 
 const Header = () => {
@@ -48,16 +49,29 @@ const Header = () => {
   const handlePostClick = () => {
     console.log("Đăng tin clicked");
     if (isAuth) {
-      if (user?.kycStatus === "verified") {
+      if (!user) {
+        Modal.info({
+          title: "Đang tải hồ sơ",
+          content: "Vui lòng thử lại sau vài giây khi hệ thống tải xong thông tin tài khoản.",
+          centered: true,
+        });
+        return;
+      }
+
+      const missingRequirements = getMissingPostingRequirements(user);
+
+      if (missingRequirements.length === 0) {
         router.push("/post/create");
       } else {
+        const onlyMissingKyc = missingRequirements.length === 1 && missingRequirements[0] === "Xác thực KYC";
+
         Modal.confirm({
-          title: "Yêu cầu xác thực tài khoản",
-          content: "Bạn cần xác thực tài khoản (KYC) để có thể đăng tin. Bạn có muốn thực hiện xác thực ngay bây giờ không?",
-          okText: "Xác thực ngay",
+          title: "Chưa đủ điều kiện đăng tin",
+          content: `Bạn cần bổ sung: ${missingRequirements.join(", ")}`,
+          okText: onlyMissingKyc ? "Đi tới KYC" : "Cập nhật hồ sơ",
           cancelText: "Để sau",
           onOk: () => {
-            router.push("/kyc");
+            router.push(onlyMissingKyc ? "/kyc" : "/dashboard/profile");
           },
           centered: true,
         });
@@ -200,7 +214,7 @@ const Header = () => {
                 {/* User Dropdown - Always show when logged in, passes isDashboard to disable dropdown */}
                 <UserDropdown
                   userName={user?.fullName || 'User'}
-                  avatarUrl={user?.avatarUrl}
+                  avatarUrl={user?.avatarUrl || undefined}
                   onLogout={handleLogout}
                   isLoggingOut={isLoggingOut}
                   isDashboard={isDashboard}

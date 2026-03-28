@@ -10,20 +10,24 @@ export function ActionButton({
   onClick,
   primary,
   icon,
+  disabled,
 }: {
   text: string;
   onClick: () => void;
   primary?: boolean;
   icon?: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition md:text-base"
       style={{
-        background: primary ? BRAND.primary : "#E9EEF7",
-        color: primary ? "#FFFFFF" : BRAND.text,
+        background: disabled ? "#CBD5E1" : primary ? BRAND.primary : "#E9EEF7",
+        color: disabled ? "#64748B" : primary ? "#FFFFFF" : BRAND.text,
+        cursor: disabled ? "not-allowed" : "pointer",
       }}
     >
       {icon}

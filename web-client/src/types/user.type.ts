@@ -1,13 +1,42 @@
 export type UserType = {
   id: string;
-  email: string;
+  email: string | null;
   fullName: string;
-  phone: string;
+  phone: string | null;
   role: string;
+  walletAddress?: string | null;
+  walletType?: "metamask" | "trust_wallet" | "coinbase" | "other" | null;
   phoneVerified: boolean;
+  isEmailVerified?: boolean;
+  emailVerifiedAt?: string | null;
   dateOfBirth: string | null;
-  gender: string;
-  avatarUrl: string;
+  gender: string | null;
+  avatarUrl: string | null;
   isActive: boolean;
-  kycStatus: "pending" | "verified" | "rejected";
+  isBanned?: boolean;
+  bannedAt?: string | null;
+  bannedReason?: string | null;
+  bannedUntil?: string | null;
+  lastLoginAt?: string | null;
+  lastLoginIp?: string | null;
+  loginCount?: number;
+  kycSubmittedAt?: string | null;
+  kycVerifiedAt?: string | null;
+  kycExpiredAt?: string | null;
+  kycRejectionReason?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  kycStatus: "pending" | "in_review" | "verified" | "rejected" | "expired";
+  profile?: {
+    profileId: string;
+    fullName: string;
+    idCardNumber: string | null;
+    currentAddress?: string | null;
+    currentWard?: string | null;
+    currentDistrict?: string | null;
+    currentCity?: string | null;
+    occupation?: string | null;
+    emergencyContactName?: string | null;
+    emergencyContactPhone?: string | null;
+  } | null;
 }
