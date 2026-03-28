@@ -5,8 +5,8 @@ import { Modal, Tag, Button, Space, Timeline } from "antd";
 import {
   FileTextOutlined,
   EditOutlined,
-  SendOutlined,
   CheckCircleOutlined,
+  DownloadOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import type { RentalContract, RentalContractStatus } from "@/types/contract.type";
@@ -19,7 +19,6 @@ interface ContractDetailModalProps {
   userId: string | undefined;
   onClose: () => void;
   onEdit: (record: RentalContract) => void;
-  onSendToTenant: (rentalId: string) => void;
   onTenantSign: (rentalId: string) => void;
   onOwnerSign: (rentalId: string) => void;
   onActivate: (rentalId: string) => void;
@@ -32,7 +31,6 @@ export default function ContractDetailModal({
   userId,
   onClose,
   onEdit,
-  onSendToTenant,
   onTenantSign,
   onOwnerSign,
   onActivate,
@@ -66,33 +64,40 @@ export default function ContractDetailModal({
                 <Tag color={cfg.color} icon={cfg.icon}>{cfg.label}</Tag>
               </div>
               <Space>
-                {(contractDetail.status === "draft" || contractDetail.status === "pending_tenant") && ownerSide && (
+                {contractDetail.status === "draft" && ownerSide && (
                   <>
                     <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(contractDetail)}>
                       Chỉnh sửa
                     </Button>
-                    {contractDetail.status === "draft" && (
-                      <Button
-                        size="small"
-                        type="primary"
-                        icon={<SendOutlined />}
-                        onClick={() => onSendToTenant(contractDetail.rentalId)}
-                      >
-                        Gửi cho người thuê
-                      </Button>
-                    )}
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<CheckCircleOutlined />}
+                      onClick={() => onOwnerSign(contractDetail.rentalId)}
+                    >
+                      Ký hợp đồng
+                    </Button>
                   </>
                 )}
-                {contractDetail.status === "pending_tenant" && !ownerSide && (
-                  <Button size="small" type="primary" onClick={() => onTenantSign(contractDetail.rentalId)}>
-                    Ký hợp đồng
-                  </Button>
+
+                {contractDetail.status === "owner_signed" && !ownerSide && (
+                  <>
+                    {contractDetail.signedContractUrl && (
+                      <Button
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        href={contractDetail.signedContractUrl}
+                        target="_blank"
+                      >
+                        Tải hợp đồng đã ký
+                      </Button>
+                    )}
+                    <Button size="small" type="primary" onClick={() => onTenantSign(contractDetail.rentalId)}>
+                      Ký hợp đồng
+                    </Button>
+                  </>
                 )}
-                {contractDetail.status === "pending_landlord" && ownerSide && (
-                  <Button size="small" type="primary" onClick={() => onOwnerSign(contractDetail.rentalId)}>
-                    Ký hợp đồng
-                  </Button>
-                )}
+
                 {contractDetail.status === "fully_signed" && ownerSide && (
                   <Button size="small" type="primary" onClick={() => onActivate(contractDetail.rentalId)}>
                     Kích hoạt hợp đồng
@@ -100,9 +105,7 @@ export default function ContractDetailModal({
                 )}
 
                 {/* Cancel/Reject buttons */}
-                {((contractDetail.status === "pending_tenant" && !ownerSide) ||
-                  (contractDetail.status === "pending_landlord" && ownerSide) ||
-                  (contractDetail.status === "draft" && ownerSide)) && (
+                {contractDetail.status === "draft" && ownerSide && (
                     <Button
                       size="small"
                       danger

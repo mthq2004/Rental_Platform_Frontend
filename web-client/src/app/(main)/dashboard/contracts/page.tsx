@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Tabs, Table, Badge, Button, Empty, App } from "antd";
+import { Tabs, Table, Badge, Button, Empty, App, Modal, Radio, Spin, Alert, Typography, Progress } from "antd";
 import {
   FileTextOutlined,
   ReloadOutlined,
-  SendOutlined,
-  CheckCircleOutlined,
   PlayCircleOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
@@ -16,9 +14,6 @@ import {
   getMyContracts,
   getContractDetail,
   getContractStatusCounts,
-  sendContractToTenant,
-  tenantSignContract,
-  ownerSignContract,
   activateContract,
   cancelContract,
   updateContract,
@@ -31,6 +26,16 @@ import { getContractTableColumns } from "@/components/contracts/ContractTableCol
 import ContractDetailModal from "@/components/contracts/ContractDetailModal";
 import ContractEditModal from "@/components/contracts/ContractEditModal";
 import { getRequestTemplateData } from "@/stores/slices/template-contract.slice";
+import {
+  handleSignResult,
+  resetSmartCAState,
+  signContract,
+  tickSmartCARemaining,
+} from "@/stores/slices/smartca.slice";
+
+const SMARTCA_POLLING_MS = 4000;
+
+const { Text } = Typography;
 
 export default function ContractsPage() {
   const { message, modal } = App.useApp();
@@ -44,13 +49,23 @@ export default function ContractsPage() {
     contractsMeta,
     actionLoading,
   } = useAppSelector((state) => state.contract);
+  const smartca = useAppSelector((state) => state.smartca);
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("all");
   const [detailOpen, setDetailOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [smartCAModalOpen, setSmartCAModalOpen] = useState(false);
+  const [signingContractId, setSigningContractId] = useState<string | null>(null);
+  const [signingRole, setSigningRole] = useState<"OWNER" | "TENANT" | null>(null);
+  const [signMethod, setSignMethod] = useState<"smartca">("smartca");
   const [editForm] = Form.useForm();
   const [page, setPage] = useState(1);
+  const finalizedRef = useRef(false);
+
+  const hasActiveSigningSession =
+    Boolean(smartca.transactionId) &&
+    ["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus);
 
   const fetchContracts = useCallback(
     (status?: string, p?: number) => {
@@ -84,65 +99,64 @@ export default function ContractsPage() {
     setDetailOpen(true);
   };
 
-  const handleSendToTenant = (rentalId: string) => {
-    modal.confirm({
-      title: "Gửi hợp đồng cho người thuê",
-      icon: <SendOutlined />,
-      content: "Sau khi gửi, người thuê sẽ có thể xem và ký hợp đồng này.",
-      okText: "Gửi",
-      cancelText: "Hủy",
-      onOk: async () => {
-        try {
-          await dispatch(sendContractToTenant(rentalId)).unwrap();
-          message.success("Đã gửi hợp đồng cho người thuê");
-          handleRefresh();
-        } catch (err: any) {
-          message.error(err || "Gửi thất bại");
-        }
-      },
-    });
-  };
-
   const handleTenantSign = (rentalId: string) => {
-    modal.confirm({
-      title: "Ký hợp đồng",
-      icon: <CheckCircleOutlined />,
-      content: "Bạn xác nhận ký hợp đồng này? Hành động này không thể hoàn tác.",
-      okText: "Ký hợp đồng",
-      okType: "primary",
-      cancelText: "Hủy",
-      onOk: async () => {
-        try {
-          await dispatch(tenantSignContract(rentalId)).unwrap();
-          message.success("Đã ký hợp đồng thành công");
-          handleRefresh();
-          if (detailOpen) dispatch(getContractDetail(rentalId));
-        } catch (err: any) {
-          message.error(err || "Ký thất bại");
-        }
-      },
-    });
+    if (hasActiveSigningSession && signingContractId && signingContractId !== rentalId) {
+      message.warning("Bạn đang có phiên ký SmartCA đang chờ xác nhận. Vui lòng hoàn tất phiên hiện tại trước.");
+      setSmartCAModalOpen(true);
+      return;
+    }
+
+    setSigningContractId(rentalId);
+    setSigningRole("TENANT");
+    setSignMethod("smartca");
+    if (!hasActiveSigningSession) {
+      finalizedRef.current = false;
+      dispatch(resetSmartCAState());
+    }
+    setSmartCAModalOpen(true);
   };
 
   const handleOwnerSign = (rentalId: string) => {
-    modal.confirm({
-      title: "Ký hợp đồng (Chủ nhà)",
-      icon: <CheckCircleOutlined />,
-      content: "Bạn xác nhận ký hợp đồng? Sau khi cả hai bên ký, hợp đồng sẽ chờ kích hoạt.",
-      okText: "Ký hợp đồng",
-      okType: "primary",
-      cancelText: "Hủy",
-      onOk: async () => {
-        try {
-          await dispatch(ownerSignContract(rentalId)).unwrap();
-          message.success("Đã ký hợp đồng thành công");
-          handleRefresh();
-          if (detailOpen) dispatch(getContractDetail(rentalId));
-        } catch (err: any) {
-          message.error(err || "Ký thất bại");
-        }
-      },
-    });
+    if (hasActiveSigningSession && signingContractId && signingContractId !== rentalId) {
+      message.warning("Bạn đang có phiên ký SmartCA đang chờ xác nhận. Vui lòng hoàn tất phiên hiện tại trước.");
+      setSmartCAModalOpen(true);
+      return;
+    }
+
+    setSigningContractId(rentalId);
+    setSigningRole("OWNER");
+    setSignMethod("smartca");
+    if (!hasActiveSigningSession) {
+      finalizedRef.current = false;
+      dispatch(resetSmartCAState());
+    }
+    setSmartCAModalOpen(true);
+  };
+
+  const handleStartSmartCASign = async () => {
+    if (!signingContractId) return;
+    try {
+      const result = await dispatch(signContract(signingContractId)).unwrap();
+      if (result?.resumed) {
+        message.info("Đã tiếp tục phiên ký SmartCA đang chờ xác nhận");
+      } else {
+        message.info("Vui lòng mở ứng dụng SmartCA VNPT để xác nhận ký hợp đồng");
+      }
+    } catch (err: any) {
+      message.error(err || "Không thể khởi tạo phiên ký SmartCA");
+    }
+  };
+
+  const handleCloseSmartCAModal = () => {
+    setSmartCAModalOpen(false);
+    if (["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus) && smartca.transactionId) {
+      return;
+    }
+
+    setSigningContractId(null);
+    setSigningRole(null);
+    finalizedRef.current = false;
+    dispatch(resetSmartCAState());
   };
 
   const handleActivate = (rentalId: string) => {
@@ -243,12 +257,76 @@ export default function ContractsPage() {
   const columns = getContractTableColumns(user?.id, {
     onViewDetail: handleViewDetail,
     onEdit: handleOpenEdit,
-    onSendToTenant: handleSendToTenant,
     onTenantSign: handleTenantSign,
     onOwnerSign: handleOwnerSign,
     onActivate: handleActivate,
     onCancel: handleCancelContract,
   });
+
+  useEffect(() => {
+    if (!smartCAModalOpen) return;
+    if (!smartca.transactionId) return;
+    if (!["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus)) return;
+
+    const timer = setInterval(() => {
+      dispatch(tickSmartCARemaining());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [dispatch, smartCAModalOpen, smartca.transactionId, smartca.signStatus]);
+
+  useEffect(() => {
+    if (!smartCAModalOpen) return;
+    if (!smartca.transactionId) return;
+    if (!["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus)) return;
+
+    const poll = () => dispatch(handleSignResult(smartca.transactionId!));
+    poll();
+
+    const intervalId = setInterval(poll, SMARTCA_POLLING_MS);
+    return () => clearInterval(intervalId);
+  }, [dispatch, smartCAModalOpen, smartca.transactionId, smartca.signStatus]);
+
+  useEffect(() => {
+    if (!smartCAModalOpen || !signingContractId) return;
+    if (finalizedRef.current) return;
+
+    if (smartca.signStatus === "SIGNED") {
+      finalizedRef.current = true;
+      message.success(
+        signingRole === "OWNER"
+          ? "Chủ nhà đã ký hợp đồng"
+          : "Hợp đồng đã được ký hoàn tất"
+      );
+      handleRefresh();
+      if (detailOpen) dispatch(getContractDetail(signingContractId));
+      setTimeout(() => {
+        handleCloseSmartCAModal();
+      }, 800);
+      return;
+    }
+
+    if (smartca.signStatus === "REJECTED") {
+      finalizedRef.current = true;
+      message.warning("Bạn đã từ chối ký hợp đồng");
+      return;
+    }
+
+    if (smartca.signStatus === "EXPIRED") {
+      finalizedRef.current = true;
+      message.error("Phiên ký đã hết hạn, vui lòng thử lại");
+      return;
+    }
+
+    if (smartca.signStatus === "ERROR") {
+      finalizedRef.current = true;
+      message.error(smartca.error || "Ký SmartCA thất bại");
+    }
+  }, [dispatch, detailOpen, handleRefresh, message, signingContractId, signingRole, smartCAModalOpen, smartca.error, smartca.signStatus]);
+
+  const progressPercent = smartca.initialExpiredIn > 0
+    ? Math.max(0, Math.min(100, (smartca.expiredIn / smartca.initialExpiredIn) * 100))
+    : 0;
 
   // Build tab items
   const statusTabs = contractStatusCounts.length
@@ -342,7 +420,6 @@ export default function ContractsPage() {
         userId={user?.id}
         onClose={() => { setDetailOpen(false); dispatch(clearContractDetail()); }}
         onEdit={handleOpenEdit}
-        onSendToTenant={handleSendToTenant}
         onTenantSign={handleTenantSign}
         onOwnerSign={handleOwnerSign}
         onActivate={handleActivate}
@@ -357,6 +434,98 @@ export default function ContractsPage() {
         onClose={() => setEditOpen(false)}
         onSubmit={handleEditSubmit}
       />
+
+      <Modal
+        open={smartCAModalOpen}
+        title="Ký hợp đồng điện tử"
+        onCancel={handleCloseSmartCAModal}
+        footer={null}
+        destroyOnHidden
+      >
+        {!smartca.transactionId && (
+          <div className="space-y-4">
+            <Text className="text-gray-600">Chọn phương thức xác nhận chữ ký:</Text>
+            <Radio.Group
+              value={signMethod}
+              onChange={(e) => setSignMethod(e.target.value)}
+              className="w-full"
+            >
+              <div className="border rounded-lg px-4 py-3">
+                <Radio value="smartca">SmartCA (VNPT)</Radio>
+              </div>
+            </Radio.Group>
+            <Alert
+              type="info"
+              showIcon
+              message="Sau khi xác nhận, vui lòng mở ứng dụng SmartCA VNPT để hoàn tất ký hợp đồng."
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button onClick={handleCloseSmartCAModal}>Hủy</Button>
+              <Button type="primary" loading={smartca.loading} onClick={handleStartSmartCASign}>
+                Xác nhận ký
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {smartca.transactionId && (
+          <div className="space-y-4">
+            <Alert
+              type={
+                smartca.signStatus === "SIGNED"
+                  ? "success"
+                  : smartca.signStatus === "REJECTED" || smartca.signStatus === "EXPIRED" || smartca.signStatus === "ERROR"
+                    ? "error"
+                    : "info"
+              }
+              showIcon
+              message={
+                smartca.signStatus === "SIGNED"
+                  ? "Ký thành công"
+                  : smartca.signStatus === "REJECTED"
+                    ? "Bạn đã từ chối ký hợp đồng"
+                    : smartca.signStatus === "EXPIRED"
+                      ? "Phiên ký đã hết hạn, vui lòng thử lại"
+                      : smartca.signStatus === "ERROR"
+                        ? smartca.error || "Có lỗi xảy ra khi ký SmartCA"
+                        : "Đang chờ ký..."
+              }
+              description={
+                smartca.signStatus === "SIGNED"
+                  ? "Hệ thống đang cập nhật lại trạng thái hợp đồng."
+                  : "Bạn có thể tạm đóng cửa sổ này. Khi mở lại sẽ tiếp tục hiển thị tiến trình ký."
+              }
+            />
+
+            {["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus) && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+                <div className="flex items-center gap-2 text-blue-700">
+                  <Spin size="small" />
+                  <Text className="text-blue-700">Đang chờ xác nhận trên ứng dụng SmartCA...</Text>
+                </div>
+                <Text className="block mt-2 text-sm text-blue-600">
+                  Thời gian còn lại: {Math.max(0, smartca.expiredIn)} giây
+                </Text>
+                <Progress
+                  className="mt-2"
+                  percent={progressPercent}
+                  showInfo={false}
+                  strokeColor="#1677ff"
+                  status="active"
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              {(smartca.signStatus === "SIGNED" || ["REJECTED", "EXPIRED", "ERROR"].includes(smartca.signStatus)) ? (
+                <Button type="primary" onClick={handleCloseSmartCAModal}>Đóng</Button>
+              ) : (
+                <Button onClick={handleCloseSmartCAModal}>Đóng</Button>
+              )}
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

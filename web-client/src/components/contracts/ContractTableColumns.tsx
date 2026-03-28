@@ -4,9 +4,9 @@ import React from "react";
 import { Tag, Button, Space, Typography, Tooltip } from "antd";
 import {
   EyeOutlined,
-  SendOutlined,
   CheckCircleOutlined,
   EditOutlined,
+  DownloadOutlined,
   CloseCircleOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -18,7 +18,6 @@ const { Text } = Typography;
 export interface ContractTableActions {
   onViewDetail: (rentalId: string) => void;
   onEdit: (record: RentalContract) => void;
-  onSendToTenant: (rentalId: string) => void;
   onTenantSign: (rentalId: string) => void;
   onOwnerSign: (rentalId: string) => void;
   onActivate: (rentalId: string) => void;
@@ -121,32 +120,34 @@ export function getContractTableColumns(
                 <Button
                   size="small"
                   type="primary"
-                  icon={<SendOutlined />}
-                  onClick={() => actions.onSendToTenant(record.rentalId)}
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => actions.onOwnerSign(record.rentalId)}
                 >
-                  Gửi
+                  Ký hợp đồng
                 </Button>
               </>
             )}
 
-            {!owner && record.status === "pending_tenant" && (
-              <Button
-                size="small"
-                type="primary"
-                onClick={() => actions.onTenantSign(record.rentalId)}
-              >
-                Ký hợp đồng
-              </Button>
-            )}
-
-            {owner && record.status === "pending_landlord" && (
-              <Button
-                size="small"
-                type="primary"
-                onClick={() => actions.onOwnerSign(record.rentalId)}
-              >
-                Ký hợp đồng
-              </Button>
+            {!owner && record.status === "owner_signed" && (
+              <>
+                {record.signedContractUrl && (
+                  <Button
+                    size="small"
+                    icon={<DownloadOutlined />}
+                    href={record.signedContractUrl}
+                    target="_blank"
+                  >
+                    Tải hợp đồng
+                  </Button>
+                )}
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={() => actions.onTenantSign(record.rentalId)}
+                >
+                  Ký hợp đồng
+                </Button>
+              </>
             )}
 
             {owner && record.status === "fully_signed" && (
@@ -159,7 +160,7 @@ export function getContractTableColumns(
               </Button>
             )}
 
-            {(record.status === "draft" || record.status === "pending_tenant") && owner && (
+            {record.status === "draft" && owner && (
               <Tooltip title="Hủy hợp đồng">
                 <Button
                   type="text"

@@ -36,7 +36,7 @@ export interface ContractTerm {
 
 // Contract Types
 export type RentalContractStatus =
-  'draft' | 'pending_tenant' | 'tenant_signed' | 'pending_landlord' |
+  'draft' | 'pending_tenant' | 'tenant_signed' | 'pending_landlord' | 'owner_signed' |
   'fully_signed' | 'active' | 'expired' | 'terminated' | 'renewed' | 'cancelled';
 
 export interface RentalContract {
@@ -65,6 +65,7 @@ export interface RentalContract {
   isActive: boolean;
   notes?: string;
   contractPdfUrl?: string;
+  signedContractUrl?: string;
   contractData?: Record<string, unknown>;
   contractHtml?: string;
   createdAt: string;

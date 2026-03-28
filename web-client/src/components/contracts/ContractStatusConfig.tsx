@@ -36,6 +36,11 @@ export const STATUS_CONFIG: Record<
     color: "orange",
     icon: <ClockCircleOutlined />,
   },
+  owner_signed: {
+    label: "Chủ nhà đã ký",
+    color: "blue",
+    icon: <CheckCircleOutlined />,
+  },
   fully_signed: {
     label: "Đã ký đầy đủ",
     color: "cyan",
