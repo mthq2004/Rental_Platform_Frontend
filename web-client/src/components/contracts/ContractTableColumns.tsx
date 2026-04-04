@@ -22,6 +22,7 @@ export interface ContractTableActions {
   onOwnerSign: (rentalId: string) => void;
   onActivate: (rentalId: string) => void;
   onCancel: (rentalId: string) => void;
+  onPay: (rentalId: string) => void;
 }
 
 export function getContractTableColumns(
@@ -157,6 +158,16 @@ export function getContractTableColumns(
                 onClick={() => actions.onActivate(record.rentalId)}
               >
                 Kích hoạt
+              </Button>
+            )}
+
+            {!owner && (record.status === "fully_signed" || record.status === "active") && (
+              <Button
+                size="small"
+                type="primary"
+                onClick={() => actions.onPay(record.rentalId)}
+              >
+                Thanh toán
               </Button>
             )}
 

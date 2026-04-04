@@ -17,6 +17,7 @@ import {
   SendOutlined,
   DollarOutlined,
   CalendarOutlined,
+  WalletOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import type { MenuProps } from "antd";
@@ -209,6 +210,7 @@ export default function DashboardLayout({
     ...(menuVisibility.contracts
       ? [{ key: "/dashboard/contracts", icon: <FileTextOutlined />, label: "Hợp đồng" }]
       : []),
+    { key: "/dashboard/wallet", icon: <WalletOutlined />, label: "Ví & giao dịch" },
     ...(menuVisibility.payments
       ? [{ key: "/dashboard/payments", icon: <DollarOutlined />, label: "Thanh toán" }]
       : []),
