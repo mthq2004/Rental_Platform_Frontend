@@ -305,9 +305,9 @@ export const getMyPayments = createAsyncThunk(
 
 export const confirmPayment = createAsyncThunk(
   "contract/confirmPayment",
-  async ({ paymentId, data }: { paymentId: string; data: { paymentMethod: string; transactionId?: string; transactionRef?: string; paidAmount?: number } }, { rejectWithValue }) => {
+  async ({ paymentId, data }: { paymentId: string; data: { paymentMethod: string; paymentType?: string; transactionId?: string; transactionRef?: string; paidAmount?: number } }, { rejectWithValue }) => {
     try {
-      return await http.put(`/contract/payments/${paymentId}/confirm`, data);
+      return await http.post(`/contract/payments/confirm/${paymentId}`, data);
     } catch (e: any) {
       return rejectWithValue(e.message);
     }

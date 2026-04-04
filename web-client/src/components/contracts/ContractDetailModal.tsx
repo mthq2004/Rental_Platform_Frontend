@@ -8,7 +8,9 @@ import {
   CheckCircleOutlined,
   DownloadOutlined,
   CloseCircleOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
+import Link from "next/link";
 import type { RentalContract, RentalContractStatus } from "@/types/contract.type";
 import { STATUS_CONFIG, formatDate, formatCurrency } from "./ContractStatusConfig";
 import dayjs from "dayjs";
@@ -64,6 +66,31 @@ export default function ContractDetailModal({
                 <Tag color={cfg.color} icon={cfg.icon}>{cfg.label}</Tag>
               </div>
               <Space>
+                {(contractDetail.signedContractUrl || contractDetail.contractPdfUrl) && (
+                  <>
+                    {contractDetail.contractPdfUrl && (
+                      <Button
+                        size="small"
+                        icon={<FileTextOutlined />}
+                        href={contractDetail.contractPdfUrl}
+                        target="_blank"
+                      >
+                        Xem file hợp đồng
+                      </Button>
+                    )}
+                    {contractDetail.signedContractUrl && (
+                      <Button
+                        size="small"
+                        icon={<DownloadOutlined />}
+                        href={contractDetail.signedContractUrl}
+                        target="_blank"
+                      >
+                        Tải bản đã ký
+                      </Button>
+                    )}
+                  </>
+                )}
+
                 {contractDetail.status === "draft" && ownerSide && (
                   <>
                     <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(contractDetail)}>
@@ -102,6 +129,22 @@ export default function ContractDetailModal({
                   <Button size="small" type="primary" onClick={() => onActivate(contractDetail.rentalId)}>
                     Kích hoạt hợp đồng
                   </Button>
+                )}
+
+                {contractDetail.status === "fully_signed" && !ownerSide && (
+                  <Link href="/dashboard/payments">
+                    <Button size="small" type="primary" icon={<DollarOutlined />}>
+                      Thanh toán tiền cọc
+                    </Button>
+                  </Link>
+                )}
+
+                {contractDetail.status === "active" && !ownerSide && (
+                  <Link href="/dashboard/payments">
+                    <Button size="small" icon={<DollarOutlined />}>
+                      Thanh toán tiền thuê tháng đầu
+                    </Button>
+                  </Link>
                 )}
 
                 {/* Cancel/Reject buttons */}

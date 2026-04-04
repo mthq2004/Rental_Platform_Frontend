@@ -13,9 +13,6 @@ import {
   Descriptions,
   Select,
   App,
-  Input,
-  InputNumber,
-  Form,
 } from "antd";
 import {
   EyeOutlined,
@@ -30,6 +27,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { getMyPayments, confirmPayment } from "@/stores/slices/contract.slice";
+import TopupMethodModal, { type MethodOption } from "@/components/wallet/TopupMethodModal";
 import type { Payment, PaymentStatus, PaymentType } from "@/types/contract.type";
 import dayjs from "dayjs";
 
@@ -63,13 +61,12 @@ const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
   other: "Khác",
 };
 
-const PAYMENT_METHODS = [
-  { value: "bank_transfer", label: "Chuyển khoản ngân hàng" },
-  { value: "cash", label: "Tiền mặt" },
-  { value: "momo", label: "MoMo" },
-  { value: "zalopay", label: "ZaloPay" },
-  { value: "vnpay", label: "VNPay" },
-  { value: "other", label: "Khác" },
+const TOPUP_METHOD_OPTIONS: MethodOption[] = [
+  { value: "momo", label: "MoMo", description: "Thanh toán nhanh bằng ứng dụng MoMo." },
+  { value: "vnpay", label: "VNPay", description: "Chuyển sang cổng thanh toán VNPay." },
+  { value: "zalopay", label: "ZaloPay", description: "Thanh toán bằng ví ZaloPay." },
+  { value: "bank_transfer", label: "Chuyển khoản ngân hàng", description: "Hiển thị thông tin chuyển khoản ngân hàng." },
+  { value: "other", label: "Ví nội bộ của bạn", description: "Thanh toán bằng số dư ví nội bộ trong hệ thống." }
 ];
 
 const formatDate = (dateStr: string) => {
@@ -83,16 +80,17 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function PaymentsPage() {
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const { payments, paymentsLoading, actionLoading } = useAppSelector((state) => state.contract);
 
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [methodDraft, setMethodDraft] = useState<string>("other");
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [confirmForm] = Form.useForm();
+  const [topupMethodOpen, setTopupMethodOpen] = useState(false);
 
   const fetchPayments = useCallback(
     (status?: string) => {
@@ -115,36 +113,87 @@ export default function PaymentsPage() {
 
   const handleOpenConfirm = (record: Payment) => {
     setSelectedPayment(record);
-    confirmForm.setFieldsValue({
-      paymentMethod: "bank_transfer",
-      paidAmount: record.remainingAmount || record.amount,
-      transactionId: "",
-      transactionRef: "",
-    });
+    const ownerSide = isOwner(record);
+    setMethodDraft(ownerSide ? "cash" : "other");
     setConfirmOpen(true);
   };
+
+  const getAvailableMethodOptions = useCallback(
+    (ownerSide: boolean): MethodOption[] => {
+      const values = ownerSide
+        ? ["cash", "bank_transfer"]
+        : ["other", "momo", "vnpay", "zalopay", "bank_transfer"];
+
+      return values
+        .map((value) => {
+          const method = TOPUP_METHOD_OPTIONS.find((item) => item.value === value);
+          if (!method) return null;
+          return {
+            value: method.value,
+            label: method.label,
+            description: method.description || "",
+          };
+        })
+        .filter((item): item is MethodOption => item !== null);
+    },
+    []
+  );
 
   const handleConfirmPayment = async () => {
     if (!selectedPayment) return;
     try {
-      const values = await confirmForm.validateFields();
-      await dispatch(
+
+      console.log("Xác nhận thanh toán: ", {
+          paymentId: selectedPayment.paymentId,
+          data: {
+            paymentMethod: methodDraft,
+            paymentType: selectedPayment.paymentType,
+            paidAmount: selectedPayment.remainingAmount || selectedPayment.amount,
+            transactionId: undefined,
+            transactionRef: undefined,
+          },
+        });
+      
+      const payload = await dispatch(
         confirmPayment({
           paymentId: selectedPayment.paymentId,
           data: {
-            paymentMethod: values.paymentMethod,
-            paidAmount: values.paidAmount,
-            transactionId: values.transactionId || undefined,
-            transactionRef: values.transactionRef || undefined,
+            paymentMethod: methodDraft,
+            paymentType: selectedPayment.paymentType,
+            paidAmount: selectedPayment.remainingAmount || selectedPayment.amount,
+            transactionId: undefined,
+            transactionRef: undefined,
           },
         })
       ).unwrap();
-      message.success("Xác nhận thanh toán thành công");
+
+      const result = (payload as any)?.data ?? payload;
+
+      if (result?.paymentUrl || result?.payUrl) {
+        const redirectUrl = result.paymentUrl || result.payUrl;
+        window.open(redirectUrl, "_blank", "noopener,noreferrer");
+        message.success("Đã tạo giao dịch. Vui lòng hoàn tất thanh toán trên cổng thanh toán.");
+      } else if (result?.type === "bank_transfer") {
+        modal.info({
+          title: "Thông tin chuyển khoản",
+          content: (
+            <div className="space-y-1">
+              <div>Ngân hàng: {result.bankName}</div>
+              <div>Số tài khoản: {result.accountNumber}</div>
+              <div>Chủ tài khoản: {result.accountName}</div>
+              <div>Số tiền: {formatCurrency(Number(result.amount || 0))}</div>
+              <div>Nội dung CK: {result.content}</div>
+            </div>
+          ),
+        });
+      } else {
+        message.success("Xử lý thanh toán thành công");
+      }
+
       setConfirmOpen(false);
       setSelectedPayment(null);
       handleRefresh();
     } catch (err: any) {
-      if (err?.errorFields) return;
       message.error(err || "Xác nhận thất bại");
     }
   };
@@ -155,6 +204,7 @@ export default function PaymentsPage() {
   };
 
   const isOwner = (record: Payment) => record.contract?.ownerId === user?.id;
+  const isTenant = (record: Payment) => record.contract?.tenantId === user?.id;
 
   // ====== Columns ======
   const columns: ColumnsType<Payment> = [
@@ -231,9 +281,9 @@ export default function PaymentsPage() {
           <Tooltip title="Xem chi tiết">
             <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleViewDetail(record)} />
           </Tooltip>
-          {isOwner(record) && (record.status === "pending" || record.status === "overdue" || record.status === "partial") && (
+          {isTenant(record) && (record.status === "pending" || record.status === "overdue" || record.status === "partial") && (
             <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleOpenConfirm(record)}>
-              Xác nhận
+              Thanh toán
             </Button>
           )}
         </Space>
@@ -243,7 +293,6 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-gray-800 mb-1">Thanh toán</h2>
@@ -269,7 +318,6 @@ export default function PaymentsPage() {
         </Space>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-lg">
         <Table
           dataSource={Array.isArray(payments) ? payments : []}
@@ -290,106 +338,26 @@ export default function PaymentsPage() {
           className="[&_.ant-table-thead_th]:bg-gray-50! [&_.ant-table-thead_th]:text-gray-600! [&_.ant-table-thead_th]:font-medium! [&_.ant-table-thead_th]:text-xs! [&_.ant-table-thead_th]:uppercase!"
         />
       </div>
-
-      {/* Detail Modal */}
-      <Modal
-        open={detailOpen}
-        onCancel={() => { setDetailOpen(false); setSelectedPayment(null); }}
-        title="Chi tiết thanh toán"
-        footer={null}
-        width={560}
-        destroyOnClose
-      >
-        {selectedPayment && (
-          <Descriptions column={2} bordered size="small" className="pt-2">
-            <Descriptions.Item label="Mã thanh toán" span={2}>
-              <Text strong>{selectedPayment.paymentCode}</Text>
-            </Descriptions.Item>
-            <Descriptions.Item label="Mã hợp đồng" span={2}>
-              {selectedPayment.contract?.contractCode || selectedPayment.rentalId}
-            </Descriptions.Item>
-            <Descriptions.Item label="Loại">
-              {PAYMENT_TYPE_LABELS[selectedPayment.paymentType] || selectedPayment.paymentType}
-            </Descriptions.Item>
-            <Descriptions.Item label="Trạng thái">
-              {(() => {
-                const cfg = PAYMENT_STATUS_CONFIG[selectedPayment.status];
-                return <Tag color={cfg.color} icon={cfg.icon}>{cfg.label}</Tag>;
-              })()}
-            </Descriptions.Item>
-            <Descriptions.Item label="Số tiền">
-              <Text strong className="text-red-500">{formatCurrency(selectedPayment.amount)}</Text>
-            </Descriptions.Item>
-            <Descriptions.Item label="Đã thanh toán">
-              <Text className="text-green-600">{formatCurrency(selectedPayment.paidAmount)}</Text>
-            </Descriptions.Item>
-            <Descriptions.Item label="Còn lại">
-              {formatCurrency(selectedPayment.remainingAmount)}
-            </Descriptions.Item>
-            <Descriptions.Item label="Phí trễ hạn">
-              {selectedPayment.lateFee > 0 ? (
-                <Text type="danger">{formatCurrency(selectedPayment.lateFee)}</Text>
-              ) : "—"}
-            </Descriptions.Item>
-            <Descriptions.Item label="Hạn thanh toán">{formatDate(selectedPayment.dueDate)}</Descriptions.Item>
-            {selectedPayment.paidAt && (
-              <Descriptions.Item label="Ngày thanh toán">{formatDate(selectedPayment.paidAt)}</Descriptions.Item>
-            )}
-            {selectedPayment.paymentMethod && (
-              <Descriptions.Item label="Phương thức" span={2}>
-                {PAYMENT_METHODS.find((m) => m.value === selectedPayment.paymentMethod)?.label || selectedPayment.paymentMethod}
-              </Descriptions.Item>
-            )}
-          </Descriptions>
-        )}
-      </Modal>
-
-      {/* Confirm Payment Modal */}
-      <Modal
-        open={confirmOpen}
-        onCancel={() => { setConfirmOpen(false); setSelectedPayment(null); }}
-        title="Xác nhận thanh toán"
-        okText="Xác nhận"
-        cancelText="Hủy"
-        onOk={handleConfirmPayment}
-        confirmLoading={actionLoading}
-        destroyOnClose
-      >
-        {selectedPayment && (
-          <div className="space-y-3 pt-2">
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <Text className="text-sm text-gray-500">Khoản thanh toán: </Text>
-              <Text strong>{selectedPayment.paymentCode}</Text>
-              <br />
-              <Text className="text-sm text-gray-500">Số tiền cần thu: </Text>
-              <Text strong className="text-red-500">{formatCurrency(selectedPayment.remainingAmount || selectedPayment.amount)}</Text>
-            </div>
-
-            <Form form={confirmForm} layout="vertical">
-              <Form.Item
-                label="Phương thức thanh toán"
-                name="paymentMethod"
-                rules={[{ required: true, message: "Vui lòng chọn phương thức" }]}
-              >
-                <Select options={PAYMENT_METHODS} />
-              </Form.Item>
-              <Form.Item
-                label="Số tiền thực nhận (VNĐ)"
-                name="paidAmount"
-                rules={[{ required: true, message: "Vui lòng nhập số tiền" }]}
-              >
-                <InputNumber min={0} className="w-full" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")} />
-              </Form.Item>
-              <Form.Item label="Mã giao dịch" name="transactionId">
-                <Input placeholder="Mã giao dịch từ ngân hàng / ví điện tử" />
-              </Form.Item>
-              <Form.Item label="Tham chiếu" name="transactionRef">
-                <Input placeholder="Số tham chiếu (tùy chọn)" />
-              </Form.Item>
-            </Form>
-          </div>
-        )}
-      </Modal>
+        <TopupMethodModal
+          open={confirmOpen}
+          amount={Number(selectedPayment?.amount)}
+          selectedMethod={methodDraft}
+          loading={actionLoading}
+          title="Xác nhận thanh toán"
+          amountLabel="Số tiền thanh toán"
+          confirmText="Xác nhận"
+          options={TOPUP_METHOD_OPTIONS}
+          onCancel={() => {
+            setConfirmOpen(false);
+            setSelectedPayment(null);
+          }}
+          onBack={() => {
+            setConfirmOpen(false);
+            setSelectedPayment(null);
+          }}
+          onConfirm={handleConfirmPayment}
+          onChangeMethod={setMethodDraft}
+        />
     </div>
   );
 }

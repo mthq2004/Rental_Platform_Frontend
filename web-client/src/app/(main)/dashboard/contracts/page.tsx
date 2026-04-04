@@ -262,6 +262,7 @@ export default function ContractsPage() {
     onOwnerSign: handleOwnerSign,
     onActivate: handleActivate,
     onCancel: handleCancelContract,
+    onPay: () => router.push('/dashboard/payments'),
   });
 
   useEffect(() => {
