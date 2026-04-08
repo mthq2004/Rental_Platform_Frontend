@@ -7,6 +7,7 @@ import {
   UserOutlined,
   EditOutlined,
   CheckCircleFilled,
+  CloseCircleFilled,
   LockOutlined,
 } from "@ant-design/icons";
 import {
@@ -178,12 +179,16 @@ const ProfilePage = () => {
                 <SafetyCertificateOutlined style={{ fontSize: 10 }} />
                 {roleLabel}
               </div>
-              {user?.phoneVerified && (
-                <div style={styles.verifiedTag}>
-                  <CheckCircleFilled style={{ fontSize: 11, color: "#16a34a" }} />
-                  <span>Đã xác thực</span>
-                </div>
-              )}
+              <div style={styles.verifyStack}>
+                <VerificationBadge
+                  ok={!!user?.phoneVerified}
+                  label={user?.phoneVerified ? "SĐT đã xác thực" : "SĐT chưa xác thực"}
+                />
+                <VerificationBadge
+                  ok={!!user?.isEmailVerified}
+                  label={user?.isEmailVerified ? "Email đã xác thực" : "Email chưa xác thực"}
+                />
+              </div>
             </div>
 
             {/* Divider */}
@@ -212,6 +217,14 @@ const ProfilePage = () => {
                 <InfoField label="Địa chỉ Email" value={user?.email} />
                 <InfoField label="Số điện thoại" value={user?.phone} />
                 <InfoField label="Vai trò hệ thống" value={roleLabel} />
+                <InfoField
+                  label="Xác thực email"
+                  value={user?.isEmailVerified ? "Đã xác thực" : "Chưa xác thực"}
+                />
+                <InfoField
+                  label="Xác thực số điện thoại"
+                  value={user?.phoneVerified ? "Đã xác thực" : "Chưa xác thực"}
+                />
               </div>
             ) : (
               <Form form={form} layout="vertical" requiredMark={false} style={{ marginTop: 4 }}>
@@ -289,7 +302,7 @@ const ProfilePage = () => {
 
 /* ─── Sub-components ─── */
 
-const MetaRow = ({ icon, label, muted }: { icon: React.ReactNode; label?: string; muted?: boolean }) => (
+const MetaRow = ({ icon, label, muted }: { icon: React.ReactNode; label?: string | null; muted?: boolean }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
     <span style={{ fontSize: 13, color: muted ? "var(--text-secondary)" : "var(--text-secondary)", minWidth: 16 }}>{icon}</span>
     <span style={{ fontSize: 13, color: muted ? "var(--text-secondary)" : "var(--text-primary)", fontStyle: muted ? "italic" : "normal" }}>
@@ -298,7 +311,7 @@ const MetaRow = ({ icon, label, muted }: { icon: React.ReactNode; label?: string
   </div>
 );
 
-const InfoField = ({ label, value }: { label: string; value?: string }) => (
+const InfoField = ({ label, value }: { label: string; value?: string | null }) => (
   <div style={styles.infoField}>
     <span style={styles.infoLabel}>{label}</span>
     <span style={styles.infoValue}>{value || "—"}</span>
@@ -308,6 +321,26 @@ const InfoField = ({ label, value }: { label: string; value?: string }) => (
 const FieldLabel = ({ children }: { children: React.ReactNode }) => (
   <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
     {children}
+  </span>
+);
+
+const VerificationBadge = ({ ok, label }: { ok: boolean; label: string }) => (
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      borderRadius: 999,
+      border: ok ? "1px solid #bbf7d0" : "1px solid #fecaca",
+      background: ok ? "#f0fdf4" : "#fff1f2",
+      color: ok ? "#166534" : "#b91c1c",
+      fontSize: 12,
+      fontWeight: 600,
+      padding: "4px 10px",
+    }}
+  >
+    {ok ? <CheckCircleFilled style={{ fontSize: 11 }} /> : <CloseCircleFilled style={{ fontSize: 11 }} />}
+    {label}
   </span>
 );
 
@@ -472,6 +505,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     color: "#16a34a",
     fontWeight: 500,
+  },
+  verifyStack: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 10,
   },
   divider: {
     width: "100%",

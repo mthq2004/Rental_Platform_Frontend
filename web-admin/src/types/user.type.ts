@@ -1,13 +1,15 @@
 export type UserType = {
   id: string;
-  email: string;
+  email: string | null;
   fullName: string;
-  phone: string;
+  phone: string | null;
   role: string;
   phoneVerified: boolean;
+  isEmailVerified: boolean;
+  emailVerifiedAt?: string | null;
   dateOfBirth: string | null;
-  gender: string;
-  avatarUrl: string;
+  gender: string | null;
+  avatarUrl: string | null;
   isActive: boolean;
 };
 
