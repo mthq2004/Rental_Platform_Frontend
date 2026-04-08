@@ -30,6 +30,12 @@ export function getContractTableColumns(
   actions: ContractTableActions
 ): ColumnsType<RentalContract> {
   const isOwner = (record: RentalContract) => record.ownerId === userId;
+  const getTenantName = (record: RentalContract) => record.tenant?.name || record.tenantId || "—";
+  const getPropertyName = (record: RentalContract) =>
+    (record as RentalContract & { property?: { title?: string }; propertyName?: string }).property?.title ||
+    (record as RentalContract & { propertyName?: string }).propertyName ||
+    record.propertyId ||
+    "—";
 
   return [
     {
@@ -37,7 +43,21 @@ export function getContractTableColumns(
       dataIndex: "contractCode",
       key: "contractCode",
       width: 160,
-      render: (val) => <Text strong className="text-sm">{val}</Text>,
+      render: (val) => <Text strong className="text-sm text-blue-600">{val}</Text>,
+    },
+    {
+      title: "Bên thuê",
+      key: "tenant",
+      width: 180,
+      ellipsis: true,
+      render: (_, r) => <Text className="text-sm font-medium">{getTenantName(r)}</Text>,
+    },
+    {
+      title: "Bất động sản",
+      key: "property",
+      width: 220,
+      ellipsis: true,
+      render: (_, r) => <Text className="text-sm">{getPropertyName(r)}</Text>,
     },
     {
       title: "Thời hạn",
@@ -79,16 +99,6 @@ export function getContractTableColumns(
           </Tag>
         );
       },
-    },
-    {
-      title: "Vai trò",
-      key: "role",
-      width: 100,
-      render: (_, r) => (
-        <Tag color={isOwner(r) ? "gold" : "blue"} className="text-xs">
-          {isOwner(r) ? "Chủ nhà" : "Người thuê"}
-        </Tag>
-      ),
     },
     {
       title: "Hành động",
