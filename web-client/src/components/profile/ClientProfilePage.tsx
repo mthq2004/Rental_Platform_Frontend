@@ -20,6 +20,7 @@ import {
 import {
   CameraOutlined,
   CheckCircleFilled,
+  CloseCircleFilled,
   CloseOutlined,
   EditOutlined,
   LoadingOutlined,
@@ -38,9 +39,11 @@ import { District, Province, Ward } from "@/types/province.type";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import {
   getProfileUser,
+  requestEmailVerificationOtp,
   requestPhoneUpdateOtp,
   updateAvatar,
   updateProfile,
+  verifyEmailOtp,
   verifyPhoneUpdateOtp,
 } from "@/stores/slices/auth.slice";
 
@@ -120,9 +123,18 @@ export default function ClientProfilePage() {
   const [countdown, setCountdown] = useState(0);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const hasFetchedProfileRef = useRef(false);
+  const [emailOtpModalOpen, setEmailOtpModalOpen] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [emailOtpLoading, setEmailOtpLoading] = useState(false);
+  const [emailCountdown, setEmailCountdown] = useState(0);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [emailVerified, setEmailVerified] = useState(false);
 
   const currentPhone = Form.useWatch("phone", form);
+  const currentEmail = Form.useWatch("email", form);
   const phoneChanged = currentPhone !== user?.phone;
+  const emailChanged = (currentEmail || "") !== (user?.email || "");
+  const canShowEmailVerifyAction = !!currentEmail && (emailChanged || !user?.isEmailVerified) && !emailVerified;
 
   const roleLabel = user?.role === "admin" ? "Quản trị viên" : "Người dùng";
   const initials = useMemo(
@@ -173,6 +185,7 @@ export default function ClientProfilePage() {
     });
 
     setPhoneVerified(false);
+    setEmailVerified(false);
   }, [editing, form, user]);
 
   useEffect(() => {
@@ -180,6 +193,12 @@ export default function ClientProfilePage() {
     const timer = setTimeout(() => setCountdown((value) => value - 1), 1000);
     return () => clearTimeout(timer);
   }, [countdown]);
+
+  useEffect(() => {
+    if (emailCountdown <= 0) return;
+    const timer = setTimeout(() => setEmailCountdown((value) => value - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [emailCountdown]);
 
   const resetOtpState = useCallback(() => {
     setOtp("");
@@ -356,6 +375,85 @@ export default function ClientProfilePage() {
     }
   };
 
+  const handleRequestEmailOtp = async (email?: string | null) => {
+    const targetEmail = (email || currentEmail || user?.email || "").trim().toLowerCase();
+
+    if (!targetEmail) {
+      message.error("Bạn cần cập nhật email trước khi xác thực");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) {
+      message.error("Email không hợp lệ");
+      return;
+    }
+
+    try {
+      setEmailOtpLoading(true);
+      const response = await dispatch(requestEmailVerificationOtp(targetEmail)).unwrap();
+      setEmailOtpModalOpen(true);
+      setEmailOtp("");
+      setEmailCountdown(300);
+      setPendingEmail(targetEmail);
+
+      const devOtp = response?.data?.devOtp;
+      if (devOtp) {
+        message.success(`OTP dev: ${devOtp}`);
+      } else {
+        message.success("Đã gửi OTP xác thực email");
+      }
+    } catch (error: unknown) {
+      message.error((error as string) || "Không thể gửi OTP email");
+    } finally {
+      setEmailOtpLoading(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    if (emailOtp.length !== 6) {
+      message.error("Vui lòng nhập đủ 6 số OTP");
+      return;
+    }
+
+    try {
+      setEmailOtpLoading(true);
+      await dispatch(verifyEmailOtp({ otp: emailOtp, email: pendingEmail || currentEmail || undefined })).unwrap();
+      setEmailOtpModalOpen(false);
+      setEmailOtp("");
+      setEmailCountdown(0);
+      setEmailVerified(true);
+      message.success("Xác thực email thành công");
+      dispatch(getProfileUser());
+    } catch (error: unknown) {
+      message.error((error as string) || "OTP email không hợp lệ");
+    } finally {
+      setEmailOtpLoading(false);
+    }
+  };
+
+  const handleResendEmailOtp = async () => {
+    if (emailCountdown > 0 || !pendingEmail) {
+      return;
+    }
+
+    try {
+      setEmailOtpLoading(true);
+      const response = await dispatch(requestEmailVerificationOtp(pendingEmail)).unwrap();
+      setEmailOtp("");
+      setEmailCountdown(300);
+      const devOtp = response?.data?.devOtp;
+      if (devOtp) {
+        message.success(`OTP dev: ${devOtp}`);
+      } else {
+        message.success("Đã gửi lại OTP email");
+      }
+    } catch (error: unknown) {
+      message.error((error as string) || "Không thể gửi lại OTP email");
+    } finally {
+      setEmailOtpLoading(false);
+    }
+  };
+
   const handleOtpChange = (index: number, value: string) => {
     const digit = value.replace(/\D/g, "");
     if (digit.length > 1) return;
@@ -385,9 +483,15 @@ export default function ClientProfilePage() {
 
   const handleSubmit = async (values: ProfileFormValues) => {
     const isPhoneChanged = values.phone !== user?.phone;
+    const isEmailChanged = (values.email || "") !== (user?.email || "");
 
     if (isPhoneChanged && !phoneVerified) {
       await handleSendOtp(String(values.phone || ""));
+      return;
+    }
+
+    if (isEmailChanged && !emailVerified) {
+      await handleRequestEmailOtp(values.email);
       return;
     }
 
@@ -419,6 +523,7 @@ export default function ClientProfilePage() {
       message.success("Cập nhật hồ sơ thành công");
       setEditing(false);
       setPhoneVerified(false);
+      setEmailVerified(false);
       dispatch(getProfileUser());
     } catch (error: unknown) {
       message.error((error as string) || "Cập nhật hồ sơ thất bại");
@@ -462,6 +567,7 @@ export default function ClientProfilePage() {
   const handleCancelEdit = () => {
     setEditing(false);
     setPhoneVerified(false);
+    setEmailVerified(false);
     resetOtpState();
     form.resetFields();
 
@@ -590,11 +696,25 @@ export default function ClientProfilePage() {
                 <SafetyCertificateOutlined style={{ fontSize: 10 }} />
                 {roleLabel}
               </div>
-              {user?.phoneVerified && (
-                <div style={styles.verifiedTag}>
-                  <CheckCircleFilled style={{ fontSize: 11, color: "#16a34a" }} />
-                  <span>Đã xác thực số điện thoại</span>
-                </div>
+              <div style={styles.verifyStack}>
+                <VerificationBadge
+                  ok={!!user?.phoneVerified}
+                  label={user?.phoneVerified ? "SĐT đã xác thực" : "SĐT chưa xác thực"}
+                />
+                <VerificationBadge
+                  ok={!!user?.isEmailVerified}
+                  label={user?.isEmailVerified ? "Email đã xác thực" : "Email chưa xác thực"}
+                />
+              </div>
+              {!user?.isEmailVerified && user?.email && !editing && (
+                <button
+                  style={styles.verifyActionBtn}
+                  onClick={() => handleRequestEmailOtp(user.email)}
+                  disabled={emailOtpLoading}
+                >
+                  <SafetyOutlined style={{ fontSize: 12 }} />
+                  {emailOtpLoading ? "Đang gửi OTP..." : "Xác thực email"}
+                </button>
               )}
             </div>
 
@@ -623,6 +743,14 @@ export default function ClientProfilePage() {
                   <InfoField label="Họ và tên" value={user?.fullName} />
                   <InfoField label="Email" value={user?.email || "-"} />
                   <InfoField label="Số điện thoại" value={user?.phone || "-"} />
+                  <InfoField
+                    label="Xác thực email"
+                    value={user?.isEmailVerified ? "Đã xác thực" : "Chưa xác thực"}
+                  />
+                  <InfoField
+                    label="Xác thực số điện thoại"
+                    value={user?.phoneVerified ? "Đã xác thực" : "Chưa xác thực"}
+                  />
                   <InfoField
                     label="Trạng thái KYC"
                     value={KYC_STATUS_MAP[user?.kycStatus || ""] || "-"}
@@ -687,7 +815,25 @@ export default function ClientProfilePage() {
                           { type: "email", message: "Email không hợp lệ" },
                         ]}
                       >
-                        <Input size="large" prefix={<MailOutlined style={styles.inputIcon} />} />
+                        <Input
+                          size="large"
+                          prefix={<MailOutlined style={styles.inputIcon} />}
+                          suffix={
+                            canShowEmailVerifyAction ? (
+                              <Button
+                                type="link"
+                                size="small"
+                                loading={emailOtpLoading}
+                                className="!p-0"
+                                onClick={() => handleRequestEmailOtp(String(form.getFieldValue("email") || ""))}
+                              >
+                                Xác thực
+                              </Button>
+                            ) : emailVerified || (!!user?.isEmailVerified && !emailChanged) ? (
+                              <span className="text-green-600 text-xs">Đã xác thực</span>
+                            ) : null
+                          }
+                        />
                       </Form.Item>
                     </Col>
 
@@ -961,9 +1107,89 @@ export default function ClientProfilePage() {
           </Button>
         </div>
       </Modal>
+
+      <Modal
+        open={emailOtpModalOpen}
+        onCancel={() => {
+          setEmailOtpModalOpen(false);
+          setEmailOtp("");
+          setPendingEmail("");
+        }}
+        footer={null}
+        centered
+        width={400}
+        destroyOnHidden
+      >
+        <div className="text-center py-4">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+            <MailOutlined className="text-2xl text-emerald-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-1">Xác thực email</h3>
+          <p className="text-sm text-gray-500 mb-6">
+            Nhập OTP 6 số đã gửi tới <strong>{pendingEmail || currentEmail || user?.email || "email của bạn"}</strong>
+          </p>
+
+          <Input
+            value={emailOtp}
+            onChange={(event) => setEmailOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="Nhập OTP"
+            maxLength={6}
+            size="large"
+            style={{ textAlign: "center", letterSpacing: 6, marginBottom: 16, height: 44 }}
+          />
+
+          <div className="text-sm text-gray-500 mb-5">
+            {emailCountdown > 0 ? (
+              <span>
+                Gửi lại OTP sau <span className="text-emerald-600 font-semibold">{emailCountdown}s</span>
+              </span>
+            ) : (
+              <button
+                onClick={handleResendEmailOtp}
+                disabled={emailOtpLoading}
+                className="text-emerald-600 hover:underline bg-transparent border-none cursor-pointer font-medium"
+              >
+                Gửi lại OTP email
+              </button>
+            )}
+          </div>
+
+          <Button
+            type="primary"
+            size="large"
+            block
+            loading={emailOtpLoading}
+            disabled={emailOtp.length !== 6}
+            onClick={handleVerifyEmailOtp}
+            className="!rounded-lg !h-12"
+          >
+            Xác nhận email
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
+
+const VerificationBadge = ({ ok, label }: { ok: boolean; label: string }) => (
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 6,
+      borderRadius: 999,
+      border: ok ? "1px solid #bbf7d0" : "1px solid #fecaca",
+      background: ok ? "#f0fdf4" : "#fff1f2",
+      color: ok ? "#166534" : "#b91c1c",
+      fontSize: 12,
+      fontWeight: 600,
+      padding: "4px 10px",
+    }}
+  >
+    {ok ? <CheckCircleFilled style={{ fontSize: 11 }} /> : <CloseCircleFilled style={{ fontSize: 11 }} />}
+    {label}
+  </span>
+);
 
 const MetaRow = ({
   icon,
@@ -1173,6 +1399,28 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "4px 10px",
     fontSize: 12,
     fontWeight: 600,
+  },
+  verifyStack: {
+    marginTop: 10,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 8,
+  },
+  verifyActionBtn: {
+    marginTop: 12,
+    border: "1px solid #10b981",
+    background: "#ecfdf5",
+    color: "#065f46",
+    borderRadius: 999,
+    height: 32,
+    padding: "0 12px",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
   },
   divider: {
     width: "100%",

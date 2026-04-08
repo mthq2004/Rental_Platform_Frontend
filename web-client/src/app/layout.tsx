@@ -7,6 +7,7 @@ import GoogleAuthProviderWrapper from "@/components/auth/GoogleAuthProvider";
 import AntdConfigProvider from "@/components/common/AntdConfigProvider";
 import AuthTokenSync from "@/components/auth/AuthTokenSync";
 import { ChatSocketProvider } from "@/contexts/ChatSocketContext";
+import AIChatBox from "@/components/chat/AIChatBox";
 
 // Suppress Antd React 19 compatibility warning and hydration mismatch
 if (typeof window !== "undefined") {
@@ -61,6 +62,7 @@ export default function RootLayout({
                 <AuthTokenSync />
                 <ChatSocketProvider>
                   {children}
+                  <AIChatBox />
                 </ChatSocketProvider>
               </ReduxProvider>
             </GoogleAuthProviderWrapper>

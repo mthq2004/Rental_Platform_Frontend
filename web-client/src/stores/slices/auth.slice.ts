@@ -154,6 +154,30 @@ export const verifyPhoneUpdateOtp = createAsyncThunk(
   }
 );
 
+export const requestEmailVerificationOtp = createAsyncThunk(
+  "auth/requestEmailVerificationOtp",
+  async (email: string | undefined, { rejectWithValue }) => {
+    try {
+      const response = await http.post("/estate/auth/email/request-otp", { email });
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Gửi OTP email thất bại");
+    }
+  }
+);
+
+export const verifyEmailOtp = createAsyncThunk(
+  "auth/verifyEmailOtp",
+  async (data: { otp: string; email?: string }, { rejectWithValue }) => {
+    try {
+      const response = await http.post("/estate/auth/email/verify", data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Xác thực email thất bại");
+    }
+  }
+);
+
 export const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -355,6 +379,21 @@ export const authSlice = createSlice({
         state.loading = false;
       })
       .addCase(changePassword.rejected, (state) => {
+        state.loading = false;
+      });
+
+    builder
+      .addCase(verifyEmailOtp.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(verifyEmailOtp.fulfilled, (state, action) => {
+        state.loading = false;
+        const updated = action.payload?.data;
+        if (updated && state.user) {
+          state.user = { ...state.user, ...updated };
+        }
+      })
+      .addCase(verifyEmailOtp.rejected, (state) => {
         state.loading = false;
       });
   },

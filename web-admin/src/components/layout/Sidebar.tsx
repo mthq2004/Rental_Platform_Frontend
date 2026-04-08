@@ -70,6 +70,7 @@ const Sidebar: React.FC = () => {
   ========================= */
   const getSelectedKey = () => {
     const path = location.pathname;
+    const queryTab = new URLSearchParams(location.search).get("tab");
     if (path.includes("/users/")) return "users";
     if (path.includes("/users")) return "users";
     if (path.includes("/admins/")) return "admins";
@@ -77,6 +78,11 @@ const Sidebar: React.FC = () => {
     if (path.includes("/properties/pending")) return "pending";
     if (path.includes("/properties/approved")) return "approved";
     if (path.includes("/properties/rejected")) return "rejected";
+    if (path === "/dashboard" && queryTab === "yeu-cau") return "rental-requests";
+    if (path === "/dashboard" && queryTab === "doanh-thu") return "revenue";
+    if (path === "/dashboard" && queryTab === "khu-vuc") return "locations";
+    if (path === "/dashboard" && queryTab === "kiem-duyet") return "moderation";
+    if (path === "/dashboard" && queryTab === "ai") return "ai-analytics";
     if (path.includes("/settings")) return "settings";
     if (path.includes("/profile")) return "profile";
     if (path.includes("/owners")) return "owners";
@@ -91,6 +97,7 @@ const Sidebar: React.FC = () => {
   ========================= */
   const getBreadcrumbItems = () => {
     const path = location.pathname;
+    const queryTab = new URLSearchParams(location.search).get("tab");
     const items = [{ title: "Ứng dụng" }];
 
     if (path.includes("/properties/pending")) {
@@ -113,6 +120,16 @@ const Sidebar: React.FC = () => {
       items.push({ title: "Quản lý Hợp đồng" });
     } else if (path.includes("/settings")) {
       items.push({ title: "Cài đặt" });
+    } else if (path === "/dashboard" && queryTab === "yeu-cau") {
+      items.push({ title: "Phân tích yêu cầu thuê" });
+    } else if (path === "/dashboard" && queryTab === "doanh-thu") {
+      items.push({ title: "Phân tích doanh thu" });
+    } else if (path === "/dashboard" && queryTab === "khu-vuc") {
+      items.push({ title: "Phân tích khu vực" });
+    } else if (path === "/dashboard" && queryTab === "kiem-duyet") {
+      items.push({ title: "Kiểm duyệt & rủi ro" });
+    } else if (path === "/dashboard" && queryTab === "ai") {
+      items.push({ title: "AI Analytics" });
     } else {
       items.push({ title: "Bảng điều khiển" });
     }
@@ -151,7 +168,7 @@ const Sidebar: React.FC = () => {
     {
       key: "dashboard",
       icon: <BarChartOutlined />,
-      label: "Bảng điều khiển",
+      label: "Dashboard tổng quan",
       onClick: () => navigate("/dashboard"),
     },
     {
@@ -194,10 +211,40 @@ const Sidebar: React.FC = () => {
       ],
     },
     {
+      key: "rental-requests",
+      icon: <FileTextOutlined />,
+      label: "Yêu cầu thuê",
+      onClick: () => navigate("/dashboard?tab=yeu-cau"),
+    },
+    {
       key: "contracts",
       icon: <FileTextOutlined />,
       label: "Hợp đồng",
       onClick: () => navigate("/dashboard/contracts"),
+    },
+    {
+      key: "revenue",
+      icon: <BarChartOutlined />,
+      label: "Doanh thu",
+      onClick: () => navigate("/dashboard?tab=doanh-thu"),
+    },
+    {
+      key: "locations",
+      icon: <HomeOutlined />,
+      label: "Khu vực",
+      onClick: () => navigate("/dashboard?tab=khu-vuc"),
+    },
+    {
+      key: "moderation",
+      icon: <QuestionOutlined />,
+      label: "Kiểm duyệt",
+      onClick: () => navigate("/dashboard?tab=kiem-duyet"),
+    },
+    {
+      key: "ai-analytics",
+      icon: <BarChartOutlined />,
+      label: "Phân tích AI",
+      onClick: () => navigate("/dashboard?tab=ai"),
     },
   ];
 
