@@ -2,12 +2,15 @@
 
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Tabs, Table, Badge, Button, Empty, App, Modal, Radio, Spin, Alert, Typography, Progress } from "antd";
+import { Tabs, Table, Badge, Button, Empty, App, Modal, Radio, Spin, Alert, Typography, Progress, Card, Input, Row, Col, Statistic, Space } from "antd";
 import {
   FileTextOutlined,
   ReloadOutlined,
   PlayCircleOutlined,
   ExclamationCircleOutlined,
+  SearchOutlined,
+  ExportOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import {
@@ -37,6 +40,45 @@ const SMARTCA_POLLING_MS = 4000;
 
 const { Text } = Typography;
 
+const formatMoney = (value: number) =>
+  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(value || 0));
+
+const getContractTenantName = (record: RentalContract) => record.tenant?.name || record.tenantId || "—";
+
+const getContractPropertyName = (record: RentalContract) =>
+  (record as RentalContract & { property?: { title?: string }; propertyName?: string }).property?.title ||
+  (record as RentalContract & { propertyName?: string }).propertyName ||
+  record.propertyId ||
+  "—";
+
+const getContractSearchText = (record: RentalContract) =>
+  [
+    record.contractCode,
+    getContractTenantName(record),
+    getContractPropertyName(record),
+    record.propertyId,
+    record.status,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+const buildCsv = (records: RentalContract[]) => {
+  const header = ["contractCode", "tenant", "property", "startDate", "endDate", "monthlyRent", "status"];
+  const rows = records.map((record) => [
+    record.contractCode,
+    getContractTenantName(record),
+    getContractPropertyName(record),
+    record.startDate,
+    record.endDate,
+    String(record.monthlyRent ?? 0),
+    record.status,
+  ]);
+  return [header, ...rows]
+    .map((columns) => columns.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+};
+
 export default function ContractsPage() {
   const { message, modal } = App.useApp();
   const dispatch = useAppDispatch();
@@ -61,6 +103,7 @@ export default function ContractsPage() {
   const [signMethod, setSignMethod] = useState<"smartca">("smartca");
   const [editForm] = Form.useForm();
   const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
   const finalizedRef = useRef(false);
 
   const hasActiveSigningSession =
@@ -95,8 +138,7 @@ export default function ContractsPage() {
   }, [dispatch, activeTab, fetchContracts]);
 
   const handleViewDetail = async (rentalId: string) => {
-    await dispatch(getContractDetail(rentalId));
-    setDetailOpen(true);
+    router.push(`/dashboard/contracts/${rentalId}`);
   };
 
   const handleTenantSign = (rentalId: string) => {
@@ -343,6 +385,44 @@ export default function ContractsPage() {
     });
   }, [contracts]);
 
+  const filteredContracts = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return displayContracts;
+
+    return displayContracts.filter((record) => getContractSearchText(record).includes(term));
+  }, [displayContracts, searchTerm]);
+
+  const contractSummary = useMemo(() => {
+    const total = displayContracts.length;
+    const active = displayContracts.filter((item) => item.status === "active").length;
+    const inProgress = displayContracts.filter((item) =>
+      ["draft", "pending_tenant", "tenant_signed", "pending_landlord", "owner_signed"].includes(item.status)
+    ).length;
+    const totalMonthlyRent = displayContracts.reduce((sum, item) => sum + Number(item.monthlyRent || 0), 0);
+
+    return { total, active, inProgress, totalMonthlyRent };
+  }, [displayContracts]);
+
+  const handleExportContracts = useCallback(() => {
+    if (!filteredContracts.length) {
+      message.info("Không có hợp đồng để xuất");
+      return;
+    }
+
+    const csv = buildCsv(filteredContracts);
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `contracts-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }, [filteredContracts, message]);
+
+  const handleCreateContract = useCallback(() => {
+    router.push("/template-contracts");
+  }, [router]);
+
   // Build tab items
   const statusTabs = contractStatusCounts.length
     ? contractStatusCounts
@@ -397,37 +477,135 @@ export default function ContractsPage() {
         </Button>
       </div>
 
-      {/* Tabs + Table */}
-      <div className="bg-white rounded-lg">
-        <Tabs
-          activeKey={activeTab}
-          onChange={(key) => { setActiveTab(key); setPage(1); }}
-          items={tabItems}
-          className="px-2"
-          tabBarStyle={{ marginBottom: 0 }}
-        />
+      <Card className="shadow-sm border-0 rounded-2xl overflow-hidden" bodyStyle={{ padding: 0 }}>
+        <div className="bg-gradient-to-r from-[#0B1B3B] via-[#102454] to-[#1B3A7A] px-6 py-6 text-white">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl space-y-3">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-[0.16em] text-white uppercase">
+                <FileTextOutlined />
+                Contract Center
+              </div>
+              <div>
+                <h1 className="text-3xl font-semibold tracking-tight">Quản lý hợp đồng thuê</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200">
+                  Theo dõi trạng thái ký kết, kích hoạt và thanh toán hợp đồng theo chuẩn vận hành doanh nghiệp.
+                </p>
+              </div>
+            </div>
 
-        <Table
-          dataSource={displayContracts}
-          columns={columns}
-          loading={contractsLoading}
-          rowKey={(record) => record.rentalId || record.contractCode}
-          pagination={{
-            current: page,
-            pageSize: 10,
-            total: contractsMeta?.total || 0,
-            showTotal: (total) => `Tổng ${total} hợp đồng`,
-            onChange: (p) => setPage(p),
-          }}
-          scroll={{ x: 1200 }}
-          locale={{
-            emptyText: (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có hợp đồng nào" />
-            ),
-          }}
-          className="[&_.ant-table-thead_th]:bg-gray-50! [&_.ant-table-thead_th]:text-gray-600! [&_.ant-table-thead_th]:font-medium! [&_.ant-table-thead_th]:text-xs! [&_.ant-table-thead_th]:uppercase!"
-        />
-      </div>
+            <Space wrap>
+              <Button icon={<ExportOutlined />} onClick={handleExportContracts}>
+                Export
+              </Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateContract}>
+                Tạo hợp đồng mới
+              </Button>
+            </Space>
+          </div>
+
+          <Row gutter={[16, 16]} className="mt-6">
+            <Col xs={24} sm={12} lg={6}>
+              <Card
+                className="rounded-2xl text-white"
+                bordered={false}
+                style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
+              >
+                <Statistic
+                  title={<span className="text-white/80">Tổng hợp đồng</span>}
+                  value={contractSummary.total}
+                  valueStyle={{ color: "#ffffff" }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card
+                className="rounded-2xl text-white"
+                bordered={false}
+                style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
+              >
+                <Statistic
+                  title={<span className="text-white/80">Đang hiệu lực</span>}
+                  value={contractSummary.active}
+                  valueStyle={{ color: "#ffffff" }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card
+                className="rounded-2xl text-white"
+                bordered={false}
+                style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
+              >
+                <Statistic
+                  title={<span className="text-white/80">Đang xử lý</span>}
+                  value={contractSummary.inProgress}
+                  valueStyle={{ color: "#ffffff" }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card
+                className="rounded-2xl text-white"
+                bordered={false}
+                style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
+              >
+                <Statistic
+                  title={<span className="text-white/80">Tổng tiền thuê / tháng</span>}
+                  value={formatMoney(contractSummary.totalMonthlyRent)}
+                  valueStyle={{ color: "#ffffff" }}
+                />
+              </Card>
+            </Col>
+          </Row>
+        </div>
+
+        <div className="p-6 space-y-6 bg-[#f7f9fc]">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Tìm theo mã hợp đồng, bên thuê hoặc bất động sản"
+              prefix={<SearchOutlined className="text-slate-400" />}
+              allowClear
+              className="lg:max-w-[420px] rounded-xl"
+            />
+            <div className="text-sm text-slate-500">
+              {contractsMeta?.total ? `Tổng ${contractsMeta.total} hợp đồng trong hệ thống` : "Đang tải dữ liệu hợp đồng"}
+            </div>
+          </div>
+
+          <Tabs
+            activeKey={activeTab}
+            onChange={(key) => { setActiveTab(key); setPage(1); }}
+            items={tabItems}
+            className="rounded-2xl bg-white px-4 pt-2 shadow-sm"
+            tabBarStyle={{ marginBottom: 0 }}
+          />
+
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <Table
+              dataSource={filteredContracts}
+              columns={columns}
+              loading={contractsLoading}
+              rowKey={(record) => record.rentalId || record.contractCode}
+              pagination={{
+                current: page,
+                pageSize: 10,
+                total: contractsMeta?.total || 0,
+                showTotal: (total) => `Tổng ${total} hợp đồng`,
+                onChange: (p) => setPage(p),
+              }}
+              scroll={{ x: 1180 }}
+              locale={{
+                emptyText: (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có hợp đồng nào" />
+                ),
+              }}
+              className="[&_.ant-table-thead_th]:bg-slate-50! [&_.ant-table-thead_th]:text-slate-600! [&_.ant-table-thead_th]:font-semibold! [&_.ant-table-thead_th]:text-xs! [&_.ant-table-thead_th]:uppercase!"
+            />
+          </div>
+        </div>
+      </Card>
 
       <ContractDetailModal
         open={detailOpen}
