@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Table,
   Tag,
@@ -19,6 +19,7 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   DollarOutlined,
+  FileTextOutlined,
   ReloadOutlined,
   ExclamationCircleOutlined,
   CloseCircleOutlined,
@@ -26,8 +27,9 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
-import { getMyPayments, confirmPayment } from "@/stores/slices/contract.slice";
+import { getContractDetail, getInvoicePayments, getMyPayments, confirmPayment } from "@/stores/slices/contract.slice";
 import TopupMethodModal, { type MethodOption } from "@/components/wallet/TopupMethodModal";
+import InvoiceModal from "@/components/payments/InvoiceModal";
 import type { Payment, PaymentStatus, PaymentType } from "@/types/contract.type";
 import dayjs from "dayjs";
 
@@ -83,7 +85,13 @@ export default function PaymentsPage() {
   const { message, modal } = App.useApp();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  const { payments, paymentsLoading, actionLoading } = useAppSelector((state) => state.contract);
+  const {
+    payments,
+    paymentsLoading,
+    actionLoading,
+    invoicePayments,
+    contractDetail,
+  } = useAppSelector((state) => state.contract);
 
   const [statusFilter, setStatusFilter] = useState<string | undefined>();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -91,6 +99,8 @@ export default function PaymentsPage() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [topupMethodOpen, setTopupMethodOpen] = useState(false);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoicePayment, setInvoicePayment] = useState<Payment | null>(null);
 
   const fetchPayments = useCallback(
     (status?: string) => {
@@ -203,8 +213,40 @@ export default function PaymentsPage() {
     setDetailOpen(true);
   };
 
+  const handleViewInvoice = async (record: Payment) => {
+    setInvoicePayment(record);
+    setInvoiceOpen(true);
+    if (record?.rentalId) {
+      dispatch(getContractDetail(record.rentalId));
+      dispatch(getInvoicePayments({ rentalId: record.rentalId, limit: 200 }));
+    }
+  };
+
   const isOwner = (record: Payment) => record.contract?.ownerId === user?.id;
   const isTenant = (record: Payment) => record.contract?.tenantId === user?.id;
+
+  const invoiceItems = useMemo(() => {
+    if (!invoicePayment) return [] as Payment[];
+    if (invoicePayment.paymentType === "deposit" || invoicePayment.paymentType === "early_termination") {
+      return [invoicePayment];
+    }
+    const source = Array.isArray(invoicePayments) && invoicePayments.length ? invoicePayments : payments;
+    const targetMonth = dayjs(invoicePayment.dueDate).format("YYYY-MM");
+    const items = source.filter(
+      (item) =>
+        item.rentalId === invoicePayment.rentalId
+        && item.paymentType !== "deposit"
+        && item.paymentType !== "early_termination"
+        && dayjs(item.dueDate).format("YYYY-MM") === targetMonth
+    );
+    return items.length ? items : [invoicePayment];
+  }, [invoicePayment, invoicePayments, payments]);
+
+  const invoiceContract = useMemo(() => {
+    if (!invoicePayment) return null;
+    if (contractDetail?.rentalId === invoicePayment.rentalId) return contractDetail;
+    return null;
+  }, [contractDetail, invoicePayment]);
 
   // ====== Columns ======
   const columns: ColumnsType<Payment> = [
@@ -280,6 +322,9 @@ export default function PaymentsPage() {
         <Space size={4}>
           <Tooltip title="Xem chi tiết">
             <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => handleViewDetail(record)} />
+          </Tooltip>
+          <Tooltip title="Xem hoa don">
+            <Button type="text" size="small" icon={<FileTextOutlined />} onClick={() => handleViewInvoice(record)} />
           </Tooltip>
           {isTenant(record) && (record.status === "pending" || record.status === "overdue" || record.status === "partial") && (
             <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleOpenConfirm(record)}>
@@ -357,6 +402,16 @@ export default function PaymentsPage() {
           }}
           onConfirm={handleConfirmPayment}
           onChangeMethod={setMethodDraft}
+        />
+        <InvoiceModal
+          open={invoiceOpen}
+          onClose={() => {
+            setInvoiceOpen(false);
+            setInvoicePayment(null);
+          }}
+          payment={invoicePayment}
+          items={invoiceItems}
+          contract={invoiceContract}
         />
     </div>
   );

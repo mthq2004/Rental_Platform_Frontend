@@ -59,6 +59,7 @@ export interface RentalContract {
   internetFee?: number;
   paymentDueDay: number;
   lateFeePerDay?: number;
+  earlyTerminationFee?: number;
   gracePeriodDays: number;
   autoRenewal: boolean;
   status: RentalContractStatus;
@@ -118,12 +119,23 @@ export interface Payment {
 }
 
 // Termination Types
+export type TerminationReason =
+  'lease_end'
+  | 'tenant_request'
+  | 'landlord_request'
+  | 'mutual_agreement'
+  | 'breach_of_contract'
+  | 'non_payment'
+  | 'property_sold'
+  | 'force_majeure'
+  | 'other';
+
 export interface TerminationRequest {
   terminationRequestId: string;
   rentalId: string;
   requestedBy: string;
   requesterRole: string;
-  reason: string;
+  reason: TerminationReason;
   note?: string;
   requestedTerminationDate: string;
   earlyTerminationFee?: number;

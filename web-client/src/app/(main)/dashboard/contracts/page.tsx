@@ -477,7 +477,7 @@ export default function ContractsPage() {
         </Button>
       </div>
 
-      <Card className="shadow-sm border-0 rounded-2xl overflow-hidden" bodyStyle={{ padding: 0 }}>
+      <Card className="shadow-sm border-0 rounded-2xl overflow-hidden" styles={{ body: { padding: 0 } }}>
         <div className="bg-gradient-to-r from-[#0B1B3B] via-[#102454] to-[#1B3A7A] px-6 py-6 text-white">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl space-y-3">
@@ -507,52 +507,52 @@ export default function ContractsPage() {
             <Col xs={24} sm={12} lg={6}>
               <Card
                 className="rounded-2xl text-white"
-                bordered={false}
+                variant="borderless"
                 style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
               >
                 <Statistic
                   title={<span className="text-white/80">Tổng hợp đồng</span>}
                   value={contractSummary.total}
-                  valueStyle={{ color: "#ffffff" }}
+                  styles={{ content: { color: "#ffffff" } }}
                 />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card
                 className="rounded-2xl text-white"
-                bordered={false}
+                variant="borderless"
                 style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
               >
                 <Statistic
                   title={<span className="text-white/80">Đang hiệu lực</span>}
                   value={contractSummary.active}
-                  valueStyle={{ color: "#ffffff" }}
+                  styles={{ content: { color: "#ffffff" } }}
                 />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card
                 className="rounded-2xl text-white"
-                bordered={false}
+                variant="borderless"
                 style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
               >
                 <Statistic
                   title={<span className="text-white/80">Đang xử lý</span>}
                   value={contractSummary.inProgress}
-                  valueStyle={{ color: "#ffffff" }}
+                  styles={{ content: { color: "#ffffff" } }}
                 />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card
                 className="rounded-2xl text-white"
-                bordered={false}
+                variant="borderless"
                 style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
               >
                 <Statistic
                   title={<span className="text-white/80">Tổng tiền thuê / tháng</span>}
                   value={formatMoney(contractSummary.totalMonthlyRent)}
-                  valueStyle={{ color: "#ffffff" }}
+                  styles={{ content: { color: "#ffffff" } }}
                 />
               </Card>
             </Col>

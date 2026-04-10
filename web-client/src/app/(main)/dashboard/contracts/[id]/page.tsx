@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { App, Avatar, Button, Card, Col, Descriptions, Divider, Empty, Progress, Row, Space, Spin, Tag, Timeline, Typography } from "antd";
+import { App, Avatar, Button, Card, Col, DatePicker, Descriptions, Divider, Empty, Form, Input, InputNumber, Modal, Progress, Row, Select, Space, Spin, Tag, Timeline, Typography } from "antd";
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -25,13 +25,18 @@ import {
   clearContractDetail,
   confirmPayment,
   getContractDetail,
+  getInvoicePayments,
   getMyPayments,
+  createTerminationRequest,
+  getTerminationRequests,
+  reviewTerminationRequest,
 } from "@/stores/slices/contract.slice";
 import { getPropertyDetailThunk } from "@/stores/slices/estate.slice";
-import type { Payment, PaymentStatus, RentalContract, RentalContractStatus } from "@/types/contract.type";
+import type { Payment, PaymentStatus, RentalContract, RentalContractStatus, TerminationReason, TerminationRequest } from "@/types/contract.type";
 import type { PropertyDetailApiData } from "@/types/property.type";
 import { STATUS_CONFIG, formatCurrency, formatDate } from "@/components/contracts/ContractStatusConfig";
 import TopupMethodModal, { type MethodOption } from "@/components/wallet/TopupMethodModal";
+import InvoiceModal from "@/components/payments/InvoiceModal";
 
 const { Text, Paragraph } = Typography;
 
@@ -69,6 +74,25 @@ const PAYMENT_METHOD_OPTIONS: MethodOption[] = [
   { value: "bank_transfer", label: "Chuyển khoản ngân hàng", description: "Hiển thị thông tin chuyển khoản ngân hàng." },
   { value: "other", label: "Ví nội bộ của bạn", description: "Thanh toán bằng số dư ví nội bộ trong hệ thống." },
 ];
+
+const TERMINATION_REASON_LABELS: Record<TerminationReason, string> = {
+  lease_end: "Hết hạn hợp đồng",
+  tenant_request: "Người thuê yêu cầu",
+  landlord_request: "Chủ nhà yêu cầu",
+  mutual_agreement: "Hai bên thỏa thuận",
+  breach_of_contract: "Vi phạm hợp đồng",
+  non_payment: "Không thanh toán",
+  property_sold: "Bán bất động sản",
+  force_majeure: "Bất khả kháng",
+  other: "Khác",
+};
+
+const TERMINATION_STATUS_LABELS: Record<TerminationRequest["status"], { label: string; color: string }> = {
+  pending: { label: "Đang chờ", color: "processing" },
+  approved: { label: "Đã chấp thuận", color: "success" },
+  rejected: { label: "Bị từ chối", color: "error" },
+  cancelled: { label: "Đã hủy", color: "default" },
+};
 
 const formatMoney = (value: number | string | null | undefined) => {
   const parsed = Number(value ?? 0);
@@ -115,17 +139,36 @@ export default function ContractDetailPage() {
   const contractId = params?.id?.toString() || "";
 
   const { user } = useAppSelector((state) => state.auth);
-  const { contractDetail, contractsLoading, payments, paymentsLoading, actionLoading } = useAppSelector((state) => state.contract);
+  const {
+    contractDetail,
+    contractsLoading,
+    payments,
+    paymentsLoading,
+    actionLoading,
+    invoicePayments,
+    invoicePaymentsLoading,
+    terminationRequests,
+    terminationLoading,
+    terminationActionLoading,
+  } = useAppSelector((state) => state.contract);
   const { detail: propertyDetail } = useAppSelector((state) => state.estate);
 
   const [payOpen, setPayOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState("other");
+  const [terminationOpen, setTerminationOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [selectedTermination, setSelectedTermination] = useState<TerminationRequest | null>(null);
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoicePayment, setInvoicePayment] = useState<Payment | null>(null);
+  const [terminationForm] = Form.useForm();
+  const [reviewForm] = Form.useForm();
 
   useEffect(() => {
     if (!contractId) return;
 
     dispatch(getContractDetail(contractId));
     dispatch(getMyPayments({ rentalId: contractId, page: 1 }));
+    dispatch(getTerminationRequests(contractId));
 
     return () => {
       dispatch(clearContractDetail());
@@ -152,6 +195,33 @@ export default function ContractDetailPage() {
   const isTenantSide = contract?.tenantId === user?.id;
   const isOwnerSide = contract?.ownerId === user?.id;
   const canPay = Boolean(isTenantSide && currentPayment && ["pending", "overdue", "partial"].includes(currentPayment.status));
+  const terminationList = useMemo(
+    () => (Array.isArray(terminationRequests) ? terminationRequests : []),
+    [terminationRequests]
+  );
+  const latestTermination = terminationList[0] || null;
+  const hasPendingTermination = terminationList.some((item) => item.status === "pending");
+  const canRequestTermination = contract?.status === "active" && !hasPendingTermination;
+  const canReviewTermination = Boolean(
+    latestTermination && latestTermination.status === "pending" && latestTermination.requestedBy !== user?.id
+  );
+
+  const invoiceItems = useMemo(() => {
+    if (!invoicePayment) return [] as Payment[];
+    if (invoicePayment.paymentType === "deposit" || invoicePayment.paymentType === "early_termination") {
+      return [invoicePayment];
+    }
+    const source = Array.isArray(invoicePayments) && invoicePayments.length ? invoicePayments : paymentItems;
+    const targetMonth = dayjs(invoicePayment.dueDate).format("YYYY-MM");
+    const items = source.filter(
+      (item) =>
+        item.rentalId === invoicePayment.rentalId
+        && item.paymentType !== "deposit"
+        && item.paymentType !== "early_termination"
+        && dayjs(item.dueDate).format("YYYY-MM") === targetMonth
+    );
+    return items.length ? items : [invoicePayment];
+  }, [invoicePayment, invoicePayments, paymentItems]);
 
   const handleRefresh = useCallback(() => {
     if (!contractId) return;
@@ -256,6 +326,80 @@ export default function ContractDetailPage() {
     }
   };
 
+  const handleOpenInvoice = async (payment: Payment) => {
+    setInvoicePayment(payment);
+    setInvoiceOpen(true);
+    if (contract?.rentalId) {
+      dispatch(getInvoicePayments({ rentalId: contract.rentalId, limit: 200 }));
+    }
+  };
+
+  const handleOpenTermination = () => {
+    if (!contract?.rentalId) return;
+    const defaultReason = contract.ownerId === user?.id ? "landlord_request" : "tenant_request";
+    terminationForm.resetFields();
+    terminationForm.setFieldsValue({
+      reason: defaultReason,
+      requestedTerminationDate: dayjs().add(30, "day"),
+      earlyTerminationFee: contract.earlyTerminationFee || 0,
+    });
+    setTerminationOpen(true);
+  };
+
+  const handleSubmitTermination = async () => {
+    if (!contract?.rentalId) return;
+    try {
+      const values = await terminationForm.validateFields();
+      await dispatch(
+        createTerminationRequest({
+          rentalId: contract.rentalId,
+          reason: values.reason,
+          note: values.note,
+          requestedTerminationDate: values.requestedTerminationDate.format("YYYY-MM-DD"),
+          earlyTerminationFee: values.earlyTerminationFee ? Number(values.earlyTerminationFee) : undefined,
+        })
+      ).unwrap();
+      message.success("Đã gửi yêu cầu chấm dứt hợp đồng");
+      setTerminationOpen(false);
+      dispatch(getTerminationRequests(contract.rentalId));
+    } catch (error: any) {
+      if (error?.errorFields) return;
+      message.error(error || "Gửi yêu cầu thất bại");
+    }
+  };
+
+  const handleOpenReview = (request: TerminationRequest) => {
+    setSelectedTermination(request);
+    reviewForm.resetFields();
+    reviewForm.setFieldsValue({ status: "approved" });
+    setReviewOpen(true);
+  };
+
+  const handleSubmitReview = async () => {
+    if (!selectedTermination) return;
+    try {
+      const values = await reviewForm.validateFields();
+      await dispatch(
+        reviewTerminationRequest({
+          terminationId: selectedTermination.terminationRequestId,
+          data: {
+            status: values.status,
+            reviewNote: values.reviewNote,
+          },
+        })
+      ).unwrap();
+      message.success("Đã xử lý yêu cầu chấm dứt");
+      setReviewOpen(false);
+      if (contract?.rentalId) {
+        dispatch(getTerminationRequests(contract.rentalId));
+        dispatch(getContractDetail(contract.rentalId));
+      }
+    } catch (error: any) {
+      if (error?.errorFields) return;
+      message.error(error || "Xử lý yêu cầu thất bại");
+    }
+  };
+
   const timelineItems = useMemo(
     () =>
       (contract?.signatureLog || []).map((log) => ({
@@ -277,16 +421,16 @@ export default function ContractDetailPage() {
     [contract?.signatureLog]
   );
 
+  let content: React.ReactNode;
+
   if (contractsLoading && !contract) {
-    return (
+    content = (
       <div className="min-h-[60vh] flex items-center justify-center">
         <Spin size="large" />
       </div>
     );
-  }
-
-  if (!contract) {
-    return (
+  } else if (!contract) {
+    content = (
       <div className="space-y-4">
         <Button icon={<ArrowLeftOutlined />} onClick={() => router.back()}>
           Quay lại
@@ -294,12 +438,10 @@ export default function ContractDetailPage() {
         <Empty description="Không tìm thấy hợp đồng" />
       </div>
     );
-  }
-
-  const sidebarImage = getPropertyImage(property);
-
-  return (
-    <div className="space-y-6 pb-6">
+  } else {
+    const sidebarImage = getPropertyImage(property);
+    content = (
+      <div className="space-y-6 pb-6">
       <div className="rounded-[28px] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-6 text-white shadow-xl shadow-slate-900/10">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
@@ -342,7 +484,7 @@ export default function ContractDetailPage() {
 
         <Row gutter={[16, 16]} className="mt-6">
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} className="rounded-2xl bg-white/10 text-white">
+            <Card variant="borderless" className="rounded-2xl bg-white/10 text-white">
               <Text className="text-xs uppercase tracking-[0.16em] text-slate-300">Trạng thái hợp đồng</Text>
               <div className="mt-2 flex items-center gap-2">
                 <Tag color={contractStatus?.color || "default"} icon={contractStatus?.icon} className="m-0 border-0">
@@ -352,7 +494,7 @@ export default function ContractDetailPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} className="rounded-2xl bg-white/10 text-white">
+            <Card variant="borderless" className="rounded-2xl bg-white/10 text-white">
               <Text className="text-xs uppercase tracking-[0.16em] text-slate-300">Thanh toán</Text>
               <div className="mt-2 flex items-center gap-2">
                 <Tag color={paymentStatus.color} icon={paymentStatus.icon} className="m-0 border-0">
@@ -362,13 +504,13 @@ export default function ContractDetailPage() {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} className="rounded-2xl bg-white/10 text-white">
+            <Card variant="borderless" className="rounded-2xl bg-white/10 text-white">
               <Text className="text-xs uppercase tracking-[0.16em] text-slate-300">Tiền thuê / tháng</Text>
               <div className="mt-2 text-2xl font-semibold">{formatMoney(contract.monthlyRent)}</div>
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Card bordered={false} className="rounded-2xl bg-white/10 text-white">
+            <Card variant="borderless" className="rounded-2xl bg-white/10 text-white">
               <Text className="text-xs uppercase tracking-[0.16em] text-slate-300">Tiến độ hợp đồng</Text>
               <Progress percent={getContractProgress(contract)} showInfo={false} strokeColor="#60a5fa" trailColor="rgba(255,255,255,0.15)" className="mt-3" />
             </Card>
@@ -379,7 +521,7 @@ export default function ContractDetailPage() {
       <Row gutter={[24, 24]} align="top">
         <Col xs={24} xl={16}>
           <div className="space-y-6">
-            <Card className="rounded-3xl shadow-sm" bodyStyle={{ padding: 24 }}>
+            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tổng quan hợp đồng</Text>
@@ -413,7 +555,7 @@ export default function ContractDetailPage() {
               </Descriptions>
             </Card>
 
-            <Card className="rounded-3xl shadow-sm" bodyStyle={{ padding: 24 }}>
+            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử thanh toán</Text>
@@ -455,6 +597,15 @@ export default function ContractDetailPage() {
                               <div className="text-sm text-slate-500">Tổng tiền</div>
                               <div className="text-lg font-semibold text-slate-900">{formatMoney(payment.amount)}</div>
                               <div className="text-sm text-emerald-600">Đã trả: {formatMoney(payment.paidAmount)}</div>
+                              <Button
+                                size="small"
+                                className="mt-2"
+                                icon={<FileTextOutlined />}
+                                onClick={() => handleOpenInvoice(payment)}
+                                loading={invoicePaymentsLoading}
+                              >
+                                Xem hóa đơn
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -467,7 +618,57 @@ export default function ContractDetailPage() {
               </div>
             </Card>
 
-            <Card className="rounded-3xl shadow-sm" bodyStyle={{ padding: 24 }}>
+            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Chấm dứt hợp đồng</Text>
+                  <h3 className="mt-2 text-xl font-semibold text-slate-900">Quản lý yêu cầu chấm dứt</h3>
+                </div>
+                {latestTermination && (
+                  <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color}>
+                    {TERMINATION_STATUS_LABELS[latestTermination.status].label}
+                  </Tag>
+                )}
+              </div>
+
+              <div className="mt-5">
+                {!terminationList.length && (
+                  <Empty description="Chưa có yêu cầu chấm dứt" />
+                )}
+
+                {latestTermination && (
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Text strong>Yêu cầu gần nhất</Text>
+                      <Text className="text-xs text-slate-500">{formatDate(latestTermination.createdAt)}</Text>
+                    </div>
+                    <Descriptions column={1} size="small" className="mt-3">
+                      <Descriptions.Item label="Lý do">{TERMINATION_REASON_LABELS[latestTermination.reason] || latestTermination.reason}</Descriptions.Item>
+                      <Descriptions.Item label="Ngày chấm dứt dự kiến">{formatDate(latestTermination.requestedTerminationDate)}</Descriptions.Item>
+                      <Descriptions.Item label="Phí chấm dứt sớm">{formatMoney(latestTermination.earlyTerminationFee || 0)}</Descriptions.Item>
+                      <Descriptions.Item label="Ghi chú">{latestTermination.note || "—"}</Descriptions.Item>
+                      <Descriptions.Item label="Ghi chú phản hồi">{latestTermination.reviewNote || "—"}</Descriptions.Item>
+                    </Descriptions>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {canRequestTermination && (
+                  <Button type="primary" icon={<ExclamationCircleOutlined />} onClick={handleOpenTermination} loading={terminationActionLoading}>
+                    Gửi yêu cầu chấm dứt
+                  </Button>
+                )}
+                {canReviewTermination && latestTermination && (
+                  <Button onClick={() => handleOpenReview(latestTermination)} loading={terminationActionLoading}>
+                    Xử lý yêu cầu
+                  </Button>
+                )}
+                {terminationLoading && <Text className="text-xs text-slate-400">Đang tải yêu cầu...</Text>}
+              </div>
+            </Card>
+
+            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
               <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử ký kết</Text>
               <h3 className="mt-2 text-xl font-semibold text-slate-900">Dòng thời gian xử lý hợp đồng</h3>
               <div className="mt-6">
@@ -479,7 +680,7 @@ export default function ContractDetailPage() {
 
         <Col xs={24} xl={8}>
           <div className="space-y-6">
-            <Card className="overflow-hidden rounded-3xl shadow-sm" bodyStyle={{ padding: 0 }}>
+            <Card className="overflow-hidden rounded-3xl shadow-sm" styles={{ body: { padding: 0 } }}>
               <div className="relative h-56 w-full bg-slate-100">
                 {sidebarImage ? (
                   <img src={sidebarImage} alt={getPropertyTitle(property)} className="h-full w-full object-cover" />
@@ -542,7 +743,7 @@ export default function ContractDetailPage() {
               </div>
             </Card>
 
-            <Card className="rounded-3xl shadow-sm" bodyStyle={{ padding: 24 }}>
+            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
               <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Thanh toán hiện tại</Text>
               <h3 className="mt-2 text-xl font-semibold text-slate-900">{paymentStatus.label}</h3>
 
@@ -563,11 +764,16 @@ export default function ContractDetailPage() {
                       <Descriptions.Item label="Còn lại">{formatMoney(currentPayment.remainingAmount)}</Descriptions.Item>
                       <Descriptions.Item label="Hạn thanh toán">{formatDate(currentPayment.dueDate)}</Descriptions.Item>
                     </Descriptions>
-                    {canPay && (
-                      <Button type="primary" block className="mt-4" icon={<WalletOutlined />} onClick={openPaymentModal} loading={actionLoading}>
-                        Thanh toán ngay
+                    <div className="mt-4 flex flex-col gap-2">
+                      <Button block icon={<FileTextOutlined />} onClick={() => handleOpenInvoice(currentPayment)} loading={invoicePaymentsLoading}>
+                        Xem hóa đơn
                       </Button>
-                    )}
+                      {canPay && (
+                        <Button type="primary" block icon={<WalletOutlined />} onClick={openPaymentModal} loading={actionLoading}>
+                          Thanh toán ngay
+                        </Button>
+                      )}
+                    </div>
                   </>
                 ) : (
                   <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có kỳ thanh toán nào" />
@@ -575,7 +781,7 @@ export default function ContractDetailPage() {
               </div>
             </Card>
 
-            <Card className="rounded-3xl shadow-sm" bodyStyle={{ padding: 24 }}>
+            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
               <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Thông tin nhanh</Text>
               <div className="mt-4 space-y-3 text-sm text-slate-600">
                 <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
@@ -599,6 +805,13 @@ export default function ContractDetailPage() {
           </div>
         </Col>
       </Row>
+    </div>
+    );
+  }
+
+  return (
+    <>
+      {content}
 
       <TopupMethodModal
         open={payOpen}
@@ -615,6 +828,80 @@ export default function ContractDetailPage() {
         onConfirm={handleConfirmPayment}
         onChangeMethod={setSelectedMethod}
       />
-    </div>
+
+      <Modal
+        open={terminationOpen}
+        onCancel={() => setTerminationOpen(false)}
+        onOk={handleSubmitTermination}
+        okText="Gửi yêu cầu"
+        cancelText="Đóng"
+        confirmLoading={terminationActionLoading}
+        title="Yêu cầu chấm dứt hợp đồng"
+      >
+        <Form form={terminationForm} layout="vertical">
+          <Form.Item
+            name="reason"
+            label="Lý do"
+            rules={[{ required: true, message: "Vui lòng chọn lý do" }]}
+          >
+            <Select
+              options={Object.entries(TERMINATION_REASON_LABELS).map(([value, label]) => ({ value, label }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="requestedTerminationDate"
+            label="Ngày chấm dứt dự kiến"
+            rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
+          >
+            <DatePicker className="w-full" format="DD/MM/YYYY" />
+          </Form.Item>
+          <Form.Item name="earlyTerminationFee" label="Phí chấm dứt sớm">
+            <InputNumber className="w-full" min={0} formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")} />
+          </Form.Item>
+          <Form.Item name="note" label="Ghi chú">
+            <Input.TextArea rows={3} placeholder="Thông tin bổ sung (nếu có)" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        open={reviewOpen}
+        onCancel={() => setReviewOpen(false)}
+        onOk={handleSubmitReview}
+        okText="Xác nhận"
+        cancelText="Đóng"
+        confirmLoading={terminationActionLoading}
+        title="Xử lý yêu cầu chấm dứt"
+      >
+        <Form form={reviewForm} layout="vertical">
+          <Form.Item
+            name="status"
+            label="Kết quả"
+            rules={[{ required: true, message: "Vui lòng chọn kết quả" }]}
+          >
+            <Select
+              options={[
+                { value: "approved", label: "Chấp thuận" },
+                { value: "rejected", label: "Từ chối" },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="reviewNote" label="Ghi chú phản hồi">
+            <Input.TextArea rows={3} placeholder="Ghi chú cho đối tác" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <InvoiceModal
+        open={invoiceOpen}
+        onClose={() => {
+          setInvoiceOpen(false);
+          setInvoicePayment(null);
+        }}
+        payment={invoicePayment}
+        items={invoiceItems}
+        contract={contract}
+      />
+    </>
   );
 }

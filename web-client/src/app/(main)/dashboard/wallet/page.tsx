@@ -207,6 +207,11 @@ export default function WalletDashboardPage() {
     setTopupOpen(true);
   };
 
+  const openWithdrawModal = () => {
+    withdrawForm.resetFields();
+    setWithdrawOpen(true);
+  };
+
   const handleCloseTopupFlow = () => {
     setTopupOpen(false);
     setTopupMethodOpen(false);
@@ -284,16 +289,24 @@ export default function WalletDashboardPage() {
   const handleWithdraw = async () => {
     try {
       const values = await withdrawForm.validateFields();
+      const amount = Number(values.amount);
+
+      if (overview?.availableBalance !== undefined && amount > overview.availableBalance) {
+        message.error("Số dư khả dụng không đủ để rút");
+        return;
+      }
+
       await dispatch(
         createWithdrawalRequest({
-          amount: Number(values.amount),
-          bankCode: values.bankCode,
-          accountNumber: values.accountNumber,
-          accountName: values.accountName,
+          amount,
+          bankCode: values.bankCode?.trim().toUpperCase(),
+          accountNumber: values.accountNumber?.trim(),
+          accountName: values.accountName?.trim(),
         })
       ).unwrap();
       message.success("Đã tạo yêu cầu rút tiền");
       setWithdrawOpen(false);
+      withdrawForm.resetFields();
       fetchData();
     } catch (err: any) {
       if (err?.errorFields) return;
@@ -424,7 +437,7 @@ export default function WalletDashboardPage() {
             <Button icon={<PlusCircleOutlined />} type="primary" onClick={openTopupModal}>
               Nạp tiền
             </Button>
-            <Button icon={<BankOutlined />} onClick={() => setWithdrawOpen(true)}>
+            <Button icon={<BankOutlined />} onClick={openWithdrawModal}>
               Rút tiền
             </Button>
             <Button icon={<FileTextOutlined />} onClick={() => router.push("/dashboard/payments")}>Thanh toán hợp đồng</Button>
@@ -572,19 +585,36 @@ export default function WalletDashboardPage() {
 
       <Modal
         open={topupOpen}
-        title="Nạp tiền vào ví"
+        title={
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6B60D3]">
+                Wallet top-up
+              </div>
+              <div className="text-xl font-semibold text-[#1F1B4D]">Nạp tiền vào ví</div>
+            </div>
+            <div className="rounded-full border border-[#E7E4FF] bg-[#F5F3FF] px-3 py-1 text-xs font-medium text-[#4E47A8]">
+              Bảo mật chuẩn doanh nghiệp
+            </div>
+          </div>
+        }
         onCancel={handleCloseTopupFlow}
         onOk={handleContinueTopup}
         okText="Tiếp tục"
         confirmLoading={topupLoading}
-        width={560}
+        width={620}
         destroyOnClose
       >
         <Form form={topupForm} layout="vertical" initialValues={{ amount: 25000 }}>
-          <div className="mb-4 rounded-2xl border border-[#EBEEFF] bg-[#F8F9FF] p-4">
-            <div className="mb-3 text-sm text-[#5B5B7A]">
-              Chỉ cần nhập số tiền, sau đó bạn sẽ chọn cổng thanh toán ở bước tiếp theo.
+          <div className="mb-5 rounded-2xl border border-[#EBEEFF] bg-gradient-to-r from-[#F8F7FF] via-white to-[#F1F5FF] p-4">
+            <div className="mb-2 text-sm font-medium text-[#4B4B7A]">
+              Nhập số tiền nạp, bạn sẽ chọn cổng thanh toán ở bước tiếp theo.
             </div>
+            <div className="text-xs text-[#6B6F9C]">Hỗ trợ MoMo, VNPay, ZaloPay, chuyển khoản ngân hàng.</div>
+          </div>
+
+          <div className="mb-4 rounded-2xl border border-[#E8E6FF] bg-white p-4">
+            <div className="mb-3 text-sm font-medium text-[#3C356E]">Chọn nhanh</div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {QUICK_TOPUP_AMOUNTS.map((amount) => {
                 const active = Number(topupAmount || 0) === amount;
@@ -606,23 +636,30 @@ export default function WalletDashboardPage() {
               })}
             </div>
           </div>
+
           <Form.Item
-            label="Số tiền nạp"
+            label={<span className="text-sm font-medium text-[#2F2B59]">Số tiền nạp</span>}
             name="amount"
             rules={[{ required: true, message: "Vui lòng nhập số tiền" }]}
           >
             <InputNumber
+              style={{ width: "100%" }}
               className="w-full"
               size="large"
               min={10000}
               step={10000}
               controls={false}
               placeholder="Nhập số tiền cần nạp"
+              addonAfter={<span className="text-xs font-semibold text-[#5A5F8F]">VND</span>}
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
             />
           </Form.Item>
-          <div className="rounded-xl bg-[#F8F9FF] px-4 py-3 text-sm text-[#4A4F8A]">
-            Bước tiếp theo sẽ mở màn hình chọn MoMo, VNPay, ZaloPay hoặc chuyển khoản ngân hàng.
+
+          <div className="flex items-start gap-3 rounded-xl border border-[#E8E6FF] bg-[#F8F9FF] px-4 py-3 text-sm text-[#4A4F8A]">
+            <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-[#5B5BFF]" />
+            <div>
+              Bước tiếp theo sẽ mở màn hình chọn MoMo, VNPay, ZaloPay hoặc chuyển khoản ngân hàng.
+            </div>
           </div>
         </Form>
       </Modal>
@@ -642,33 +679,78 @@ export default function WalletDashboardPage() {
       <Modal
         open={withdrawOpen}
         title="Tạo yêu cầu rút tiền"
-        onCancel={() => setWithdrawOpen(false)}
+        onCancel={() => {
+          setWithdrawOpen(false);
+          withdrawForm.resetFields();
+        }}
         onOk={handleWithdraw}
         okText="Gửi yêu cầu"
         confirmLoading={withdrawActionLoading}
         destroyOnClose
       >
         <Form form={withdrawForm} layout="vertical">
+          <div className="mb-3 rounded-xl border border-[#E8E6FF] bg-[#F8F9FF] px-4 py-3 text-sm text-[#4A4F8A]">
+            Số dư khả dụng: <span className="font-semibold text-[#2F2B59]">{formatCurrency(overview?.availableBalance || 0)}</span>
+          </div>
           <Form.Item
             label="Số tiền rút"
             name="amount"
-            rules={[{ required: true, message: "Vui lòng nhập số tiền" }]}
+            rules={[
+              { required: true, message: "Vui lòng nhập số tiền" },
+              {
+                validator: (_, value) => {
+                  const amount = Number(value || 0);
+                  if (!amount) return Promise.resolve();
+                  if (amount < 10000) return Promise.reject(new Error("Số tiền tối thiểu là 10.000 VND"));
+                  if (amount % 10000 !== 0) return Promise.reject(new Error("Số tiền phải là bội số của 10.000"));
+                  if (overview?.availableBalance !== undefined && amount > overview.availableBalance) {
+                    return Promise.reject(new Error("Số dư khả dụng không đủ để rút"));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
           >
             <InputNumber
               className="w-full"
+              size="large"
               min={10000}
               step={10000}
+              controls={false}
               formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+              placeholder="Nhập số tiền cần rút"
+              addonAfter={<span className="text-xs font-semibold text-[#5A5F8F]">VND</span>}
             />
           </Form.Item>
-          <Form.Item label="Mã ngân hàng" name="bankCode" rules={[{ required: true, message: "Nhập mã ngân hàng" }]}>
+          <Form.Item
+            label="Mã ngân hàng"
+            name="bankCode"
+            rules={[
+              { required: true, message: "Nhập mã ngân hàng" },
+              { max: 30, message: "Mã ngân hàng tối đa 30 ký tự" },
+            ]}
+          >
             <Input placeholder="VD: VCB, TCB, ACB" />
           </Form.Item>
-          <Form.Item label="Số tài khoản" name="accountNumber" rules={[{ required: true, message: "Nhập số tài khoản" }]}>
-            <Input />
+          <Form.Item
+            label="Số tài khoản"
+            name="accountNumber"
+            rules={[
+              { required: true, message: "Nhập số tài khoản" },
+              { max: 50, message: "Số tài khoản tối đa 50 ký tự" },
+            ]}
+          >
+            <Input placeholder="Nhập số tài khoản" />
           </Form.Item>
-          <Form.Item label="Chủ tài khoản" name="accountName" rules={[{ required: true, message: "Nhập chủ tài khoản" }]}>
-            <Input />
+          <Form.Item
+            label="Chủ tài khoản"
+            name="accountName"
+            rules={[
+              { required: true, message: "Nhập chủ tài khoản" },
+              { max: 120, message: "Chủ tài khoản tối đa 120 ký tự" },
+            ]}
+          >
+            <Input placeholder="Nhập tên chủ tài khoản" />
           </Form.Item>
         </Form>
       </Modal>

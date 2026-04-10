@@ -2,7 +2,7 @@ import { io, Socket } from 'socket.io-client';
 import { getAccessToken } from '@/utils/secureStorage';
 import envConfig from '@/config';
 
-class ChatSocketService  {
+class NotificationSocketService  {
     private socket: Socket | null = null;
     private listeners: Map<string, Function[]> = new Map();
 
@@ -10,7 +10,7 @@ class ChatSocketService  {
         try {
             const token = await getAccessToken();
 
-            console.log("nm: ", token);
+            console.log("nm12: ", token);
             
             
             if (!token) {
@@ -19,8 +19,8 @@ class ChatSocketService  {
             }
 
             // Kết nối qua Kong Gateway
-            this.socket = io(`${envConfig.NEXT_PUBLIC_API_ENDPOINT}/chat`, {
-                path: "/api/chat/socket.io",
+            this.socket = io(`${envConfig.NEXT_PUBLIC_API_ENDPOINT}/notification`, {
+                path: "/api/notification/socket.io",
                 auth: {
                     token: token
                 },
@@ -29,15 +29,13 @@ class ChatSocketService  {
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,
             });
-            console.log("mm");
-            
 
             this.socket.on('connect', () => {
-                console.log('Socket chat connected:', this.socket?.id);
+                console.log('Socket notification connected:', this.socket?.id);
             });
 
             this.socket.on('disconnect', (reason) => {
-                console.log('Socket disconnected:', reason);
+                console.log('Socket notification disconnected:', reason);
             });
 
             this.socket.on('connect_error', (error) => {
@@ -100,4 +98,4 @@ class ChatSocketService  {
     }
 }
 
-export default new ChatSocketService();
+export default new NotificationSocketService();

@@ -6,6 +6,7 @@ import type {
   Payment,
   StatusCount,
   CreateContractPayload,
+  TerminationRequest,
 } from "../../types/contract.type";
 
 interface ContractState {
@@ -24,6 +25,13 @@ interface ContractState {
   // Payments
   payments: Payment[];
   paymentsLoading: boolean;
+  invoicePayments: Payment[];
+  invoicePaymentsLoading: boolean;
+
+  // Terminations
+  terminationRequests: TerminationRequest[];
+  terminationLoading: boolean;
+  terminationActionLoading: boolean;
 
   // General
   actionLoading: boolean;
@@ -42,6 +50,12 @@ const initialState: ContractState = {
 
   payments: [],
   paymentsLoading: false,
+  invoicePayments: [],
+  invoicePaymentsLoading: false,
+
+  terminationRequests: [],
+  terminationLoading: false,
+  terminationActionLoading: false,
 
   actionLoading: false,
 };
@@ -120,6 +134,10 @@ const normalizeContract = (contract: any): RentalContract => {
       contract?.lateFeePerDay == null
         ? undefined
         : parseNumberSafe(contract?.lateFeePerDay),
+    earlyTerminationFee:
+      contract?.earlyTerminationFee == null
+        ? undefined
+        : parseNumberSafe(contract?.earlyTerminationFee),
   } as RentalContract;
 
   return normalizedContract;
@@ -293,13 +311,64 @@ export const cancelContract = createAsyncThunk(
 
 export const getMyPayments = createAsyncThunk(
   "contract/getMyPayments",
-  async (params?: { rentalId?: string; status?: string; page?: number }) => {
+  async (params?: { rentalId?: string; status?: string; page?: number; limit?: number }) => {
     const query = new URLSearchParams();
     if (params?.rentalId) query.set("rentalId", params.rentalId);
     if (params?.status) query.set("status", params.status);
     if (params?.page) query.set("page", String(params.page));
+    if (params?.limit) query.set("limit", String(params.limit));
     const qs = query.toString();
     return await http.get(`/contract/payments/my${qs ? `?${qs}` : ""}`);
+  }
+);
+
+export const getInvoicePayments = createAsyncThunk(
+  "contract/getInvoicePayments",
+  async (params: { rentalId: string; limit?: number }) => {
+    const query = new URLSearchParams();
+    query.set("rentalId", params.rentalId);
+    if (params.limit) query.set("limit", String(params.limit));
+    const qs = query.toString();
+    return await http.get(`/contract/payments/my${qs ? `?${qs}` : ""}`);
+  }
+);
+
+export const createTerminationRequest = createAsyncThunk(
+  "contract/createTerminationRequest",
+  async (data: {
+    rentalId: string;
+    reason: string;
+    note?: string;
+    requestedTerminationDate: string;
+    earlyTerminationFee?: number;
+  }, { rejectWithValue }) => {
+    try {
+      return await http.post("/contract/terminations", data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const getTerminationRequests = createAsyncThunk(
+  "contract/getTerminationRequests",
+  async (rentalId: string, { rejectWithValue }) => {
+    try {
+      return await http.get(`/contract/terminations/contract/${rentalId}`);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const reviewTerminationRequest = createAsyncThunk(
+  "contract/reviewTerminationRequest",
+  async ({ terminationId, data }: { terminationId: string; data: { status: "approved" | "rejected"; reviewNote?: string } }, { rejectWithValue }) => {
+    try {
+      return await http.put(`/contract/terminations/${terminationId}/review`, data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
   }
 );
 
@@ -416,9 +485,50 @@ export const contractSlice = createSlice({
       .addCase(getMyPayments.pending, (state) => { state.paymentsLoading = true; })
       .addCase(getMyPayments.fulfilled, (state, action) => {
         state.paymentsLoading = false;
-        state.payments = action.payload.data?.items ?? [];
+        const items = Array.isArray(action.payload?.data?.items)
+          ? action.payload.data.items
+          : Array.isArray(action.payload?.items)
+            ? action.payload.items
+            : [];
+        state.payments = items;
       })
       .addCase(getMyPayments.rejected, (state) => { state.paymentsLoading = false; });
+
+    builder
+      .addCase(getInvoicePayments.pending, (state) => { state.invoicePaymentsLoading = true; })
+      .addCase(getInvoicePayments.fulfilled, (state, action) => {
+        state.invoicePaymentsLoading = false;
+        const items = Array.isArray(action.payload?.data?.items)
+          ? action.payload.data.items
+          : Array.isArray(action.payload?.items)
+            ? action.payload.items
+            : [];
+        state.invoicePayments = items;
+      })
+      .addCase(getInvoicePayments.rejected, (state) => { state.invoicePaymentsLoading = false; });
+
+    builder
+      .addCase(getTerminationRequests.pending, (state) => { state.terminationLoading = true; })
+      .addCase(getTerminationRequests.fulfilled, (state, action) => {
+        state.terminationLoading = false;
+        const items = Array.isArray(action.payload?.data)
+          ? action.payload.data
+          : Array.isArray(action.payload)
+            ? action.payload
+            : [];
+        state.terminationRequests = items;
+      })
+      .addCase(getTerminationRequests.rejected, (state) => { state.terminationLoading = false; });
+
+    builder
+      .addCase(createTerminationRequest.pending, (state) => { state.terminationActionLoading = true; })
+      .addCase(createTerminationRequest.fulfilled, (state) => { state.terminationActionLoading = false; })
+      .addCase(createTerminationRequest.rejected, (state) => { state.terminationActionLoading = false; });
+
+    builder
+      .addCase(reviewTerminationRequest.pending, (state) => { state.terminationActionLoading = true; })
+      .addCase(reviewTerminationRequest.fulfilled, (state) => { state.terminationActionLoading = false; })
+      .addCase(reviewTerminationRequest.rejected, (state) => { state.terminationActionLoading = false; });
 
     builder
       .addCase(confirmPayment.pending, (state) => { state.actionLoading = true; })
