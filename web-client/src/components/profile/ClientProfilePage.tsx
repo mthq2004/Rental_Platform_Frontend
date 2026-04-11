@@ -352,6 +352,7 @@ export default function ClientProfilePage() {
       setPhoneVerified(true);
       setOtpModalOpen(false);
       message.success("Xác thực số điện thoại thành công");
+      dispatch(getProfileUser());
     } catch (error: unknown) {
       message.error((error as string) || "Mã OTP không chính xác");
     } finally {
@@ -398,7 +399,7 @@ export default function ClientProfilePage() {
 
       const devOtp = response?.data?.devOtp;
       if (devOtp) {
-        message.success(`OTP dev: ${devOtp}`);
+        message.success("Đã gửi OTP tới email");
       } else {
         message.success("Đã gửi OTP xác thực email");
       }
@@ -443,7 +444,7 @@ export default function ClientProfilePage() {
       setEmailCountdown(300);
       const devOtp = response?.data?.devOtp;
       if (devOtp) {
-        message.success(`OTP dev: ${devOtp}`);
+        message.success(`Đã gửi OTP tới email`);
       } else {
         message.success("Đã gửi lại OTP email");
       }
@@ -479,6 +480,33 @@ export default function ClientProfilePage() {
     const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     setOtp(pasted);
     document.getElementById(`profile-otp-${Math.min(pasted.length, 5)}`)?.focus();
+  };
+
+  const handleEmailOtpChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, "");
+    if (digit.length > 1) return;
+
+    const values = emailOtp.split("");
+    while (values.length < 6) values.push("");
+    values[index] = digit;
+    setEmailOtp(values.join(""));
+
+    if (digit && index < 5) {
+      document.getElementById(`email-otp-${index + 1}`)?.focus();
+    }
+  };
+
+  const handleEmailOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Backspace" && !emailOtp[index] && index > 0) {
+      document.getElementById(`email-otp-${index - 1}`)?.focus();
+    }
+  };
+
+  const handleEmailOtpPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    event.preventDefault();
+    const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    setEmailOtp(pasted);
+    document.getElementById(`email-otp-${Math.min(pasted.length, 5)}`)?.focus();
   };
 
   const handleSubmit = async (values: ProfileFormValues) => {
@@ -696,17 +724,17 @@ export default function ClientProfilePage() {
                 <SafetyCertificateOutlined style={{ fontSize: 10 }} />
                 {roleLabel}
               </div>
-              <div style={styles.verifyStack}>
+              <div style={styles.verifyRow}>
                 <VerificationBadge
-                  ok={!!user?.phoneVerified}
-                  label={user?.phoneVerified ? "SĐT đã xác thực" : "SĐT chưa xác thực"}
+                  ok={phoneVerified || !!user?.phoneVerified}
+                  label={phoneVerified || user?.phoneVerified ? "SĐT đã xác thực" : "SĐT chưa xác thực"}
                 />
                 <VerificationBadge
-                  ok={!!user?.isEmailVerified}
-                  label={user?.isEmailVerified ? "Email đã xác thực" : "Email chưa xác thực"}
+                  ok={emailVerified || !!user?.isEmailVerified}
+                  label={emailVerified || user?.isEmailVerified ? "Email đã xác thực" : "Email chưa xác thực"}
                 />
               </div>
-              {!user?.isEmailVerified && user?.email && !editing && (
+              {!(emailVerified || user?.isEmailVerified) && user?.email && !editing && (
                 <button
                   style={styles.verifyActionBtn}
                   onClick={() => handleRequestEmailOtp(user.email)}
@@ -1129,14 +1157,23 @@ export default function ClientProfilePage() {
             Nhập OTP 6 số đã gửi tới <strong>{pendingEmail || currentEmail || user?.email || "email của bạn"}</strong>
           </p>
 
-          <Input
-            value={emailOtp}
-            onChange={(event) => setEmailOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-            placeholder="Nhập OTP"
-            maxLength={6}
-            size="large"
-            style={{ textAlign: "center", letterSpacing: 6, marginBottom: 16, height: 44 }}
-          />
+          <div className="flex justify-center gap-2 mb-4">
+            {[0, 1, 2, 3, 4, 5].map((index) => (
+              <input
+                key={index}
+                id={`email-otp-${index}`}
+                type="text"
+                inputMode="numeric"
+                maxLength={1}
+                value={emailOtp[index] || ""}
+                onChange={(event) => handleEmailOtpChange(index, event.target.value)}
+                onKeyDown={(event) => handleEmailOtpKeyDown(index, event)}
+                onPaste={handleEmailOtpPaste}
+                onFocus={(event) => event.target.select()}
+                className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-all"
+              />
+            ))}
+          </div>
 
           <div className="text-sm text-gray-500 mb-5">
             {emailCountdown > 0 ? (
@@ -1186,7 +1223,7 @@ const VerificationBadge = ({ ok, label }: { ok: boolean; label: string }) => (
       padding: "4px 10px",
     }}
   >
-    {ok ? <CheckCircleFilled style={{ fontSize: 11 }} /> : <CloseCircleFilled style={{ fontSize: 11 }} />}
+    {ok ? <SafetyCertificateOutlined style={{ fontSize: 11 }} /> : <CloseCircleFilled style={{ fontSize: 11 }} />}
     {label}
   </span>
 );
@@ -1405,6 +1442,15 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    gap: 8,
+  },
+  verifyRow: {
+    marginTop: 10,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
     gap: 8,
   },
   verifyActionBtn: {
