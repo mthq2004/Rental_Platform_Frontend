@@ -11,7 +11,6 @@ import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import PropertyPendingPage from "../pages/properties/PropertyPendingPage";
 import PropertyApprovedPage from "../pages/properties/PropertyApprovedPage";
 import PropertyRejectPage from "../pages/properties/PropertyRejectPage";
-import NotificationsPage from "../pages/notifications/NotificationsPage";
 import UserListPage from "../pages/users/UserListPage";
 import UserDetailPage from "../pages/users/UserDetailPage";
 import AdminListPage from "../pages/admins/AdminListPage";
@@ -82,10 +81,6 @@ const router = createBrowserRouter([
           {
             path: "contracts/:id",
             element: <ContractDetailPage />,
-          },
-          {
-            path: "notifications",
-            element: <NotificationsPage />,
           },
           {
             path: "settings",

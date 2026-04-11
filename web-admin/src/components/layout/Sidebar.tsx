@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -29,14 +29,18 @@ import { useAppDispatch, useAppSelector } from "../../stores/hooks";
 import { logout } from "../../stores/slices/auth.slice";
 import {
   getNotification,
+  addNotification,
   selectUnreadCount,
 } from "../../stores/slices/notification.slice";
 import ThemeToggle from "../theme/ThemeToggle";
 import { useTheme } from "../../contexts/ThemeContext";
+import NotificationDrawer from "./NotificationDrawer";
+import notificationSocketService from "../../services/notification.socket";
 const { Header, Sider, Content } = Layout;
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -44,10 +48,34 @@ const Sidebar: React.FC = () => {
 
   const unreadCount = useAppSelector(selectUnreadCount);
   const authUser = useAppSelector((state) => state.auth.user);
+  const isAuth = useAppSelector((state) => state.auth.isAuth);
 
   useEffect(() => {
     dispatch(getNotification());
   }, [dispatch]);
+
+  // Kết nối WebSocket để nhận thông báo real-time
+  const handleRealtimeNotification = useCallback(
+    (notification: any) => {
+      dispatch(addNotification(notification));
+    },
+    [dispatch],
+  );
+
+  useEffect(() => {
+    if (!isAuth) return;
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) return;
+
+    notificationSocketService.connect(token);
+    notificationSocketService.on("notification", handleRealtimeNotification);
+
+    return () => {
+      notificationSocketService.off("notification", handleRealtimeNotification);
+      notificationSocketService.disconnect();
+    };
+  }, [isAuth, handleRealtimeNotification]);
 
   const logoutUser = () => {
     dispatch(logout());
@@ -452,7 +480,7 @@ const Sidebar: React.FC = () => {
                   justifyContent: "center",
                   border: "1px solid #d9d9d9",
                 }}
-                onClick={() => navigate("/dashboard/notifications")}
+                onClick={() => setNotificationDrawerOpen(true)}
               />
             </Badge>
 
@@ -502,8 +530,13 @@ const Sidebar: React.FC = () => {
         </Content>
 
       </Layout>
+
+    <NotificationDrawer
+      open={notificationDrawerOpen}
+      onClose={() => setNotificationDrawerOpen(false)}
+    />
     </Layout>
-  );
+  );  
 };
 
 export default Sidebar;

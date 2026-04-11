@@ -1,11 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { addConversation, setUserOffline, setUserOnline, updateConversationOnNewMessage } from '@/stores/slices/conversation.slice';
-import { addRealtimeMessage, updateMessageReaction } from '@/stores/slices/message.slice';
 import { useAppDispatch, useAppSelector } from '@/stores/hooks';
-import { store } from '@/stores/store';
 import socketService from '@/services/notificaion.socket';
+import {
+  addNotification,
+  notificationReadRealtime,
+  getNotification,
+} from '@/stores/slices/notification.slice';
 
 interface SocketContextType {
   isConnected: boolean;
@@ -19,30 +21,45 @@ export const useSocket = () => useContext(SocketContext);
 
 export const NotificationSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const dispatch = useAppDispatch();
-  const { isAuth, user } = useAppSelector(state => state.auth);
+  const { isAuth } = useAppSelector(state => state.auth);
 
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    console.log("🔥 NotificationSocketProvider useEffect");
     if (!isAuth) return;
 
     let isMounted = true;
 
     const init = async () => {
       await socketService.connect();
-      if (isMounted) {
-        setIsConnected(true);
-      }
+      if (!isMounted) return;
+
+      setIsConnected(true);
+
+      // Tải thông báo ban đầu
+      dispatch(getNotification());
+
+      // Lắng nghe thông báo mới từ server push
+      socketService.on('notification', (notification: any) => {
+        dispatch(addNotification(notification));
+      });
+
+      // Lắng nghe cập nhật trạng thái đọc từ tab/thiết bị khác
+      socketService.on('notification:read', (payload: { notificationId: string }) => {
+        dispatch(notificationReadRealtime({ notificationId: payload.notificationId }));
+      });
     };
 
     init();
 
     return () => {
       isMounted = false;
+      socketService.off('notification');
+      socketService.off('notification:read');
       socketService.disconnect();
+      setIsConnected(false);
     };
-  }, [isAuth]);
+  }, [isAuth, dispatch]);
 
   return (
     <SocketContext.Provider value={{ isConnected }}>

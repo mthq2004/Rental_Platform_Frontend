@@ -340,6 +340,17 @@ export default function CreatePostForm() {
 
   return (
     <div className="w-full min-h-screen bg-gray-50 pb-24">
+      {isEditMode && existingProperty?.rejectionReason && (
+        <div className="max-w-6xl mx-auto px-4 pt-6">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex gap-3 items-start">
+            <span className="text-red-500 text-lg">⚠️</span>
+            <div>
+              <p className="text-red-700 font-semibold text-sm mb-1">Lý do từ chối</p>
+              <p className="text-red-600 text-sm">{existingProperty.rejectionReason}</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Media */}
         <div className="lg:col-span-4">
@@ -410,7 +421,7 @@ export default function CreatePostForm() {
           Lưu nháp
         </Button>
         <Button type="primary" onClick={handleSubmit} loading={isLoading}>
-          Đăng tin
+          {isEditMode ? "Cập nhật thông tin" : "Đăng tin"}
         </Button>
       </div>
 

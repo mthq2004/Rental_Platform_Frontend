@@ -30,7 +30,7 @@ export const getNotification = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const res = await apiClient.get("/notification/notification");
-            return res.data;
+            return res;
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || "Lấy thông báo thất bại");
         }
@@ -45,6 +45,18 @@ export const markAsRead = createAsyncThunk(
             return { id, data: res.data };
         } catch (error: any) {
             return rejectWithValue(error.response?.data?.message || "Đánh dấu đã đọc thất bại");
+        }
+    }
+);
+
+export const deleteReadNotifications = createAsyncThunk(
+    "notification/deleteRead",
+    async (_, { rejectWithValue }) => {
+        try {
+            await apiClient.delete("/notification/notification/read");
+            return true;
+        } catch (error: any) {
+            return rejectWithValue(error.response?.data?.message || "Xóa thông báo thất bại");
         }
     }
 );
@@ -87,6 +99,11 @@ export const notificationSlice = createSlice({
             .addCase(markAsRead.fulfilled, (state, action) => {
                 const found = state.notifications.find((n) => n.id === action.payload.id);
                 if (found) found.isRead = true;
+            });
+
+        builder
+            .addCase(deleteReadNotifications.fulfilled, (state) => {
+                state.notifications = state.notifications.filter((n) => !n.isRead);
             });
     },
 });
