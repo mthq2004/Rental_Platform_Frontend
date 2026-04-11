@@ -1,12 +1,27 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Button, Input, Card, Spin, Space, Avatar, Typography, Tooltip } from 'antd';
-import { RobotOutlined, CloseOutlined, SendOutlined, PlusOutlined, UserOutlined, QuestionCircleOutlined, SearchOutlined, MessageOutlined, FileTextOutlined } from '@ant-design/icons';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Button, Input, Card, Avatar, Typography } from 'antd';
+import {
+  ThunderboltOutlined,
+  CloseOutlined,
+  SendOutlined,
+  UserOutlined,
+  RobotOutlined,
+  HomeOutlined,
+  FileTextOutlined,
+  CustomerServiceOutlined,
+  QuestionCircleOutlined,
+  SearchOutlined,
+  EnvironmentOutlined,
+  AliwangwangOutlined,
+} from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppSelector } from '@/stores/hooks';
 
-const { Text, Title, Paragraph } = Typography;
+const { Text, Title } = Typography;
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface AIResponseCard {
   id: string;
@@ -23,358 +38,777 @@ interface Message {
   text: string;
   cards?: AIResponseCard[];
   quickReplies?: string[];
-  options?: { value: string; label: string }[];
+  timestamp?: string;
 }
+
+// ─── Particle component ───────────────────────────────────────────────────────
+
+interface Particle {
+  id: number;
+  x: number;
+  y: number;
+  color: string;
+  size: number;
+  dx: number;
+  dy: number;
+}
+
+function ParticleCanvas({ trigger }: { trigger: number }) {
+  const [particles, setParticles] = useState<Particle[]>([]);
+
+  useEffect(() => {
+    if (trigger === 0) return;
+    const colors = ['#1d4ed8', '#0ea5e9', '#38bdf8', '#22d3ee', '#60a5fa'];
+    const newParticles: Particle[] = Array.from({ length: 10 }, (_, i) => ({
+      id: Date.now() + i,
+      x: Math.random() * 100,
+      y: 90,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: 4 + Math.random() * 4,
+      dx: (Math.random() - 0.5) * 60,
+      dy: -(40 + Math.random() * 50),
+    }));
+
+    // setState in async callbacks to satisfy strict react-hooks lint rules.
+    const showTimer = setTimeout(() => setParticles(newParticles), 0);
+    const hideTimer = setTimeout(() => setParticles([]), 1200);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [trigger]);
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      <AnimatePresence>
+        {particles.map((p) => (
+          <motion.div
+            key={p.id}
+            initial={{ x: `${p.x}%`, y: `${p.y}%`, opacity: 1, scale: 1 }}
+            animate={{ x: `calc(${p.x}% + ${p.dx}px)`, y: `calc(${p.y}% + ${p.dy}px)`, opacity: 0, scale: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+            style={{
+              position: 'absolute',
+              width: p.size,
+              height: p.size,
+              borderRadius: '50%',
+              background: p.color,
+              boxShadow: `0 0 6px ${p.color}`,
+            }}
+          />
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Typing Indicator ─────────────────────────────────────────────────────────
+
+function TypingIndicator() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 8 }}
+      style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}
+    >
+      <Avatar
+        icon={<RobotOutlined />}
+        size={30}
+        style={{
+          background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
+          boxShadow: '0 0 10px rgba(14,165,233,0.35)',
+          flexShrink: 0,
+        }}
+      />
+      <div
+        style={{
+          padding: '12px 16px',
+          background: 'rgba(14,165,233,0.1)',
+          border: '1px solid rgba(14,165,233,0.22)',
+          borderRadius: '18px 18px 18px 4px',
+          display: 'flex',
+          gap: 5,
+          alignItems: 'center',
+        }}
+      >
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            animate={{ y: [0, -5, 0], opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 1.1, repeat: Infinity, delay: i * 0.18 }}
+            style={{ width: 7, height: 7, borderRadius: '50%', background: '#0ea5e9' }}
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Ambient Orb ──────────────────────────────────────────────────────────────
+
+function AmbientOrb({ style, delay = 0 }: { style: React.CSSProperties; delay?: number }) {
+  return (
+    <motion.div
+      animate={{ y: [0, -20, 0], scale: [1, 1.05, 1] }}
+      transition={{ duration: 6, repeat: Infinity, delay, ease: 'easeInOut' }}
+      style={{ position: 'absolute', borderRadius: '50%', filter: 'blur(60px)', pointerEvents: 'none', ...style }}
+    />
+  );
+}
+
+// ─── Spinning Ring Avatar ─────────────────────────────────────────────────────
+
+function SpinRingAvatar() {
+  return (
+    <div style={{ position: 'relative', width: 42, height: 42 }}>
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+        style={{
+          position: 'absolute',
+          inset: -3,
+          borderRadius: '50%',
+          background: 'conic-gradient(from 0deg, #1d4ed8, #38bdf8, #0ea5e9, #1d4ed8)',
+        }}
+      />
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          width: 42,
+          height: 42,
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '2px solid #ffffff',
+        }}
+      >
+        <ThunderboltOutlined style={{ color: 'white', fontSize: 20 }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AIChatBox() {
   const [isOpen, setIsOpen] = useState(false);
+  const [particleTrigger, setParticleTrigger] = useState(0);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       sender: 'ai',
       text: 'Xin chào! Tôi là trợ lý ảo từ Digital Curator. Tôi có thể giúp gì cho bạn trong việc tìm kiếm bất động sản mơ ước hôm nay?',
-      quickReplies: [
-        'Tìm phòng trọ',
-        'Đăng tin cho thuê',
-        'Cần hỗ trợ kỹ thuật',
-        'Hỏi về hợp đồng'
-      ]
-    }
+      quickReplies: ['Tìm phòng trọ', 'Đăng tin cho thuê', 'Cần hỗ trợ kỹ thuật', 'Hỏi về hợp đồng'],
+      timestamp: 'Vừa xong',
+    },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
   const { user } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
 
-  const handleSend = async (text: string) => {
-    if (!text.trim()) return;
-
-    const userMessage: Message = { id: Date.now().toString(), sender: 'user', text };
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setLoading(true);
-
-    try {
-      // Call Real API
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://localhost:8000'}/api/v1/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user?.id || 'guest-' + Date.now(),
-          message: text
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('API ERROR');
-      }
-
-      const data = await response.json();
-      
-      let aiResponse: Message = { id: (Date.now() + 1).toString(), sender: 'ai', text: data.answer };
-
-      // Since the actual backend returns just "answer" string for now, we can try to inject some quick replies
-      const lowerText = text.toLowerCase();
-      if (lowerText === 'tìm phòng trọ' || lowerText.includes('tìm')) {
-        // Example logic if we want to show cards or if backend someday returns structured cards 
-        // For now we will rely on backend text. We can append quick replies dynamically
-        aiResponse.quickReplies = ['Xem thêm Cầu Giấy', 'Tìm quận khác'];
-      }
-      
-      setMessages(prev => [...prev, aiResponse]);
-    } catch (error) {
-      console.error(error);
-      
-      // Fallback to mock logic if backend fails or doesn't exist
-      setTimeout(() => {
-        let aiResponse: Message = { id: (Date.now() + 1).toString(), sender: 'ai', text: '' };
-        const lowerText = text.toLowerCase();
-        
-        if (lowerText.includes('tìm') && lowerText.includes('cầu giấy')) {
-          aiResponse.text = 'Tuyệt vời! Tôi đã tìm thấy kết quả phù hợp với yêu cầu của bạn tại khu vực Cầu Giấy. Bạn có muốn xem danh sách này không?';
-          aiResponse.cards = [
-            {
-              id: '1',
-              title: 'Phòng trọ ban công rộng Cầu Giấy',
-              image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&h=200&fit=crop',
-              price: '5,000,000 đ',
-              district: 'Cầu Giấy',
-              link: '#'
-            },
-            {
-              id: '2',
-              title: 'Căn hộ mini full đồ Cầu Giấy',
-              image: 'https://images.unsplash.com/photo-1502672260266-1c1c24240f38?w=300&h=200&fit=crop',
-              price: '6,500,000 đ',
-              district: 'Cầu Giấy',
-              link: '#'
-            }
-          ];
-        } else if (lowerText.includes('đăng tin') || lowerText.includes('phí')) {
-          aiResponse.text = 'Để đăng tin, bạn vui lòng truy cập trang Quản lý tin đăng và nhấn nút "Tạo tin mới". Phí dịch vụ cơ bản là miễn phí, và bạn có thể trả phí để đẩy tin lên top.';
-        } else if (lowerText.includes('không có') || lowerText.includes('tìm chưa thấy')) {
-          aiResponse.text = 'Thật tiếc vì hiện tại chưa có phòng ở đó với mức giá này. Bạn có muốn để lại số điện thoại để khi có phòng mới mình báo ngay không?';
-        } else if (lowerText === 'tìm phòng trọ') {
-          aiResponse.text = 'Bạn muốn tìm phòng trọ khu vực nào và ngân sách khoảng bao nhiêu?';
-        } else if (lowerText === 'hỏi về hợp đồng') {
-          aiResponse.text = 'Hợp đồng điện tử có thể được ký kết ngay trên nền tảng. Bạn đang thắc mắc vấn đề gì về điều khoản hay cách ký kết?';
-        } else {
-          aiResponse.text = 'Xin lỗi, hiện tại tính năng gọi API thật chưa nhận được kết nối đến AI Service (có thể do lỗi CORS hoặc server chưa chạy ổn định), nên đây là phản hồi mặc định. Vui lòng kiểm tra lại backend AI service trên port 8000/50055!';
-        }
-
-        setMessages(prev => [...prev, aiResponse]);
-      }, 1000);
-    } finally {
-      setLoading(false);
-    }
+  const getTimestamp = () => {
+    const now = new Date();
+    return `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
 
-  const currentTheme = {
-    primary: '#1677ff',
-    bg: '#ffffff',
-    text: '#333',
-    aiBubble: '#f0f2f5',
-    userBubble: '#e6f4ff',
-    border: '#e8e8e8',
+  const handleSend = useCallback(
+    async (text: string) => {
+      if (!text.trim()) return;
+
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        sender: 'user',
+        text,
+        timestamp: getTimestamp(),
+      };
+      setMessages((prev) => [...prev, userMessage]);
+      setInput('');
+      setLoading(true);
+      setParticleTrigger((n) => n + 1);
+
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://localhost:8000'}/api/v1/chat`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user?.id || 'guest-' + Date.now(), message: text }),
+          }
+        );
+        if (!response.ok) throw new Error('API ERROR');
+        const data = await response.json();
+
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          sender: 'ai',
+          text: data.answer,
+          timestamp: getTimestamp(),
+        };
+        if (text.toLowerCase().includes('tìm')) {
+          aiResponse.quickReplies = ['Xem thêm Cầu Giấy', 'Tìm quận khác'];
+        }
+        setMessages((prev) => [...prev, aiResponse]);
+      } catch {
+        // Fallback mock responses
+        setTimeout(() => {
+          const aiResponse: Message = {
+            id: (Date.now() + 1).toString(),
+            sender: 'ai',
+            text: '',
+            timestamp: getTimestamp(),
+          };
+          const lower = text.toLowerCase();
+
+          if (lower.includes('tìm') && lower.includes('cầu giấy')) {
+            aiResponse.text = 'Tôi đã tìm thấy các phòng phù hợp tại Cầu Giấy! Bạn có muốn xem chi tiết không?';
+            aiResponse.cards = [
+              {
+                id: '1',
+                title: 'Phòng trọ ban công rộng Cầu Giấy',
+                image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&h=200&fit=crop',
+                price: '5,000,000 đ',
+                district: 'Cầu Giấy',
+                link: '#',
+              },
+              {
+                id: '2',
+                title: 'Căn hộ mini full đồ Cầu Giấy',
+                image: 'https://images.unsplash.com/photo-1502672260266-1c1c24240f38?w=300&h=200&fit=crop',
+                price: '6,500,000 đ',
+                district: 'Cầu Giấy',
+                link: '#',
+              },
+            ];
+          } else if (lower.includes('đăng tin') || lower.includes('phí')) {
+            aiResponse.text =
+              'Để đăng tin, vào trang Quản lý tin đăng → nhấn "Tạo tin mới". Phí cơ bản miễn phí, có thể boost lên top!';
+          } else if (lower === 'tìm phòng trọ') {
+            aiResponse.text = 'Bạn muốn tìm phòng trọ khu vực nào và ngân sách khoảng bao nhiêu?';
+            aiResponse.quickReplies = ['Quận 1', 'Cầu Giấy', 'Đống Đa', 'Dưới 5 triệu'];
+          } else if (lower === 'hỏi về hợp đồng') {
+            aiResponse.text =
+              'Hợp đồng điện tử có thể ký kết ngay trên nền tảng, hoàn toàn có giá trị pháp lý. Bạn thắc mắc điều gì?';
+          } else {
+            aiResponse.text =
+              'Xin lỗi, AI service chưa kết nối được (lỗi CORS hoặc server chưa chạy). Vui lòng kiểm tra backend trên port 8000!';
+          }
+
+          setMessages((prev) => [...prev, aiResponse]);
+        }, 1000);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user]
+  );
+
+  const quickReplyIcons: Record<string, React.ReactNode> = {
+    'Tìm phòng trọ': <SearchOutlined />,
+    'Đăng tin cho thuê': <FileTextOutlined />,
+    'Cần hỗ trợ kỹ thuật': <CustomerServiceOutlined />,
+    'Hỏi về hợp đồng': <QuestionCircleOutlined />,
+    'Quận 1': <EnvironmentOutlined />,
+    'Cầu Giấy': <EnvironmentOutlined />,
+    'Đống Đa': <EnvironmentOutlined />,
   };
 
   return (
-    <div style={{ position: 'fixed', bottom: 30, right: 30, zIndex: 9999 }}>
+    <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999 }}>
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
+            key="chatbox"
+            initial={{ opacity: 0, scale: 0.85, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 16 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 24 }}
             style={{
               position: 'absolute',
               bottom: 80,
               right: 0,
-              width: 380,
-              height: 600,
-              backgroundColor: currentTheme.bg,
-              borderRadius: 16,
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+              width: 'min(380px, calc(100vw - 24px))',
+              height: 'min(620px, calc(100vh - 110px))',
+              borderRadius: 24,
+              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              overflow: 'hidden',
-              border: `1px solid ${currentTheme.border}`,
+              background: 'rgba(255,255,255,0.96)',
+              backdropFilter: 'blur(16px) saturate(130%)',
+              border: '1px solid rgba(14,165,233,0.2)',
+              boxShadow: '0 24px 50px rgba(15,23,42,0.18), 0 0 0 1px rgba(255,255,255,0.7) inset',
+              transformOrigin: 'bottom right',
             }}
           >
-            {/* Header */}
-            <div style={{ 
-              padding: '16px 20px', 
-              backgroundColor: currentTheme.primary, 
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <RobotOutlined style={{ fontSize: 20 }} />
+            {/* Ambient orbs */}
+            <AmbientOrb
+              style={{
+                width: 200,
+                height: 200,
+                top: -60,
+                left: -40,
+                background: 'radial-gradient(circle, rgba(14,165,233,0.22), transparent 70%)',
+              }}
+              delay={0}
+            />
+            <AmbientOrb
+              style={{
+                width: 160,
+                height: 160,
+                bottom: 40,
+                left: 60,
+                background: 'radial-gradient(circle, rgba(29,78,216,0.2), transparent 70%)',
+              }}
+              delay={3}
+            />
+
+            {/* Grid overlay */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundImage:
+                  'linear-gradient(rgba(14,165,233,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,0.07) 1px, transparent 1px)',
+                backgroundSize: '36px 36px',
+                pointerEvents: 'none',
+                zIndex: 0,
+              }}
+            />
+
+            {/* Particle canvas */}
+            <ParticleCanvas trigger={particleTrigger} />
+
+            {/* ── Header ── */}
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                padding: '16px 18px 14px',
+                background: 'linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%)',
+                borderBottom: '1px solid rgba(14,165,233,0.18)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <SpinRingAvatar />
+                  <div>
+                    <Title level={5} style={{ color: '#0f172a', margin: 0, fontSize: 15, letterSpacing: -0.3 }}>
+                      AI Concierge
+                    </Title>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <motion.div
+                        animate={{ opacity: [1, 0.5, 1], scale: [1, 0.85, 1] }}
+                        transition={{ duration: 1.8, repeat: Infinity }}
+                        style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981' }}
+                      />
+                      <Text style={{ color: '#334155', fontSize: 11, fontWeight: 500 }}>
+                        ĐANG TRỰC TUYẾN
+                      </Text>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <Title level={5} style={{ color: 'white', margin: 0, fontSize: 16 }}>AI Concierge</Title>
-                  <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#52c41a' }} />
-                    ĐANG TRỰC TUYẾN
-                  </Text>
-                </div>
+
+                <motion.div whileHover={{ rotate: 90 }} transition={{ duration: 0.2 }}>
+                  <Button
+                    type="text"
+                    shape="circle"
+                    size="small"
+                    icon={<CloseOutlined style={{ color: '#334155', fontSize: 13 }} />}
+                    onClick={() => setIsOpen(false)}
+                    style={{
+                      background: 'rgba(14,165,233,0.1)',
+                      border: '1px solid rgba(14,165,233,0.25)',
+                    }}
+                  />
+                </motion.div>
               </div>
-              <Button 
-                type="text" 
-                icon={<CloseOutlined style={{ color: 'white' }}/>} 
-                onClick={() => setIsOpen(false)} 
-              />
+
+              {/* Status pills */}
+              <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                {[
+                  { label: '● Live', color: '#4ade80', bg: 'rgba(74,222,128,0.15)', border: 'rgba(74,222,128,0.25)' },
+                  { label: 'Bất động sản', color: '#0ea5e9', bg: 'rgba(14,165,233,0.12)', border: 'rgba(14,165,233,0.24)' },
+                  { label: 'AI Powered', color: '#1d4ed8', bg: 'rgba(29,78,216,0.1)', border: 'rgba(29,78,216,0.24)' },
+                ].map((pill) => (
+                  <span
+                    key={pill.label}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: '3px 9px',
+                      borderRadius: 20,
+                      letterSpacing: 0.4,
+                      textTransform: 'uppercase',
+                      color: pill.color,
+                      background: pill.bg,
+                      border: `1px solid ${pill.border}`,
+                    }}
+                  >
+                    {pill.label}
+                  </span>
+                ))}
+              </div>
             </div>
 
-            {/* Chat Area */}
-            <div style={{ 
-              flex: 1, 
-              overflowY: 'auto', 
-              padding: '20px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: 16,
-              backgroundColor: '#f8f9fa'
-            }}>
-              {messages.map((msg, index) => (
-                <motion.div 
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index === messages.length - 1 ? 0.1 : 0 }}
-                  style={{
-                    display: 'flex',
-                    flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row',
-                    gap: 12,
-                    alignItems: 'flex-start'
-                  }}
-                >
-                  <Avatar 
-                    icon={msg.sender === 'user' ? <UserOutlined /> : <RobotOutlined />} 
-                    style={{ backgroundColor: msg.sender === 'user' ? '#5750F1' : currentTheme.primary }}
-                  />
-                  
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                    maxWidth: '75%'
-                  }}>
-                    <div style={{
-                      backgroundColor: msg.sender === 'user' ? currentTheme.userBubble : currentTheme.aiBubble,
-                      padding: '12px 16px',
-                      borderRadius: 16,
-                      borderTopRightRadius: msg.sender === 'user' ? 4 : 16,
-                      borderTopLeftRadius: msg.sender === 'ai' ? 4 : 16,
-                      color: currentTheme.text,
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                      fontSize: 14,
-                      lineHeight: 1.5,
-                      whiteSpace: 'pre-wrap'
-                    }}>
-                      {msg.text}
+            {/* ── Messages ── */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: 'auto',
+                padding: '16px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+                position: 'relative',
+                zIndex: 2,
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'rgba(14,165,233,0.35) transparent',
+              }}
+            >
+              <AnimatePresence initial={false}>
+                {messages.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 12, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                    style={{
+                      display: 'flex',
+                      flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row',
+                      gap: 10,
+                      alignItems: 'flex-end',
+                    }}
+                  >
+                    {/* Avatar */}
+                    <Avatar
+                      icon={msg.sender === 'user' ? <UserOutlined /> : <RobotOutlined />}
+                      size={30}
+                      style={{
+                        flexShrink: 0,
+                        background:
+                          msg.sender === 'user'
+                            ? 'linear-gradient(135deg, #0ea5e9, #0284c7)'
+                            : 'linear-gradient(135deg, #1d4ed8, #0ea5e9)',
+                        boxShadow:
+                          msg.sender === 'user'
+                            ? '0 0 10px rgba(56,189,248,0.45)'
+                            : '0 0 10px rgba(29,78,216,0.35)',
+                      }}
+                    />
+
+                    {/* Content */}
+                    <div
+                      style={{
+                        maxWidth: '76%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                        gap: 6,
+                      }}
+                    >
+                      {/* Bubble */}
+                      <motion.div
+                        whileHover={{ scale: 1.01 }}
+                        style={{
+                          padding: '10px 14px',
+                          fontSize: 13.5,
+                          lineHeight: 1.55,
+                          color: '#0f172a',
+                          wordBreak: 'break-word',
+                          ...(msg.sender === 'ai'
+                            ? {
+                                background: 'rgba(14,165,233,0.08)',
+                                border: '1px solid rgba(14,165,233,0.25)',
+                                borderRadius: '18px 18px 18px 4px',
+                                backdropFilter: 'blur(8px)',
+                              }
+                            : {
+                                background: 'linear-gradient(135deg, rgba(14,165,233,0.18), rgba(2,132,199,0.18))',
+                                border: '1px solid rgba(14,165,233,0.35)',
+                                borderRadius: '18px 18px 4px 18px',
+                              }),
+                        }}
+                      >
+                        {msg.text}
+                      </motion.div>
+
+                      {/* Timestamp */}
+                      {msg.timestamp && (
+                        <Text style={{ fontSize: 10, color: '#64748b', padding: '0 4px' }}>
+                          {msg.timestamp}
+                        </Text>
+                      )}
+
+                      {/* Cards */}
+                      {msg.cards && msg.cards.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', minWidth: 240 }}>
+                          {msg.cards.map((card, idx) => (
+                            <motion.div
+                              key={card.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: idx * 0.12 }}
+                            >
+                              <Card
+                                hoverable
+                                size="small"
+                                cover={
+                                  <img
+                                    alt={card.title}
+                                    src={card.image}
+                                    style={{ height: 110, objectFit: 'cover' }}
+                                  />
+                                }
+                                onClick={() => (window.location.href = card.link)}
+                                styles={{ body: { padding: 12 } }}
+                                style={{
+                                  borderRadius: 14,
+                                  overflow: 'hidden',
+                                  background: '#ffffff',
+                                  border: '1px solid #dbeafe',
+                                }}
+                              >
+                                <Card.Meta
+                                  title={
+                                    <span
+                                      style={{
+                                        fontSize: 13,
+                                        color: '#0f172a',
+                                        whiteSpace: 'normal',
+                                        lineHeight: 1.4,
+                                      }}
+                                    >
+                                      <HomeOutlined style={{ marginRight: 5, color: '#1d4ed8' }} />
+                                      {card.title}
+                                    </span>
+                                  }
+                                  description={
+                                    <span>
+                                      <span style={{ color: '#38bdf8', fontWeight: 700 }}>{card.price}</span>
+                                      <br />
+                                      <span style={{ color: '#64748b', fontSize: 11 }}>
+                                        <EnvironmentOutlined style={{ marginRight: 3 }} />
+                                        {card.district}
+                                      </span>
+                                    </span>
+                                  }
+                                />
+                                <Button
+                                  type="primary"
+                                  size="small"
+                                  style={{
+                                    marginTop: 10,
+                                    width: '100%',
+                                    borderRadius: 8,
+                                    background: 'linear-gradient(90deg, #1d4ed8, #0ea5e9)',
+                                    border: 'none',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  Xem chi tiết
+                                </Button>
+                              </Card>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Quick Replies */}
+                      {msg.quickReplies && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                          {msg.quickReplies.map((reply) => (
+                            <motion.div key={reply} whileHover={{ scale: 1.05, y: -1 }} whileTap={{ scale: 0.95 }}>
+                              <Button
+                                size="small"
+                                icon={quickReplyIcons[reply]}
+                                onClick={() => handleSend(reply)}
+                                style={{
+                                  borderRadius: 20,
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  border: '1px solid rgba(14,165,233,0.4)',
+                                  color: '#0369a1',
+                                  background: 'rgba(14,165,233,0.1)',
+                                  backdropFilter: 'blur(4px)',
+                                  height: 'auto',
+                                  padding: '4px 12px',
+                                }}
+                              >
+                                {reply}
+                              </Button>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
-                    {/* Rich Content: Cards Data extraction feature */}
-                    {msg.cards && msg.cards.length > 0 && (
-                      <div style={{ 
-                        marginTop: 10, 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: 10,
-                        width: '100%',
-                        minWidth: 240
-                      }}>
-                        {msg.cards.map(card => (
-                          <Card 
-                            key={card.id} 
-                            hoverable
-                            size="small"
-                            cover={<img alt={card.title} src={card.image} style={{ height: 120, objectFit: 'cover' }} />}
-                            onClick={() => window.location.href = card.link}
-                            styles={{ body: { padding: '12px' } }}
-                            style={{ borderRadius: 12, overflow: 'hidden' }}
-                          >
-                            <Card.Meta 
-                              title={<span style={{ fontSize: 13, whiteSpace: 'normal', lineHeight: 1.4 }}>{card.title}</span>} 
-                              description={<span style={{ color: '#1677ff', fontWeight: 600 }}>{card.price} <br/><span style={{ color: '#888', fontWeight: 'normal', fontSize: 12 }}>{card.district}</span></span>} 
-                            />
-                            <Button type="primary" size="small" style={{ marginTop: 10, width: '100%', borderRadius: 6 }}>
-                              Xem chi tiết
-                            </Button>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
+              {/* Typing indicator */}
+              <AnimatePresence>{loading && <TypingIndicator />}</AnimatePresence>
 
-                    {/* Quick Replies feature */}
-                    {msg.quickReplies && (
-                      <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {msg.quickReplies.map(reply => (
-                          <Button 
-                            key={reply} 
-                            size="small" 
-                            style={{ borderRadius: 16, fontSize: 13, borderColor: currentTheme.primary, color: currentTheme.primary }}
-                            onClick={() => handleSend(reply)}
-                          >
-                            {reply}
-                          </Button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-
-              {loading && (
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <Avatar icon={<RobotOutlined />} style={{ backgroundColor: currentTheme.primary }} />
-                  <Spin size="small" />
-                </div>
-              )}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Footer */}
-            <div style={{ 
-              padding: '16px', 
-              backgroundColor: 'white', 
-              borderTop: `1px solid ${currentTheme.border}`,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8
-            }}>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <Input 
-                  placeholder="Nhập tin nhắn..." 
+            {/* ── Input Footer ── */}
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 2,
+                padding: '12px 14px 14px',
+                background: 'rgba(255,255,255,0.9)',
+                borderTop: '1px solid rgba(14,165,233,0.18)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <Input
+                  placeholder="Nhập tin nhắn..."
                   size="large"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onPressEnter={() => handleSend(input)}
-                  style={{ borderRadius: 20 }}
-                  suffix={
-                    <Button 
-                      type="text" 
-                      shape="circle"
-                      icon={<SendOutlined style={{ color: input.trim() ? currentTheme.primary : '#ccc', fontSize: 18 }} />} 
-                      onClick={() => handleSend(input)}
-                    />
-                  }
+                  style={{
+                    borderRadius: 22,
+                    background: '#ffffff',
+                    border: '1px solid #bfdbfe',
+                    color: '#0f172a',
+                    fontSize: 13.5,
+                    boxShadow: 'none',
+                  }}
+                  styles={{ input: { background: 'transparent', color: '#0f172a' } }}
                 />
+                <motion.div whileHover={{ scale: 1.12, rotate: -5 }} whileTap={{ scale: 0.92 }}>
+                  <Button
+                    type="primary"
+                    shape="circle"
+                    size="large"
+                    icon={<SendOutlined style={{ fontSize: 16 }} />}
+                    onClick={() => handleSend(input)}
+                    disabled={!input.trim() || loading}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      background: input.trim()
+                        ? 'linear-gradient(135deg, #1d4ed8, #0ea5e9)'
+                        : '#e2e8f0',
+                      border: 'none',
+                      boxShadow: input.trim() ? '0 4px 18px rgba(14,165,233,0.35)' : 'none',
+                      transition: 'all 0.25s',
+                      flexShrink: 0,
+                    }}
+                  />
+                </motion.div>
               </div>
+
+              {/* Gradient footer note */}
               <div style={{ textAlign: 'center' }}>
-                <Text type="secondary" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  Powered by Real Estate AI
-                </Text>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: 1,
+                    textTransform: 'uppercase',
+                    background: 'linear-gradient(90deg, #1d4ed8, #0ea5e9)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    opacity: 0.8,
+                  }}
+                >
+                  ✦ Powered by Real Estate AI ✦
+                </span>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Floating Button */}
-      <Tooltip title="Chat với AI Trợ lý" placement="left">
-        <motion.div
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
+      {/* ── FAB Button ── */}
+      <motion.div
+        animate={
+          isOpen
+            ? {}
+            : {
+                boxShadow: [
+                  '0 0 0 0 rgba(14,165,233,0.45)',
+                  '0 0 0 14px rgba(14,165,233,0)',
+                  '0 0 0 0 rgba(14,165,233,0)',
+                ],
+              }
+        }
+        transition={{ duration: 2.4, repeat: Infinity }}
+        style={{ borderRadius: '50%' }}
+      >
+        <motion.div whileHover={{ scale: 1.1, rotate: 5 }} whileTap={{ scale: 0.93 }}>
           <Button
             type="primary"
             shape="circle"
             size="large"
-            style={{
-              width: 60,
-              height: 60,
-              boxShadow: '0 4px 16px rgba(22, 119, 255, 0.4)',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}
+            icon={
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={isOpen ? 'close' : 'open'}
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  {isOpen ? (
+                    <CloseOutlined style={{ fontSize: 22 }} />
+                  ) : (
+                    <AliwangwangOutlined style={{ fontSize: 26 }} />
+                  )}
+                </motion.span>
+              </AnimatePresence>
+            }
             onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? <CloseOutlined style={{ fontSize: 24 }} /> : <RobotOutlined style={{ fontSize: 28 }} />}
-          </Button>
+            style={{
+              width: 62,
+              height: 62,
+              background: 'linear-gradient(135deg, #1d4ed8 0%, #0ea5e9 100%)',
+              border: 'none',
+              boxShadow: '0 8px 28px rgba(14,165,233,0.42)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          />
         </motion.div>
-      </Tooltip>
+      </motion.div>
+
+      {/* Online badge on FAB */}
+      {!isOpen && (
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          style={{
+            position: 'absolute',
+            top: 2,
+            right: 2,
+            width: 14,
+            height: 14,
+            borderRadius: '50%',
+            background: '#4ade80',
+            border: '2px solid white',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
     </div>
   );
 }

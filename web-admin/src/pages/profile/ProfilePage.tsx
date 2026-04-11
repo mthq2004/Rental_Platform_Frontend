@@ -179,7 +179,7 @@ const ProfilePage = () => {
                 <SafetyCertificateOutlined style={{ fontSize: 10 }} />
                 {roleLabel}
               </div>
-              <div style={styles.verifyStack}>
+              {/* <div style={styles.verifyStack}>
                 <VerificationBadge
                   ok={!!user?.phoneVerified}
                   label={user?.phoneVerified ? "SĐT đã xác thực" : "SĐT chưa xác thực"}
@@ -188,7 +188,7 @@ const ProfilePage = () => {
                   ok={!!user?.isEmailVerified}
                   label={user?.isEmailVerified ? "Email đã xác thực" : "Email chưa xác thực"}
                 />
-              </div>
+              </div> */}
             </div>
 
             {/* Divider */}
@@ -217,14 +217,14 @@ const ProfilePage = () => {
                 <InfoField label="Địa chỉ Email" value={user?.email} />
                 <InfoField label="Số điện thoại" value={user?.phone} />
                 <InfoField label="Vai trò hệ thống" value={roleLabel} />
-                <InfoField
+                {/* <InfoField
                   label="Xác thực email"
                   value={user?.isEmailVerified ? "Đã xác thực" : "Chưa xác thực"}
                 />
                 <InfoField
                   label="Xác thực số điện thoại"
                   value={user?.phoneVerified ? "Đã xác thực" : "Chưa xác thực"}
-                />
+                /> */}
               </div>
             ) : (
               <Form form={form} layout="vertical" requiredMark={false} style={{ marginTop: 4 }}>
