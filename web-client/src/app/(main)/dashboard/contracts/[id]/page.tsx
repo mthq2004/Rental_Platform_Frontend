@@ -11,6 +11,7 @@ import {
   ExclamationCircleOutlined,
   FileTextOutlined,
   HomeOutlined,
+  MessageOutlined,
   ReloadOutlined,
   WalletOutlined,
   DollarOutlined,
@@ -30,13 +31,30 @@ import {
   createTerminationRequest,
   getTerminationRequests,
   reviewTerminationRequest,
+  createReport,
+  getReportsByContract,
+  updateReportStatus,
 } from "@/stores/slices/contract.slice";
+import { createConversation } from "@/stores/slices/conversation.slice";
 import { getPropertyDetailThunk } from "@/stores/slices/estate.slice";
-import type { Payment, PaymentStatus, RentalContract, RentalContractStatus, TerminationReason, TerminationRequest } from "@/types/contract.type";
+import type {
+  Payment,
+  PaymentStatus,
+  RentalContract,
+  RentalContractStatus,
+  TerminationReason,
+  TerminationRequest,
+  ReportItem,
+  ReportPriority,
+  ReportStatus,
+  ReportType,
+} from "@/types/contract.type";
+import type { UserType } from "@/types/user.type";
 import type { PropertyDetailApiData } from "@/types/property.type";
 import { STATUS_CONFIG, formatCurrency, formatDate } from "@/components/contracts/ContractStatusConfig";
 import TopupMethodModal, { type MethodOption } from "@/components/wallet/TopupMethodModal";
 import InvoiceModal from "@/components/payments/InvoiceModal";
+import http from "@/utils/api";
 
 const { Text, Paragraph } = Typography;
 
@@ -77,14 +95,42 @@ const PAYMENT_METHOD_OPTIONS: MethodOption[] = [
 
 const TERMINATION_REASON_LABELS: Record<TerminationReason, string> = {
   lease_end: "Hết hạn hợp đồng",
-  tenant_request: "Người thuê yêu cầu",
-  landlord_request: "Chủ nhà yêu cầu",
+  unilateral_termination: "Đơn phương chấm dứt",
   mutual_agreement: "Hai bên thỏa thuận",
-  breach_of_contract: "Vi phạm hợp đồng",
-  non_payment: "Không thanh toán",
-  property_sold: "Bán bất động sản",
+  breach_of_contract: "Vi phạm hợp đồng (sử dụng sai mục đích, làm hư hỏng)",
+  non_payment: "Không thanh toán (quá hạn)",
   force_majeure: "Bất khả kháng",
   other: "Khác",
+};
+
+const TERMINATION_REASON_OPTIONS = Object.entries(TERMINATION_REASON_LABELS).map(
+  ([value, label]) => ({ value, label })
+);
+
+const getTerminationPolicyHint = (reason?: TerminationReason) => {
+  if (!reason) return "";
+
+  if (reason === "unilateral_termination") {
+    return "Bên đơn phương chấm dứt sẽ mất tiền cọc.";
+  }
+
+  if (reason === "breach_of_contract") {
+    return "Bên vi phạm chịu mất tiền cọc và có thể phải trả thêm phí chấm dứt (nếu có).";
+  }
+
+  if (reason === "non_payment") {
+    return "Không thanh toán: tiền cọc bị tịch thu để bù công nợ.";
+  }
+
+  if (reason === "force_majeure" || reason === "mutual_agreement") {
+    return "Bất khả kháng/Thỏa thuận: tiền cọc hoàn lại cho người thuê.";
+  }
+
+  if (reason === "lease_end") {
+    return "Hết hạn: tiền cọc hoàn lại cho người thuê.";
+  }
+
+  return "Tiền cọc và phí chấm dứt xử lý theo thỏa thuận hai bên.";
 };
 
 const TERMINATION_STATUS_LABELS: Record<TerminationRequest["status"], { label: string; color: string }> = {
@@ -92,6 +138,39 @@ const TERMINATION_STATUS_LABELS: Record<TerminationRequest["status"], { label: s
   approved: { label: "Đã chấp thuận", color: "success" },
   rejected: { label: "Bị từ chối", color: "error" },
   cancelled: { label: "Đã hủy", color: "default" },
+};
+
+const REPORT_STATUS_LABELS: Record<ReportStatus, { label: string; color: string }> = {
+  open: { label: "Mới tạo", color: "processing" },
+  negotiating: { label: "Đang thương lượng", color: "warning" },
+  admin: { label: "Chờ admin xử lý", color: "purple" },
+  resolved: { label: "Đã giải quyết", color: "success" },
+};
+
+const REPORT_TYPE_LABELS: Record<ReportType, string> = {
+  payment: "Thanh toán",
+  deposit: "Tiền cọc",
+  property: "Tài sản",
+  contract: "Hợp đồng",
+  other: "Khác",
+};
+
+const REPORT_PRIORITY_OPTIONS: Array<{ value: ReportPriority; label: string }> = [
+  { value: "low", label: "Thấp" },
+  { value: "medium", label: "Trung bình" },
+  { value: "high", label: "Cao" },
+];
+
+const SIGNATURE_ACTION_LABELS: Record<string, string> = {
+  CREATED: "Khởi tạo hợp đồng",
+  SENT_TO_TENANT: "Gửi hợp đồng cho người thuê",
+  SIGN_REQUESTED: "Yêu cầu ký hợp đồng",
+  TENANT_SIGNED: "Người thuê đã ký xác nhận",
+  LANDLORD_SIGNED: "Chủ nhà đã ký xác nhận",
+  SIGNED_SUCCESS: "Ký hợp đồng thành công",
+  ACTIVATED: "Hợp đồng đã được kích hoạt",
+  CANCELLED: "Hợp đồng bị hủy",
+  BLOCKCHAIN_FAILED: "Lỗi ghi nhận blockchain",
 };
 
 const formatMoney = (value: number | string | null | undefined) => {
@@ -106,6 +185,34 @@ const getPropertyTitle = (property?: PropertyDetailApiData | null) => property?.
 
 const getPropertyAddress = (property?: PropertyDetailApiData | null) =>
   [property?.address, property?.ward, property?.district, property?.city].filter(Boolean).join(", ") || "Chưa có địa chỉ";
+
+const getUserDisplayName = (user?: { fullName?: string; name?: string } | null) =>
+  user?.fullName || user?.name || "Chưa có thông tin";
+
+const getInitials = (name?: string | null) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+};
+
+const getUserPhone = (user?: { phone?: string | null; phoneRaw?: string | null } | null, showRaw = false) => {
+  if (!user) return "Chưa có SĐT";
+  if (showRaw) return user.phoneRaw || user.phone || "Chưa có SĐT";
+  return user.phone || user.phoneRaw || "Chưa có SĐT";
+};
+
+const normalizeUser = (payload?: UserType | null) => {
+  if (!payload) return null;
+  return {
+    fullName: payload.fullName,
+    phone: payload.phone,
+    phoneRaw: payload.phone ?? undefined,
+    avatarUrl: payload.avatarUrl ?? undefined,
+  };
+};
 
 const getPaymentStatus = (payment?: Payment | null) => {
   if (!payment) {
@@ -150,6 +257,9 @@ export default function ContractDetailPage() {
     terminationRequests,
     terminationLoading,
     terminationActionLoading,
+    reports,
+    reportsLoading,
+    reportActionLoading,
   } = useAppSelector((state) => state.contract);
   const { detail: propertyDetail } = useAppSelector((state) => state.estate);
 
@@ -162,6 +272,13 @@ export default function ContractDetailPage() {
   const [invoicePayment, setInvoicePayment] = useState<Payment | null>(null);
   const [terminationForm] = Form.useForm();
   const [reviewForm] = Form.useForm();
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportForm] = Form.useForm();
+  const [selectedReport, setSelectedReport] = useState<ReportItem | null>(null);
+  const [showTenantPhone, setShowTenantPhone] = useState(false);
+  const [showOwnerPhone, setShowOwnerPhone] = useState(false);
+  const [tenantUser, setTenantUser] = useState<ReturnType<typeof normalizeUser> | null>(null);
+  const [ownerUser, setOwnerUser] = useState<ReturnType<typeof normalizeUser> | null>(null);
 
   useEffect(() => {
     if (!contractId) return;
@@ -169,6 +286,7 @@ export default function ContractDetailPage() {
     dispatch(getContractDetail(contractId));
     dispatch(getMyPayments({ rentalId: contractId, page: 1 }));
     dispatch(getTerminationRequests(contractId));
+    dispatch(getReportsByContract(contractId));
 
     return () => {
       dispatch(clearContractDetail());
@@ -180,6 +298,30 @@ export default function ContractDetailPage() {
     if (!propertyId) return;
     dispatch(getPropertyDetailThunk(propertyId));
   }, [contractDetail?.propertyId, dispatch]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchUser = async (userId?: string, setter?: (value: ReturnType<typeof normalizeUser> | null) => void) => {
+      if (!userId || !setter) return;
+      try {
+        const response = await http.get(`/estate/user/${userId}`);
+        const payload = (response as any)?.data ?? response;
+        if (!isMounted) return;
+        setter(normalizeUser(payload));
+      } catch {
+        if (!isMounted) return;
+        setter(null);
+      }
+    };
+
+    fetchUser(contractDetail?.tenantId, setTenantUser);
+    fetchUser(contractDetail?.ownerId, setOwnerUser);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [contractDetail?.ownerId, contractDetail?.tenantId]);
 
   const contract = contractDetail;
   const property = propertyDetail.data;
@@ -195,6 +337,10 @@ export default function ContractDetailPage() {
   const isTenantSide = contract?.tenantId === user?.id;
   const isOwnerSide = contract?.ownerId === user?.id;
   const canPay = Boolean(isTenantSide && currentPayment && ["pending", "overdue", "partial"].includes(currentPayment.status));
+  const tenantInfo = tenantUser || contract?.tenant || null;
+  const ownerInfo = ownerUser || contract?.owner || null;
+  const tenantDisplayName = getUserDisplayName(tenantInfo);
+  const ownerDisplayName = getUserDisplayName(ownerInfo);
   const terminationList = useMemo(
     () => (Array.isArray(terminationRequests) ? terminationRequests : []),
     [terminationRequests]
@@ -205,6 +351,11 @@ export default function ContractDetailPage() {
   const canReviewTermination = Boolean(
     latestTermination && latestTermination.status === "pending" && latestTermination.requestedBy !== user?.id
   );
+  const reportItems = useMemo(
+    () => (Array.isArray(reports) ? reports.filter((item) => item.rentalId === contractId) : []),
+    [contractId, reports]
+  );
+  const latestReport = reportItems[0] || null;
 
   const invoiceItems = useMemo(() => {
     if (!invoicePayment) return [] as Payment[];
@@ -227,10 +378,21 @@ export default function ContractDetailPage() {
     if (!contractId) return;
     dispatch(getContractDetail(contractId));
     dispatch(getMyPayments({ rentalId: contractId, page: 1 }));
+    dispatch(getReportsByContract(contractId));
     if (contractDetail?.propertyId) {
       dispatch(getPropertyDetailThunk(contractDetail.propertyId));
     }
   }, [contractDetail?.propertyId, contractId, dispatch]);
+
+  const handleOpenChat = async (targetUserId?: string) => {
+    if (!targetUserId) return;
+    try {
+      const conversation = await dispatch(createConversation(targetUserId)).unwrap();
+      router.push(`/chat?conversationId=${conversation.id}`);
+    } catch (error) {
+      message.error("Không thể mở chat");
+    }
+  };
 
   const handleActivate = () => {
     if (!contract) return;
@@ -336,7 +498,7 @@ export default function ContractDetailPage() {
 
   const handleOpenTermination = () => {
     if (!contract?.rentalId) return;
-    const defaultReason = contract.ownerId === user?.id ? "landlord_request" : "tenant_request";
+    const defaultReason = "unilateral_termination";
     terminationForm.resetFields();
     terminationForm.setFieldsValue({
       reason: defaultReason,
@@ -400,6 +562,59 @@ export default function ContractDetailPage() {
     }
   };
 
+  const handleOpenReport = (prefill?: { title?: string; description?: string; type?: ReportType }) => {
+    if (!contract) return;
+    reportForm.resetFields();
+    reportForm.setFieldsValue({
+      type: prefill?.type || "contract",
+      priority: "medium",
+      title: prefill?.title || `Tranh chấp hợp đồng ${contract.contractCode}`,
+      description: prefill?.description || "",
+    });
+    setReportOpen(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!contract) return;
+    const againstId = isOwnerSide ? contract.tenantId : contract.ownerId;
+    if (!againstId) return;
+
+    try {
+      const values = await reportForm.validateFields();
+      await dispatch(
+        createReport({
+          rentalId: contract.rentalId,
+          againstId,
+          type: values.type,
+          priority: values.priority,
+          title: values.title,
+          description: values.description,
+        })
+      ).unwrap();
+      message.success("Đã gửi khiếu nại");
+      setReportOpen(false);
+      dispatch(getReportsByContract(contract.rentalId));
+    } catch (error: any) {
+      if (error?.errorFields) return;
+      message.error(error || "Gửi khiếu nại thất bại");
+    }
+  };
+
+  const handleUpdateReportStatus = async (report: ReportItem, status: ReportStatus, note?: string) => {
+    try {
+      await dispatch(
+        updateReportStatus({
+          reportId: report.id,
+          data: { status, note },
+        })
+      ).unwrap();
+      message.success("Đã cập nhật khiếu nại");
+      dispatch(getReportsByContract(report.rentalId));
+    } catch (error: any) {
+      message.error(error || "Cập nhật khiếu nại thất bại");
+    }
+  };
+
   const timelineItems = useMemo(
     () =>
       (contract?.signatureLog || []).map((log) => ({
@@ -407,12 +622,7 @@ export default function ContractDetailPage() {
         children: (
           <div className="flex flex-col gap-1">
             <span className="font-medium text-slate-700">
-              {log.action === "SENT_TO_TENANT" && "Gửi hợp đồng cho người thuê"}
-              {log.action === "TENANT_SIGNED" && "Người thuê đã ký xác nhận"}
-              {log.action === "LANDLORD_SIGNED" && "Chủ nhà đã ký xác nhận"}
-              {log.action === "ACTIVATED" && "Hợp đồng đã được kích hoạt"}
-              {log.action === "CANCELLED" && "Hợp đồng bị hủy"}
-              {!['SENT_TO_TENANT', 'TENANT_SIGNED', 'LANDLORD_SIGNED', 'ACTIVATED', 'CANCELLED'].includes(log.action) && log.action}
+              {SIGNATURE_ACTION_LABELS[log.action] || log.action.replace(/_/g, " ")}
             </span>
             <span className="text-xs text-slate-400">{dayjs(log.createdAt).format("HH:mm:ss · DD/MM/YYYY")}</span>
           </div>
@@ -527,7 +737,7 @@ export default function ContractDetailPage() {
                   <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tổng quan hợp đồng</Text>
                   <h2 className="mt-2 text-2xl font-semibold text-slate-900">{contract.contractCode}</h2>
                   <Paragraph className="mb-0 mt-2 max-w-3xl text-slate-500">
-                    Hợp đồng thuê giữa {contract.owner?.name || contract.ownerId} và {contract.tenant?.name || contract.tenantId}.
+                    Hợp đồng thuê giữa {ownerDisplayName} và {tenantDisplayName}.
                   </Paragraph>
                 </div>
                 <Space wrap>
@@ -542,8 +752,8 @@ export default function ContractDetailPage() {
               <Divider />
 
               <Descriptions column={{ xs: 1, sm: 2, xl: 2 }} bordered size="small">
-                <Descriptions.Item label="Bên cho thuê">{contract.owner?.name || contract.ownerId}</Descriptions.Item>
-                <Descriptions.Item label="Bên thuê">{contract.tenant?.name || contract.tenantId}</Descriptions.Item>
+                <Descriptions.Item label="Bên cho thuê">{ownerDisplayName}</Descriptions.Item>
+                <Descriptions.Item label="Bên thuê">{tenantDisplayName}</Descriptions.Item>
                 <Descriptions.Item label="Ngày bắt đầu">{formatDate(contract.startDate)}</Descriptions.Item>
                 <Descriptions.Item label="Ngày kết thúc">{formatDate(contract.endDate)}</Descriptions.Item>
                 <Descriptions.Item label="Tiền đặt cọc">{formatMoney(contract.depositAmount)}</Descriptions.Item>
@@ -664,7 +874,61 @@ export default function ContractDetailPage() {
                     Xử lý yêu cầu
                   </Button>
                 )}
+                {latestTermination?.status === "rejected" && (
+                  <Button onClick={() => handleOpenReport({ title: `Tranh chấp chấm dứt hợp đồng ${contract.contractCode}` })}>
+                    Gửi tranh chấp lên admin
+                  </Button>
+                )}
                 {terminationLoading && <Text className="text-xs text-slate-400">Đang tải yêu cầu...</Text>}
+              </div>
+            </Card>
+
+            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Khiếu nại</Text>
+                  <h3 className="mt-2 text-xl font-semibold text-slate-900">Tranh chấp & xử lý admin</h3>
+                </div>
+                {latestReport && (
+                  <Tag color={REPORT_STATUS_LABELS[latestReport.status].color}>
+                    {REPORT_STATUS_LABELS[latestReport.status].label}
+                  </Tag>
+                )}
+              </div>
+
+              <div className="mt-5">
+                {!reportItems.length && <Empty description="Chưa có khiếu nại" />}
+
+                {latestReport && (
+                  <div className="rounded-2xl border border-slate-200 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Text strong>{latestReport.title}</Text>
+                      <Text className="text-xs text-slate-500">{formatDate(latestReport.createdAt)}</Text>
+                    </div>
+                    <Descriptions column={1} size="small" className="mt-3">
+                      <Descriptions.Item label="Loại">{REPORT_TYPE_LABELS[latestReport.type] || latestReport.type}</Descriptions.Item>
+                      <Descriptions.Item label="Mức độ">{latestReport.priority}</Descriptions.Item>
+                      <Descriptions.Item label="Nội dung">{latestReport.description}</Descriptions.Item>
+                      <Descriptions.Item label="Ghi chú admin">{latestReport.adminNote || "—"}</Descriptions.Item>
+                    </Descriptions>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button type="primary" onClick={() => handleOpenReport()} loading={reportActionLoading}>
+                  Tạo khiếu nại
+                </Button>
+                {latestReport?.status === "open" && latestReport.createdBy === user?.id && (
+                  <Button onClick={() => handleUpdateReportStatus(latestReport, "negotiating")}>Bắt đầu thương lượng</Button>
+                )}
+                {latestReport?.status === "negotiating" && (
+                  <Button onClick={() => handleUpdateReportStatus(latestReport, "admin")}>Gửi admin xử lý</Button>
+                )}
+                {latestReport?.status === "admin" && user?.role === "ADMIN" && (
+                  <Button onClick={() => handleUpdateReportStatus(latestReport, "resolved")}>Đã giải quyết</Button>
+                )}
+                {reportsLoading && <Text className="text-xs text-slate-400">Đang tải khiếu nại...</Text>}
               </div>
             </Card>
 
@@ -726,18 +990,48 @@ export default function ContractDetailPage() {
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 rounded-2xl border border-slate-200 p-3">
-                    <Avatar size={44} icon={<UserOutlined />} />
+                    <Avatar size={44} src={tenantInfo?.avatarUrl || undefined}>
+                      {getInitials(tenantInfo?.fullName) || <UserOutlined />}
+                    </Avatar>
                     <div>
-                      <div className="font-semibold text-slate-900">{contract.tenant?.name || contract.tenantId}</div>
+                      <div className="font-semibold text-slate-900">{tenantDisplayName}</div>
                       <div className="text-sm text-slate-500">Bên thuê hiện tại</div>
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <span>{getUserPhone(tenantInfo, showTenantPhone)}</span>
+                      </div>
                     </div>
+                    {isOwnerSide && (
+                      <Button
+                        size="small"
+                        icon={<MessageOutlined />}
+                        onClick={() => handleOpenChat(contract.tenantId)}
+                        className="ml-auto"
+                      >
+                        Liên hệ
+                      </Button>
+                    )}
                   </div>
                   <div className="flex items-center gap-3 rounded-2xl border border-slate-200 p-3">
-                    <Avatar size={44} icon={<HomeOutlined />} />
+                    <Avatar size={44} src={ownerInfo?.avatarUrl || undefined}>
+                      {getInitials(ownerInfo?.fullName) || <HomeOutlined />}
+                    </Avatar>
                     <div>
-                      <div className="font-semibold text-slate-900">{contract.owner?.name || contract.ownerId}</div>
+                      <div className="font-semibold text-slate-900">{ownerDisplayName}</div>
                       <div className="text-sm text-slate-500">Chủ nhà / Bên cho thuê</div>
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <span>{getUserPhone(ownerInfo, showOwnerPhone)}</span>
+                      </div>
                     </div>
+                    {isTenantSide && (
+                      <Button
+                        size="small"
+                        icon={<MessageOutlined />}
+                        onClick={() => handleOpenChat(contract.ownerId)}
+                        className="ml-auto"
+                      >
+                        Liên hệ
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -844,9 +1138,18 @@ export default function ContractDetailPage() {
             label="Lý do"
             rules={[{ required: true, message: "Vui lòng chọn lý do" }]}
           >
-            <Select
-              options={Object.entries(TERMINATION_REASON_LABELS).map(([value, label]) => ({ value, label }))}
-            />
+            <Select options={TERMINATION_REASON_OPTIONS} />
+          </Form.Item>
+          <Form.Item shouldUpdate>
+            {() => {
+              const reason = terminationForm.getFieldValue("reason") as TerminationReason | undefined;
+              const hint = getTerminationPolicyHint(reason);
+              return hint ? (
+                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
+                  {hint}
+                </div>
+              ) : null;
+            }}
           </Form.Item>
           <Form.Item
             name="requestedTerminationDate"
@@ -888,6 +1191,31 @@ export default function ContractDetailPage() {
           </Form.Item>
           <Form.Item name="reviewNote" label="Ghi chú phản hồi">
             <Input.TextArea rows={3} placeholder="Ghi chú cho đối tác" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        open={reportOpen}
+        onCancel={() => setReportOpen(false)}
+        onOk={handleSubmitReport}
+        okText="Gửi khiếu nại"
+        cancelText="Đóng"
+        confirmLoading={reportActionLoading}
+        title="Tạo khiếu nại"
+      >
+        <Form form={reportForm} layout="vertical">
+          <Form.Item name="type" label="Loại khiếu nại" rules={[{ required: true, message: "Vui lòng chọn loại" }]}>
+            <Select options={Object.entries(REPORT_TYPE_LABELS).map(([value, label]) => ({ value, label }))} />
+          </Form.Item>
+          <Form.Item name="priority" label="Mức độ" rules={[{ required: true, message: "Vui lòng chọn mức độ" }]}>
+            <Select options={REPORT_PRIORITY_OPTIONS} />
+          </Form.Item>
+          <Form.Item name="title" label="Tiêu đề" rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}> 
+            <Input placeholder="Ví dụ: Khiếu nại thanh toán" />
+          </Form.Item>
+          <Form.Item name="description" label="Mô tả" rules={[{ required: true, message: "Vui lòng nhập nội dung" }]}> 
+            <Input.TextArea rows={4} placeholder="Mô tả chi tiết vấn đề" />
           </Form.Item>
         </Form>
       </Modal>

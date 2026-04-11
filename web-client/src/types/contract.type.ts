@@ -62,6 +62,10 @@ export interface RentalContract {
   earlyTerminationFee?: number;
   gracePeriodDays: number;
   autoRenewal: boolean;
+  renewalNoticeDays?: number;
+  renewalStatus?: 'not_applicable' | 'pending' | 'approved' | 'declined' | 'auto_renewed';
+  renewedToContractId?: string;
+  renewedFromContractId?: string;
   status: RentalContractStatus;
   isActive: boolean;
   notes?: string;
@@ -76,8 +80,8 @@ export interface RentalContract {
   signatureLog?: SignatureLog[];
   payments?: Payment[];
   rentalRequest?: RentalRequest;
-  owner?: { name: string; email?: string; phone?: string };
-  tenant?: { name: string; email?: string; phone?: string };
+  owner?: { name?: string; fullName?: string; email?: string; phone?: string; phoneRaw?: string; avatarUrl?: string };
+  tenant?: { name?: string; fullName?: string; email?: string; phone?: string; phoneRaw?: string; avatarUrl?: string };
   _count?: { payments: number };
 }
 
@@ -121,12 +125,10 @@ export interface Payment {
 // Termination Types
 export type TerminationReason =
   'lease_end'
-  | 'tenant_request'
-  | 'landlord_request'
+  | 'unilateral_termination'
   | 'mutual_agreement'
   | 'breach_of_contract'
   | 'non_payment'
-  | 'property_sold'
   | 'force_majeure'
   | 'other';
 
@@ -144,6 +146,39 @@ export interface TerminationRequest {
   reviewedAt?: string;
   reviewNote?: string;
   createdAt: string;
+}
+
+// Report / Dispute Types
+export type ReportType = 'payment' | 'deposit' | 'property' | 'contract' | 'other';
+export type ReportPriority = 'low' | 'medium' | 'high';
+export type ReportStatus = 'open' | 'negotiating' | 'admin' | 'resolved';
+export type ReportAction = 'CREATED' | 'NEGOTIATING' | 'SENT_TO_ADMIN' | 'RESOLVED';
+
+export interface ReportHistory {
+  id: string;
+  reportId: string;
+  action: ReportAction;
+  oldStatus?: ReportStatus;
+  newStatus?: ReportStatus;
+  performedBy?: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface ReportItem {
+  id: string;
+  rentalId: string;
+  createdBy: string;
+  againstId: string;
+  type: ReportType;
+  priority: ReportPriority;
+  status: ReportStatus;
+  title: string;
+  description: string;
+  adminNote?: string;
+  createdAt: string;
+  resolvedAt?: string;
+  histories?: ReportHistory[];
 }
 
 // Status count

@@ -274,7 +274,9 @@ export default function ContractsPage() {
       paymentDueDay: detail?.paymentDueDay ?? record.paymentDueDay,
       lateFeePerDay: detail?.lateFeePerDay != null ? Number(detail.lateFeePerDay) : undefined,
       gracePeriodDays: detail?.gracePeriodDays ?? record.gracePeriodDays,
+      earlyTerminationFee: detail?.earlyTerminationFee != null ? Number(detail.earlyTerminationFee) : undefined,
       autoRenewal: detail?.autoRenewal ?? record.autoRenewal,
+      renewalNoticeDays: detail?.renewalNoticeDays ?? record.renewalNoticeDays,
       notes: detail?.notes ?? record.notes,
       terms: detail?.terms?.map((t: any) => t.content) ?? [],
     });

@@ -7,6 +7,7 @@ import type {
   StatusCount,
   CreateContractPayload,
   TerminationRequest,
+  ReportItem,
 } from "../../types/contract.type";
 
 interface ContractState {
@@ -33,6 +34,11 @@ interface ContractState {
   terminationLoading: boolean;
   terminationActionLoading: boolean;
 
+  // Reports
+  reports: ReportItem[];
+  reportsLoading: boolean;
+  reportActionLoading: boolean;
+
   // General
   actionLoading: boolean;
 }
@@ -56,6 +62,10 @@ const initialState: ContractState = {
   terminationRequests: [],
   terminationLoading: false,
   terminationActionLoading: false,
+
+  reports: [],
+  reportsLoading: false,
+  reportActionLoading: false,
 
   actionLoading: false,
 };
@@ -138,6 +148,13 @@ const normalizeContract = (contract: any): RentalContract => {
       contract?.earlyTerminationFee == null
         ? undefined
         : parseNumberSafe(contract?.earlyTerminationFee),
+    renewalNoticeDays:
+      contract?.renewalNoticeDays == null
+        ? undefined
+        : parseNumberSafe(contract?.renewalNoticeDays),
+    renewalStatus: contract?.renewalStatus,
+    renewedToContractId: contract?.renewedToContractId,
+    renewedFromContractId: contract?.renewedFromContractId,
   } as RentalContract;
 
   return normalizedContract;
@@ -383,6 +400,48 @@ export const confirmPayment = createAsyncThunk(
   }
 );
 
+// ─── Report Actions ─────────────────────────────────────────────
+
+export const getReportsByContract = createAsyncThunk(
+  "contract/getReportsByContract",
+  async (rentalId: string, { rejectWithValue }) => {
+    try {
+      return await http.get(`/contract/reports/contract/${rentalId}`);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const createReport = createAsyncThunk(
+  "contract/createReport",
+  async (data: {
+    rentalId: string;
+    againstId: string;
+    type: string;
+    priority?: string;
+    title: string;
+    description: string;
+  }, { rejectWithValue }) => {
+    try {
+      return await http.post("/contract/reports", data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const updateReportStatus = createAsyncThunk(
+  "contract/updateReportStatus",
+  async ({ reportId, data }: { reportId: string; data: { status: string; note?: string; adminNote?: string } }, { rejectWithValue }) => {
+    try {
+      return await http.put(`/contract/reports/${reportId}/status`, data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
 export const createContract = createAsyncThunk(
   "contract/createContract",
   async (data: CreateContractPayload, { rejectWithValue }) => {
@@ -534,6 +593,30 @@ export const contractSlice = createSlice({
       .addCase(confirmPayment.pending, (state) => { state.actionLoading = true; })
       .addCase(confirmPayment.fulfilled, (state) => { state.actionLoading = false; })
       .addCase(confirmPayment.rejected, (state) => { state.actionLoading = false; });
+
+    // Reports
+    builder
+      .addCase(getReportsByContract.pending, (state) => { state.reportsLoading = true; })
+      .addCase(getReportsByContract.fulfilled, (state, action) => {
+        state.reportsLoading = false;
+        const items = Array.isArray(action.payload?.data)
+          ? action.payload.data
+          : Array.isArray(action.payload)
+            ? action.payload
+            : [];
+        state.reports = items;
+      })
+      .addCase(getReportsByContract.rejected, (state) => { state.reportsLoading = false; });
+
+    builder
+      .addCase(createReport.pending, (state) => { state.reportActionLoading = true; })
+      .addCase(createReport.fulfilled, (state) => { state.reportActionLoading = false; })
+      .addCase(createReport.rejected, (state) => { state.reportActionLoading = false; });
+
+    builder
+      .addCase(updateReportStatus.pending, (state) => { state.reportActionLoading = true; })
+      .addCase(updateReportStatus.fulfilled, (state) => { state.reportActionLoading = false; })
+      .addCase(updateReportStatus.rejected, (state) => { state.reportActionLoading = false; });
 
     builder
       .addCase(createContract.pending, (state) => {

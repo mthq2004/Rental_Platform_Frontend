@@ -16,9 +16,11 @@ import {
 } from "@/stores/slices/message.slice";
 import { Spin, Empty } from "antd";
 import { MessageOutlined } from "@ant-design/icons";
+import { useSearchParams } from "next/navigation";
 
 export default function ChatPage() {
   const dispatch = useAppDispatch();
+  const searchParams = useSearchParams();
 
   const { conversations = [], loading: conversationLoading } = useAppSelector(
     (state) => state.conversation
@@ -34,10 +36,16 @@ export default function ChatPage() {
   const { onlineUsers } = useAppSelector((state) => state.conversation);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const initialConversationId = searchParams.get("conversationId");
 
   useEffect(() => {
     dispatch(fetchConversations());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!initialConversationId) return;
+    setSelectedId(initialConversationId);
+  }, [initialConversationId]);
 
   useEffect(() => {
     if (!selectedId) return;

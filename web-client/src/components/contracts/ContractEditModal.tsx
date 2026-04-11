@@ -211,6 +211,27 @@ export default function ContractEditModal({
               </div>
             </Form.Item>
           </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <Form.Item label="Phí chấm dứt sớm" name="earlyTerminationFee">
+              <SmartPriceInput
+                value={form.getFieldValue("earlyTerminationFee") || 0}
+                onChange={(val) => form.setFieldValue("earlyTerminationFee", val)}
+                placeholder="VD: 2000000"
+              />
+            </Form.Item>
+
+            <Form.Item label="Báo trước gia hạn (ngày)" name="renewalNoticeDays">
+              <InputNumber
+                min={0}
+                max={180}
+                precision={0}
+                placeholder="VD: 30"
+                className="w-full h-10"
+                controls={false}
+              />
+            </Form.Item>
+          </div>
         </div>
 
         {/* Section: Terms List */}
