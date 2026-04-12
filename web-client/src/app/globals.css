@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@utility animate-blink {
+  animation: blink 0.75s step-start infinite;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;

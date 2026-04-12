@@ -8,8 +8,12 @@ import {
     LockOutlined,
     LogoutOutlined,
     DownOutlined,
+    WalletOutlined,
+    PlusCircleOutlined,
+    SwapOutlined,
 } from "@ant-design/icons";
-import { useAppSelector } from "@/stores/hooks";
+import { useAppSelector, useAppDispatch } from "@/stores/hooks";
+import { getWalletOverview } from "@/stores/slices/wallet.slice";
 
 interface UserDropdownProps {
     userName: string;
@@ -30,8 +34,11 @@ interface MenuItem {
 
 const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isDashboard = false }: UserDropdownProps) => {
     const router = useRouter();
+    const dispatch = useAppDispatch();
     const authProvider = useAppSelector((state) => state.auth.authProvider);
     const isOAuthUser = authProvider === "google" || authProvider === "facebook";
+    const walletOverview = useAppSelector((state) => state.wallet.overview);
+    const walletLoading = useAppSelector((state) => state.wallet.overviewLoading);
     const [isOpen, setIsOpen] = useState(false);
     const [isAnimating, setIsAnimating] = useState(false);
     const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -43,6 +50,8 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isD
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         setIsOpen(true);
         requestAnimationFrame(() => setIsAnimating(true));
+        // Fetch wallet info when opening
+        dispatch(getWalletOverview());
     };
 
     const closeDropdown = () => {
@@ -92,6 +101,12 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isD
             case "customers":
                 router.push("/dashboard/customers");
                 break;
+            case "wallet":
+                router.push("/dashboard/wallet");
+                break;
+            case "topup":
+                router.push("/dashboard/wallet?action=topup");
+                break;
             case "profile":
                 router.push("/dashboard/profile");
                 break;
@@ -121,6 +136,16 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isD
                 icon: <ContactsOutlined />,
                 label: "Quản lý khách hàng",
             },
+            {
+                key: "wallet",
+                icon: <WalletOutlined />,
+                label: "Ví & giao dịch",
+            },
+            // {
+            //     key: "topup",
+            //     icon: <PlusCircleOutlined />,
+            //     label: "Nạp tiền",
+            // },
             {
                 key: "profile",
                 icon: <UserOutlined />,
@@ -164,7 +189,7 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isD
                         />
                     ) : (
                         <div className={`
-                            w-9 h-9 rounded-full bg-linear-to-br from-red-500 to-red-600
+                            w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-600
                             flex items-center justify-center text-white font-semibold text-sm
                             ring-2 ring-transparent
                             transition-all duration-300 shadow-md
@@ -177,9 +202,11 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isD
                     {/* Online indicator */}
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
                 </div>
-                <span className="text-sm font-medium text-gray-700 min-w-0 block md:hidden lg:block truncate sm:max-w-20 md:max-w-none">
-                    {userName}
-                </span>
+                {!isDashboard && (
+                    <span className="text-sm font-medium text-gray-700 min-w-0 block md:hidden lg:block truncate sm:max-w-20 md:max-w-none">
+                        {userName}
+                    </span>
+                )}
                 {!isDashboard && (
                     <DownOutlined className={`
                         text-xs text-gray-400 block md:hidden lg:block
@@ -215,6 +242,59 @@ const UserDropdown = ({ userName, avatarUrl, onLogout, isLoggingOut = false, isD
                         }
                     `}>
                         
+                        {/* Wallet Balance Card */}
+                        <div className="mx-3 mt-3 rounded-xl bg-gradient-to-br from-red-50 to-orange-50 border border-red-100 p-3.5">
+                            <div className="flex items-center justify-between mb-2.5">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-red-700 uppercase tracking-wide">
+                                    <WalletOutlined />
+                                    <span>Số dư ví</span>
+                                </div>
+                                <button
+                                    onClick={() => { closeDropdown(); router.push("/dashboard/wallet"); }}
+                                    className="text-[11px] text-red-500 hover:text-red-700 font-medium transition-colors"
+                                >
+                                    Xem tất cả →
+                                </button>
+                            </div>
+
+                            {walletLoading ? (
+                                <div className="flex gap-2 animate-pulse">
+                                    <div className="flex-1 h-8 bg-red-100 rounded-lg" />
+                                    <div className="flex-1 h-8 bg-red-100 rounded-lg" />
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-2 mb-3">
+                                    <div className="bg-white rounded-lg px-3 py-2 border border-red-50">
+                                        <p className="text-[10px] text-gray-400 mb-0.5">Khả dụng</p>
+                                        <p className="text-sm font-bold text-gray-800">
+                                            {walletOverview
+                                                ? new Intl.NumberFormat("vi-VN").format(walletOverview.availableBalance) + " đ"
+                                                : "0 đ"}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white rounded-lg px-3 py-2 border border-red-50">
+                                        <p className="text-[10px] text-gray-400 mb-0.5">Đang giữ</p>
+                                        <p className="text-sm font-bold text-gray-800">
+                                            {walletOverview
+                                                ? new Intl.NumberFormat("vi-VN").format(walletOverview.pendingBalance) + " đ"
+                                                : "0 đ"}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* <button
+                                onClick={() => { closeDropdown(); router.push("/dashboard/wallet?action=topup"); }}
+                                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-red-400 text-red-600 text-xs font-semibold hover:bg-red-600 hover:text-white transition-all duration-200 bg-white"
+                            >
+                                <PlusCircleOutlined />
+                                Nạp tiền
+                            </button> */}
+                        </div>
+
+                        {/* Divider */}
+                        <div className="mx-4 mt-3 border-t border-gray-100" />
+
                         {/* Menu Items with stagger animation */}
                         <div className="py-2">
                             {menuItems.map((item, index) => (

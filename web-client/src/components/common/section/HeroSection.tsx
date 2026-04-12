@@ -10,12 +10,14 @@ import {
 import { useRouter } from "next/navigation";
 import provinceService from "@/services/province.service";
 import { Province, District, Ward } from "@/types/province.type";
+import { useAnimatedPlaceholder } from "@/hooks/useAnimatedPlaceholder";
 
 const HeroSection = () => {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"rent" | "project">(
     "rent"
   );
+  
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedPropertyType, setSelectedPropertyType] = useState<string | undefined>(undefined);
 
@@ -43,6 +45,30 @@ const HeroSection = () => {
   const modalRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  const [isOpenType, setIsOpenType] = useState(false);
+  const typeRef = useRef<HTMLDivElement>(null);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (typeRef.current && !typeRef.current.contains(event.target as Node)) {
+        setIsOpenType(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const propertyOptions = [
+    { value: "apartment", label: "Căn hộ" },
+    { value: "house", label: "Nhà ở" },
+    { value: "land", label: "Đất nền" },
+    { value: "office", label: "Văn phòng" },
+    { value: "room", label: "Phòng trọ" },
+  ];
+
+  // Thêm biến này ở phần khai báo (Bạn đã có isAnyDropdownOpen ở code trên nhưng chưa dùng ở thẻ section)
+  const isAnyDropdownOpen = isLocationModalOpen || isOpenType;
 
 
   /* ===================== FETCH DATA ===================== */
@@ -164,13 +190,15 @@ const HeroSection = () => {
     router.push(`/search${queryString ? `?${queryString}` : ""}`);
   };
 
+const [isFocused, setIsFocused] = useState(false);
+const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused);
   /* ===================== RENDER ===================== */
 
   return (
     <section
-      className={`py-4 relative w-full ${isLocationModalOpen ? "overflow-visible" : "overflow-hidden"
-        }`}
-      style={{ zIndex: isLocationModalOpen ? 100 : 1 }}
+        // CHỈNH Ở ĐÂY: Sử dụng overflow-visible khi CÓ BẤT KỲ dropdown nào mở
+        className={`py-4 relative w-full ${isAnyDropdownOpen ? "overflow-visible" : "overflow-hidden"}`}
+        style={{ zIndex: isAnyDropdownOpen ? 100 : 1 }}
     >
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-blue-500 via-blue-300 to-blue-100">
@@ -204,19 +232,30 @@ const HeroSection = () => {
       </div>
 
       {/* Search Box */}
-      <div className="bg-white rounded-xl shadow-lg p-3 md:p-4 max-w-[900px] mx-auto relative z-[999]">
+      <div 
+      // CHỈNH Ở ĐÂY: Thêm overflow-visible để Dropdown không bị cắt cụt
+        className="bg-white rounded-xl shadow-lg p-3 md:p-4 max-w-[900px] mx-auto relative z-[999] overflow-visible"
+      >
         <div className="flex flex-col md:flex-row gap-3">
           {/* Search input */}
-          <div className="flex-1">
-            <Input
-              size="large"
-              placeholder="Tìm bất động sản..."
-              prefix={<SearchOutlined className="text-gray-400 text-lg" />}
-              className="w-full shadow-sm h-12 rounded-lg border-gray-200 hover:border-red-400 focus:border-red-500"
+          <div className="flex-1 relative">
+            <SearchOutlined className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10" />
+            <input
+              className="w-full h-12 pl-10 pr-4 rounded-lg border border-gray-200
+                hover:border-blue-500 focus:border-blue-500 focus:outline-none
+                text-gray-800 placeholder-transparent shadow-sm transition-all duration-200"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              onPressEnter={handleSearchNavigate}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearchNavigate()}
             />
+            {!searchKeyword && (
+              <span className="absolute left-10 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none flex items-center gap-px text-sm">
+                {animatedPlaceholder}
+                <span className="inline-block w-0.5 h-4 bg-red-400 ml-px animate-[blink_0.75s_step-start_infinite] rounded-sm" />
+              </span>
+            )}
           </div>
 
           {/* Location Button */}
@@ -227,20 +266,21 @@ const HeroSection = () => {
               className="flex items-center justify-between gap-2 
                 w-full md:w-[220px] h-12 px-4
                 bg-white text-gray-700 rounded-lg border border-gray-200
-                hover:border-red-400 hover:text-red-600 hover:shadow-md
+                hover:border-blue-500 hover:text-blue-600 hover:shadow-sm
                 active:scale-[0.98]
                 transition-all duration-200 ease-out shadow-sm
                 group"
             >
               <div className="flex items-center gap-2">
-                <EnvironmentOutlined className="text-red-500 group-hover:scale-110 transition-transform duration-200" />
+                {/* Đổi icon sang màu xanh cho đồng bộ */}
+                <EnvironmentOutlined className="text-blue-500 group-hover:scale-110 transition-transform duration-200" />
                 <span className="text-sm font-medium truncate max-w-[140px]">
                   {getLocationDisplayText()}
                 </span>
               </div>
               <DownOutlined 
                 className={`text-xs transition-transform duration-300 ease-out
-                  ${isLocationModalOpen ? 'rotate-180' : 'rotate-0'}`} 
+                  ${isLocationModalOpen ? 'rotate-180 text-blue-500' : 'rotate-0'}`} 
               />
             </button>
 
@@ -256,7 +296,7 @@ const HeroSection = () => {
                   : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3 border-b border-red-100 rounded-t-xl">
+              <div className="bg-gradient-to-r from-blue-500 to-blue-300 px-4 py-3 border-b border-red-100 rounded-t-xl">
                 <h3 className="text-center text-base font-semibold text-gray-800">
                   Khu vực
                 </h3>
@@ -360,53 +400,80 @@ const HeroSection = () => {
               {/* Footer */}
               <div className={`p-4 pt-0 transition-all duration-300 delay-300
                 ${isLocationModalOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-                <Button
-                  type="primary"
-                  size="large"
-                  block
-                  onClick={handleApplyLocation}
-                  className="h-12 bg-gradient-to-r from-red-500 to-orange-500 
-                    hover:from-red-600 hover:to-orange-600
-                    border-none rounded-lg font-semibold shadow-md
-                    hover:shadow-lg hover:scale-[1.02]
-                    active:scale-[0.98]
-                    transition-all duration-200"
+                <button
+                  onClick={handleSearchNavigate}
+                  className="h-12 bg-gradient-to-r from-blue-500 to-blue-300 text-white w-full
+                          hover:bg-gradient-to-r hover:from-blue-600 hover:to-blue-500
+                          border-none rounded-lg font-semibold shadow-md
+                          hover:shadow-lg hover:scale-[1.02]
+                          active:scale-[0.98]
+                          transition-all duration-200"
                 >
                   Áp dụng
-                </Button>
+                </button>
               </div>
             </div>
           </div>
 
           {/* Type Select */}
-          <Select
-            size="large"
-            placeholder="Loại hình BĐS"
-            suffixIcon={<AppstoreOutlined className="text-red-500" />}
-            className="w-full md:w-[180px] h-12 shadow-sm"
-            value={selectedPropertyType}
-            onChange={(value) => setSelectedPropertyType(value)}
-            options={[
-              { value: "apartment", label: "Căn hộ" },
-              { value: "house", label: "Nhà ở" },
-              { value: "land", label: "Đất nền" },
-              { value: "office", label: "Văn phòng" },
-              { value: "room", label: "Phòng trọ" },
-            ]}
-            allowClear
-          />
+        <div className="relative w-full md:w-[180px]" ref={typeRef}>
+           {/* Trigger Button */}
+           <div
+            onClick={() => setIsOpenType(!isOpenType)}
+            className={`relative w-full h-12 pl-10 pr-10 bg-white rounded-lg border 
+              flex items-center cursor-pointer transition-all duration-300 shadow-sm
+              ${isOpenType ? 'border-blue-500 ring-2 ring-blue-50' : 'border-gray-200 hover:border-blue-500'}`}
+           >
+            <AppstoreOutlined className={`absolute left-3 text-blue-500 transition-transform duration-300 ${isOpenType ? 'scale-110 rotate-12' : ''}`} />
+            <span className={`text-sm truncate select-none ${!selectedPropertyType ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
+              {propertyOptions.find(o => o.value === selectedPropertyType)?.label || "Loại hình BĐS"}
+            </span>
+            <DownOutlined className={`absolute right-3 text-[10px] text-gray-400 transition-all duration-300 ${isOpenType ? 'rotate-180 text-blue-500' : ''}`} />
+           </div>
+
+           {/* Dropdown Menu - CỰC KỲ QUAN TRỌNG */}
+           <div
+            className={`absolute top-[calc(100%+6px)] left-0 w-full bg-white rounded-xl shadow-2xl border border-gray-100 
+              z-[99999] /* Tăng hẳn lên mức tối đa */
+              transition-all duration-300 ease-out origin-top
+              ${isOpenType 
+                ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' 
+                : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}
+           >
+            <div className="py-1.5 px-1.5 max-h-[250px] overflow-y-auto">
+              {propertyOptions.map((option) => (
+                <div
+                  key={option.value}
+                  onClick={() => {
+                    setSelectedPropertyType(option.value);
+                    setIsOpenType(false);
+                  }}
+                  className={`px-3 py-2.5 text-sm rounded-lg transition-all duration-200 cursor-pointer
+                    flex items-center justify-between
+                    ${selectedPropertyType === option.value 
+                      ? 'bg-blue-50 text-blue-600 font-semibold' 
+                      : 'text-gray-600 hover:bg-gray-50 hover:text-blue-500'}`}
+                >
+                  {option.label}
+                </div>
+              ))}
+            </div>
+           </div>
+        </div>
 
           {/* Search Button */}
-          <Button
-            type="primary"
-            size="large"
-            className="h-12 px-8 bg-red-500 hover:bg-red-600 
-              border-none rounded-lg font-semibold"
-            style={{ height: "45px" }}
+          <button
             onClick={handleSearchNavigate}
+            className="h-12 px-8 rounded-lg font-semibold text-white
+                      bg-blue-500 hover:bg-blue-600
+                      /* Nếu muốn dùng gradient như code cũ của bạn: */
+                      /* bg-gradient-to-r from-blue-500 to-blue-300 hover:from-blue-600 hover:to-purple-600 */
+                      transition-all duration-200 active:scale-95
+                      shadow-md hover:shadow-lg
+                      flex items-center justify-center min-w-[120px]"
           >
-            Tìm nhà
-          </Button>
+            Tìm kiếm
+          </button>
         </div>
       </div>
     </section>

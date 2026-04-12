@@ -34,7 +34,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import {
   clearLatestTopupResult,
@@ -93,6 +93,7 @@ export default function WalletDashboardPage() {
   const { message, modal } = App.useApp();
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const {
     overview,
     transactions,
@@ -161,6 +162,20 @@ export default function WalletDashboardPage() {
   useEffect(() => {
     fetchData(1, typeFilter, statusFilter, 1, withdrawStatusFilter);
   }, [dispatch]);
+
+  // Auto-open topup modal when redirected with ?action=topup
+  useEffect(() => {
+    if (searchParams.get("action") === "topup") {
+      topupForm.resetFields();
+      topupForm.setFieldsValue({ amount: 25000 });
+      setSelectedTopupAmount(null);
+      setSelectedTopupMethod("momo");
+      setTopupMethodOpen(false);
+      setTopupOpen(true);
+      // Clean up URL
+      router.replace("/dashboard/wallet");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setPage(1);
@@ -457,7 +472,7 @@ export default function WalletDashboardPage() {
               precision={0}
               formatter={(value) => formatCurrency(Number(value))}
               prefix={<WalletOutlined className="text-[#5750F1]" />}
-              valueStyle={{ color: "#2F2A7D", fontWeight: 700 }}
+              style={{ color: "#1E3FA0", fontWeight: 700 }}
             />
           </Card>
         </Col>
@@ -642,17 +657,24 @@ export default function WalletDashboardPage() {
             name="amount"
             rules={[{ required: true, message: "Vui lòng nhập số tiền" }]}
           >
-            <InputNumber
-              style={{ width: "100%" }}
-              className="w-full"
-              size="large"
-              min={10000}
-              step={10000}
-              controls={false}
-              placeholder="Nhập số tiền cần nạp"
-              addonAfter={<span className="text-xs font-semibold text-[#5A5F8F]">VND</span>}
-              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-            />
+            <Space.Compact style={{ width: "100%" }}>
+              <InputNumber
+                style={{ width: "calc(100% - 60px)" }}
+                className="w-full"
+                size="large"
+                min={10000}
+                step={10000}
+                controls={false}
+                placeholder="Nhập số tiền cần nạp"
+                formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+              />
+              <Input
+                size="large"
+                disabled
+                style={{ width: 60, textAlign: "center" }}
+                value="VND"
+              />
+            </Space.Compact>
           </Form.Item>
 
           <div className="flex items-start gap-3 rounded-xl border border-[#E8E6FF] bg-[#F8F9FF] px-4 py-3 text-sm text-[#4A4F8A]">

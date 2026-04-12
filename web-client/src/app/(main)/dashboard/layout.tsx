@@ -18,6 +18,7 @@ import {
   DollarOutlined,
   CalendarOutlined,
   WalletOutlined,
+  PlusCircleOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import type { MenuProps } from "antd";
@@ -31,6 +32,7 @@ import {
   getMyPayments,
 } from "@/stores/slices/contract.slice";
 import { getAllCustomerCategories } from "@/stores/slices/customer-category.slice";
+import { getWalletOverview } from "@/stores/slices/wallet.slice";
 
 const { Header, Sider, Content } = Layout;
 
@@ -47,6 +49,9 @@ export default function DashboardLayout({
   const dispatch = useAppDispatch();
   const authProvider = useAppSelector((state) => state.auth.authProvider);
   const isOAuthUser = authProvider === "google" || authProvider === "facebook";
+  const user = useAppSelector((state) => state.auth.user);
+  const walletOverview = useAppSelector((state) => state.wallet.overview);
+  const walletLoading = useAppSelector((state) => state.wallet.overviewLoading);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const {
     token: { borderRadiusLG },
@@ -89,11 +94,11 @@ export default function DashboardLayout({
       dispatch(getMyContracts({ page: 1, limit: 50 })),
       dispatch(getMyPayments({ page: 1 })),
       dispatch(getAllCustomerCategories()),
+      dispatch(getWalletOverview()),
     ]);
   }, [dispatch]);
 
   const menuItems: MenuProps["items"] = [
-    { key: "/dashboard", icon: <DashboardOutlined />, label: "Tổng quan" },
     ...(menuVisibility.posts
       ? [{ key: "/dashboard/posts", icon: <AppstoreOutlined />, label: "Quản lý bài đăng" }]
       : []),
@@ -155,13 +160,64 @@ export default function DashboardLayout({
           zIndex: 1000,
         }}
       >
+        {/* User + Wallet Card */}
+        {!collapsed && (
+          <div className="mx-3 mt-3 mb-1 rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 to-white overflow-hidden">
+            {/* User info */}
+            <div className="flex items-center gap-2.5 px-3 py-2.5 border-b border-gray-100">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-bold text-sm shrink-0 shadow">
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  user?.fullName?.charAt(0)?.toUpperCase() || "U"
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-gray-800 truncate">{user?.fullName || "Người dùng"}</p>
+                <p className="text-[10px] text-gray-400">{user?.email || user?.phone || ""}</p>
+              </div>
+            </div>
+
+            {/* Balance rows */}
+            <div className="px-3 py-2 space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Tài khoản khả dụng</span>
+                <span className="font-semibold text-gray-800">
+                  {walletLoading ? "..." : walletOverview
+                    ? new Intl.NumberFormat("vi-VN").format(walletOverview.availableBalance) + " đ"
+                    : "0 đ"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">Tiền đang giữ</span>
+                <span className="font-semibold text-orange-500">
+                  {walletLoading ? "..." : walletOverview
+                    ? new Intl.NumberFormat("vi-VN").format(walletOverview.pendingBalance) + " đ"
+                    : "0 đ"}
+                </span>
+              </div>
+            </div>
+
+            {/* Nạp tiền button */}
+            <div className="px-3 pb-2.5">
+              <button
+                onClick={() => router.push("/dashboard/wallet?action=topup")}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg border border-red-400 text-red-600 text-xs font-semibold hover:bg-red-600 hover:text-white transition-all duration-200 bg-white"
+              >
+                <PlusCircleOutlined />
+                Nạp tiền
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Menu */}
         <div
           style={{
-            height: "calc(100% - 62px)",
+            height: collapsed ? "calc(100% - 62px)" : "calc(100% - 62px - 152px)",
             overflowY: "auto",
             overflowX: "hidden",
-            paddingTop: 8,
+            paddingTop: 4,
           }}
         >
           <Menu

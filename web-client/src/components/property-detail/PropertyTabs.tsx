@@ -159,7 +159,7 @@ export default function PropertyTabs({ property }: PropertyTabsProps) {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-3">Quy định</h3>
                 <div className="space-y-2">
-                  {property.rules
+                  {[...property.rules]
                     .sort((a, b) => a.order - b.order)
                     .map((rule, idx) => (
                       <div
