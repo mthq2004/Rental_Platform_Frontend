@@ -69,7 +69,7 @@ const createEmptyMetrics = (): DashboardAnalytics => ({
   },
   revenue: {
     tongDoanhThuUocTinh: 0,
-    doanhThuTheoLoai: [],
+    giaChoThueTheoLoai: [],
     doanhThuTheoKhuVuc: [],
     giaoDichThanhCong: 0,
     giaoDichThatBai: 0,

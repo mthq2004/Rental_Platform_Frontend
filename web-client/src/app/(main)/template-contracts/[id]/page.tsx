@@ -169,19 +169,17 @@ function normaliseTemplateVariables(
   raw: Record<string, string>
 ): TemplateVariable[] {
   return Object.entries(raw)
-    .map(([name, type]): TemplateVariable | null => {
+    .map(([name, type]): TemplateVariable => {
       const standard = FIELD_STANDARD.find((f) => f.name === name);
-      if (standard?.source === "computed") return null;
       return {
         name,
         type: standard?.type ?? type,
         label: standard?.label ?? nameToLabel(name),
-        required: standard?.required ?? false,
+        required: standard?.source === "computed" ? false : (standard?.required ?? false),
         source: standard?.source ?? "custom",
-        readonly: standard?.readonly ?? false,
+        readonly: standard?.source === "computed" ? true : (standard?.readonly ?? false),
       };
-    })
-    .filter((v): v is TemplateVariable => v !== null);
+    });
 }
 
 function nameToLabel(name: string): string {
@@ -383,6 +381,21 @@ const RentalContractPage = () => {
           }
         }
       }
+
+      // Compute durationMonths from startDate and endDate
+      if (
+        initialFormData["contract.startDate"] &&
+        initialFormData["contract.endDate"] &&
+        (!initialFormData["contract.durationMonths"] || initialFormData["contract.durationMonths"] === "")
+      ) {
+        const start = new Date(String(initialFormData["contract.startDate"]));
+        const end = new Date(String(initialFormData["contract.endDate"]));
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+          if (months < 1) months = 1;
+          initialFormData["contract.durationMonths"] = months;
+        }
+      }
     }
 
     // Apply template default terms (supports both prefixed and short keys)
@@ -406,7 +419,12 @@ const RentalContractPage = () => {
         allowedKeys.includes(mappedKey) &&
         (initialFormData[mappedKey] == null || initialFormData[mappedKey] === "")
       ) {
-        initialFormData[mappedKey] = val;
+        // Convert \n to <br> for terms fields (stored as literal \n in DB)
+        if (typeof val === "string" && mappedKey.toLowerCase().includes("terms")) {
+          initialFormData[mappedKey] = val.replace(/\\n/g, "\n").replace(/\n/g, "<br>");
+        } else {
+          initialFormData[mappedKey] = val;
+        }
       }
     });
 
@@ -449,7 +467,11 @@ const RentalContractPage = () => {
         allowedKeys.includes(mappedKey) &&
         (initialFormData[mappedKey] == null || String(initialFormData[mappedKey]).trim() === "")
       ) {
-        initialFormData[mappedKey] = val;
+        if (typeof val === "string" && mappedKey.toLowerCase().includes("terms")) {
+          initialFormData[mappedKey] = val.replace(/\\n/g, "\n").replace(/\n/g, "<br>");
+        } else {
+          initialFormData[mappedKey] = val;
+        }
       }
     });
 

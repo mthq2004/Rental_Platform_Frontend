@@ -2,15 +2,21 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  UserOutlined,
-  HomeOutlined,
-  FileTextOutlined,
   BarChartOutlined,
   SettingOutlined,
   LogoutOutlined,
   SearchOutlined,
   BellOutlined,
   QuestionOutlined,
+  AlertOutlined,
+  AuditOutlined,
+  PieChartOutlined,
+  LineChartOutlined,
+  ExperimentOutlined,
+  BankOutlined,
+  TeamOutlined,
+  FileProtectOutlined,
+  HomeOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -107,9 +113,8 @@ const Sidebar: React.FC = () => {
     if (path.includes("/properties/approved")) return "approved";
     if (path.includes("/properties/rejected")) return "rejected";
     if (path === "/dashboard" && queryTab === "yeu-cau") return "rental-requests";
-    if (path === "/dashboard" && queryTab === "doanh-thu") return "revenue";
-    if (path === "/dashboard" && queryTab === "khu-vuc") return "locations";
-    if (path === "/dashboard" && queryTab === "kiem-duyet") return "moderation";
+    if (path.includes("/statistics")) return "statistics";
+    if (path.includes("/complaints")) return "complaints";
     if (path === "/dashboard" && queryTab === "ai") return "ai-analytics";
     if (path.includes("/settings")) return "settings";
     if (path.includes("/profile")) return "profile";
@@ -150,12 +155,10 @@ const Sidebar: React.FC = () => {
       items.push({ title: "Cài đặt" });
     } else if (path === "/dashboard" && queryTab === "yeu-cau") {
       items.push({ title: "Phân tích yêu cầu thuê" });
-    } else if (path === "/dashboard" && queryTab === "doanh-thu") {
-      items.push({ title: "Phân tích doanh thu" });
-    } else if (path === "/dashboard" && queryTab === "khu-vuc") {
-      items.push({ title: "Phân tích khu vực" });
-    } else if (path === "/dashboard" && queryTab === "kiem-duyet") {
-      items.push({ title: "Kiểm duyệt & rủi ro" });
+    } else if (path.includes("/statistics")) {
+      items.push({ title: "Thống kê & Phân tích" });
+    } else if (path.includes("/complaints")) {
+      items.push({ title: "Xử lý khiếu nại" });
     } else if (path === "/dashboard" && queryTab === "ai") {
       items.push({ title: "AI Analytics" });
     } else {
@@ -196,13 +199,16 @@ const Sidebar: React.FC = () => {
     {
       key: "dashboard",
       icon: <BarChartOutlined />,
-      label: "Dashboard tổng quan",
+      label: "Tổng quan",
       onClick: () => navigate("/dashboard"),
     },
+    /* =========================
+     NHÓM QUẢN LÝ CHÍNH (Đưa ra ngoài)
+    ========================= */
     {
       key: "properties",
-      icon: <HomeOutlined />,
-      label: "Bất động sản",
+      icon: <HomeOutlined />, // Hoặc HomeOutlined
+      label: "Quản lý bất động sản",
       children: [
         {
           key: "pending",
@@ -218,17 +224,17 @@ const Sidebar: React.FC = () => {
           key: "rejected",
           label: "Từ chối",
           onClick: () => navigate("/dashboard/properties/rejected"),
-        }
+        },
       ],
     },
     {
       key: "accounts",
-      icon: <UserOutlined />,
+      icon: <TeamOutlined />, // Icon nhóm người dùng
       label: "Quản lý tài khoản",
       children: [
         {
           key: "users",
-          label: "Người dùng",
+          label: "Người dùng hệ thống",
           onClick: () => navigate("/dashboard/users"),
         },
         {
@@ -239,43 +245,47 @@ const Sidebar: React.FC = () => {
       ],
     },
     {
-      key: "rental-requests",
-      icon: <FileTextOutlined />,
-      label: "Yêu cầu thuê",
-      onClick: () => navigate("/dashboard?tab=yeu-cau"),
-    },
-    {
       key: "contracts",
-      icon: <FileTextOutlined />,
-      label: "Hợp đồng",
+      icon: <FileProtectOutlined />, // Icon bảo mật/hợp đồng
+      label: "Quản lý mẫu hợp đồng",
       onClick: () => navigate("/dashboard/contracts"),
     },
+    // --- NHÓM VẬN HÀNH & KIỂM SOÁT ---
     {
-      key: "revenue",
-      icon: <BarChartOutlined />,
-      label: "Doanh thu",
-      onClick: () => navigate("/dashboard?tab=doanh-thu"),
+      key: "operations",
+      icon: <AuditOutlined />, // Icon kiểm tra/giám sát
+      label: "Vận hành & Hỗ trợ",
+      children: [
+        {
+          key: "complaints",
+          icon: <AlertOutlined />, // Icon cảnh báo/khiếu nại
+          label: "Xử lý khiếu nại",
+          onClick: () => navigate("/dashboard/complaints"),
+        },
+        // Có thể thêm "Báo cáo vi phạm", "Hỗ trợ khách hàng" vào đây
+      ],
     },
+    // --- NHÓM PHÂN TÍCH DỮ LIỆU ---
     {
-      key: "locations",
-      icon: <HomeOutlined />,
-      label: "Khu vực",
-      onClick: () => navigate("/dashboard?tab=khu-vuc"),
-    },
-    {
-      key: "moderation",
-      icon: <QuestionOutlined />,
-      label: "Kiểm duyệt",
-      onClick: () => navigate("/dashboard?tab=kiem-duyet"),
-    },
-    {
-      key: "ai-analytics",
-      icon: <BarChartOutlined />,
-      label: "Phân tích AI",
-      onClick: () => navigate("/dashboard?tab=ai"),
+      key: "analytics-group",
+      icon: <PieChartOutlined />, 
+      label: "Báo cáo & Phân tích",
+      children: [
+        {
+          key: "statistics",
+          icon: <LineChartOutlined />,
+          label: "Thống kê số liệu",
+          onClick: () => navigate("/dashboard/statistics"),
+        },
+        {
+          key: "ai-analytics",
+          icon: <ExperimentOutlined />, // Icon mang tính thử nghiệm/AI cao cấp
+          label: "Dự báo & AI",
+          onClick: () => navigate("/dashboard?tab=ai"),
+        },
+      ],
     },
   ];
-
   /* =========================
      FOOTER MENU
   ========================= */
@@ -466,19 +476,24 @@ const Sidebar: React.FC = () => {
               }}
             />
 
-            {/* NOTIFICATIONS */}
-            <Badge count={unreadCount} color="#ff4d4f">
+           {/* NOTIFICATIONS */}
+            <Badge 
+              count={unreadCount} 
+              overflowCount={99} // Nếu > 99 sẽ hiển thị 99+
+              offset={[-2, 4]}   // Căn chỉnh vị trí số badge cho đẹp hơn với nút hình tròn
+            >
               <Button
                 type="text"
                 shape="circle"
-                icon={<BellOutlined style={{ fontSize: 18 }} />}
+                icon={<BellOutlined style={{ fontSize: 20 }} />} // Tăng nhẹ size icon cho cân đối
                 style={{
                   width: 40,
                   height: 40,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  border: "1px solid #d9d9d9",
+                  border: "1px solid var(--border)", // Dùng biến CSS cho đồng bộ theme
+                  backgroundColor: "transparent",
                 }}
                 onClick={() => setNotificationDrawerOpen(true)}
               />

@@ -147,7 +147,6 @@ export default function ContractsPage() {
       setSmartCAModalOpen(true);
       return;
     }
-
     setSigningContractId(rentalId);
     setSigningRole("TENANT");
     setSignMethod("smartca");
@@ -164,7 +163,6 @@ export default function ContractsPage() {
       setSmartCAModalOpen(true);
       return;
     }
-
     setSigningContractId(rentalId);
     setSigningRole("OWNER");
     setSignMethod("smartca");
@@ -194,7 +192,6 @@ export default function ContractsPage() {
     if (["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus) && smartca.transactionId) {
       return;
     }
-
     setSigningContractId(null);
     setSigningRole(null);
     finalizedRef.current = false;
@@ -248,8 +245,6 @@ export default function ContractsPage() {
 
     if (requestId) {
       dispatch(getRequestTemplateData(requestId));
-      console.log(requestId);
-
       router.push(`/template-contracts/${templateId}?requestId=${requestId}&contractId=${record.rentalId}`);
       return;
     }
@@ -292,7 +287,7 @@ export default function ContractsPage() {
       dispatch(getContractDetail(contractDetail.rentalId));
       handleRefresh();
     } catch (err: any) {
-      if (err?.errorFields) return; // form validation error
+      if (err?.errorFields) return;
       message.error(err || "Cập nhật thất bại");
     }
   };
@@ -311,11 +306,7 @@ export default function ContractsPage() {
     if (!smartCAModalOpen) return;
     if (!smartca.transactionId) return;
     if (!["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus)) return;
-
-    const timer = setInterval(() => {
-      dispatch(tickSmartCARemaining());
-    }, 1000);
-
+    const timer = setInterval(() => { dispatch(tickSmartCARemaining()); }, 1000);
     return () => clearInterval(timer);
   }, [dispatch, smartCAModalOpen, smartca.transactionId, smartca.signStatus]);
 
@@ -323,10 +314,8 @@ export default function ContractsPage() {
     if (!smartCAModalOpen) return;
     if (!smartca.transactionId) return;
     if (!["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus)) return;
-
     const poll = () => dispatch(handleSignResult(smartca.transactionId!));
     poll();
-
     const intervalId = setInterval(poll, SMARTCA_POLLING_MS);
     return () => clearInterval(intervalId);
   }, [dispatch, smartCAModalOpen, smartca.transactionId, smartca.signStatus]);
@@ -334,52 +323,29 @@ export default function ContractsPage() {
   useEffect(() => {
     if (!smartCAModalOpen || !signingContractId) return;
     if (finalizedRef.current) return;
-
     if (smartca.signStatus === "SIGNED") {
       finalizedRef.current = true;
-      message.success(
-        signingRole === "OWNER"
-          ? "Chủ nhà đã ký hợp đồng"
-          : "Hợp đồng đã được ký hoàn tất"
-      );
+      message.success(signingRole === "OWNER" ? "Chủ nhà đã ký hợp đồng" : "Hợp đồng đã được ký hoàn tất");
       handleRefresh();
       if (detailOpen) dispatch(getContractDetail(signingContractId));
-      setTimeout(() => {
-        handleCloseSmartCAModal();
-      }, 800);
+      setTimeout(() => { handleCloseSmartCAModal(); }, 800);
       return;
     }
-
-    if (smartca.signStatus === "REJECTED") {
-      finalizedRef.current = true;
-      message.warning("Bạn đã từ chối ký hợp đồng");
-      return;
-    }
-
-    if (smartca.signStatus === "EXPIRED") {
-      finalizedRef.current = true;
-      message.error("Phiên ký đã hết hạn, vui lòng thử lại");
-      return;
-    }
-
-    if (smartca.signStatus === "ERROR") {
-      finalizedRef.current = true;
-      message.error(smartca.error || "Ký SmartCA thất bại");
-    }
+    if (smartca.signStatus === "REJECTED") { finalizedRef.current = true; message.warning("Bạn đã từ chối ký hợp đồng"); return; }
+    if (smartca.signStatus === "EXPIRED") { finalizedRef.current = true; message.error("Phiên ký đã hết hạn, vui lòng thử lại"); return; }
+    if (smartca.signStatus === "ERROR") { finalizedRef.current = true; message.error(smartca.error || "Ký SmartCA thất bại"); }
   }, [dispatch, detailOpen, handleRefresh, message, signingContractId, signingRole, smartCAModalOpen, smartca.error, smartca.signStatus]);
 
   const progressPercent = smartca.initialExpiredIn > 0
     ? Math.max(0, Math.min(100, (smartca.expiredIn / smartca.initialExpiredIn) * 100))
     : 0;
+
   const displayContracts = useMemo(() => {
     const source = Array.isArray(contracts) ? contracts : [];
     const seen = new Set<string>();
-
     return source.filter((item) => {
       const id = item?.rentalId;
-      if (!id || seen.has(id)) {
-        return false;
-      }
+      if (!id || seen.has(id)) return false;
       seen.add(id);
       return true;
     });
@@ -388,7 +354,6 @@ export default function ContractsPage() {
   const filteredContracts = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     if (!term) return displayContracts;
-
     return displayContracts.filter((record) => getContractSearchText(record).includes(term));
   }, [displayContracts, searchTerm]);
 
@@ -399,16 +364,11 @@ export default function ContractsPage() {
       ["draft", "pending_tenant", "tenant_signed", "pending_landlord", "owner_signed"].includes(item.status)
     ).length;
     const totalMonthlyRent = displayContracts.reduce((sum, item) => sum + Number(item.monthlyRent || 0), 0);
-
     return { total, active, inProgress, totalMonthlyRent };
   }, [displayContracts]);
 
   const handleExportContracts = useCallback(() => {
-    if (!filteredContracts.length) {
-      message.info("Không có hợp đồng để xuất");
-      return;
-    }
-
+    if (!filteredContracts.length) { message.info("Không có hợp đồng để xuất"); return; }
     const csv = buildCsv(filteredContracts);
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -419,11 +379,8 @@ export default function ContractsPage() {
     URL.revokeObjectURL(url);
   }, [filteredContracts, message]);
 
-  const handleCreateContract = useCallback(() => {
-    router.push("/template-contracts");
-  }, [router]);
+  const handleCreateContract = useCallback(() => { router.push("/template-contracts"); }, [router]);
 
-  // Build tab items
   const statusTabs = contractStatusCounts.length
     ? contractStatusCounts
     : Object.entries(STATUS_CONFIG).map(([id, cfg]) => ({ id, label: cfg.label, count: 0 }));
@@ -432,15 +389,14 @@ export default function ContractsPage() {
     {
       key: "all",
       label: (
-        <span className="flex items-center gap-1.5">
-          <FileTextOutlined />
-          Tất cả
+        <span className="flex items-center gap-2 px-5">
+          <FileTextOutlined className="text-slate-500" />
+          <span className="font-medium">Tất cả</span>
           <Badge
             count={statusTabs.reduce((s: number, t: StatusCount) => s + (t.count || 0), 0)}
             showZero
             size="small"
-            color="#8c8c8c"
-            style={{ marginLeft: 4 }}
+            color="#94a3b8"
           />
         </span>
       ),
@@ -453,10 +409,10 @@ export default function ContractsPage() {
         return {
           key: t.id,
           label: (
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-2 px-1">
               {cfg.icon}
-              {cfg.label}
-              <Badge count={t.count} showZero size="small" style={{ marginLeft: 4 }} />
+              <span className="font-medium">{cfg.label}</span>
+              <Badge count={t.count} showZero size="small" />
             </span>
           ),
         };
@@ -465,124 +421,158 @@ export default function ContractsPage() {
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-5 px-1">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
         <div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-1">Hợp đồng thuê</h2>
-          <p className="text-sm text-gray-500">Quản lý tất cả hợp đồng thuê nhà</p>
+          <h2 className="text-xl font-semibold text-gray-800 tracking-tight mb-0.5">Hợp đồng thuê</h2>
+          <p className="text-sm text-gray-400">Quản lý tất cả hợp đồng thuê nhà</p>
         </div>
-        <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={contractsLoading}>
+        <Button
+          icon={<ReloadOutlined />}
+          onClick={handleRefresh}
+          loading={contractsLoading}
+          className="rounded-lg border-slate-200 text-slate-600 hover:border-slate-400 hover:text-slate-800 shadow-none"
+        >
           Làm mới
         </Button>
       </div>
 
-      <Card className="shadow-sm border-0 rounded-2xl overflow-hidden" styles={{ body: { padding: 0 } }}>
-        <div className="bg-gradient-to-r from-[#0B1B3B] via-[#102454] to-[#1B3A7A] px-6 py-6 text-white">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-[0.16em] text-white uppercase">
-                <FileTextOutlined />
+      {/* Main Card */}
+      <Card
+        className="shadow border-0 rounded-2xl overflow-hidden"
+        styles={{ body: { padding: 0 } }}
+      >
+        {/* Hero Banner */}
+        <div
+          className="relative px-8 py-8 text-white overflow-hidden"
+          style={{
+            background: "linear-gradient(135deg, #0B1B3B 0%, #102454 50%, #1B3A7A 100%)",
+          }}
+        >
+          {/* Subtle background texture */}
+          <div
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 20%, #fff 1px, transparent 1px)",
+              backgroundSize: "60px 60px",
+            }}
+          />
+
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            {/* Left: Title */}
+            <div className="space-y-2.5">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-[11px] font-semibold tracking-widest text-white/90 uppercase">
+                <FileTextOutlined className="text-[10px]" />
                 Contract Center
               </div>
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight">Quản lý hợp đồng thuê</h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-200">
+                <h1 className="text-2xl font-semibold tracking-tight leading-tight">
+                  Quản lý hợp đồng thuê
+                </h1>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-300 max-w-xl">
                   Theo dõi trạng thái ký kết, kích hoạt và thanh toán hợp đồng theo chuẩn vận hành doanh nghiệp.
                 </p>
               </div>
             </div>
 
-            <Space wrap>
-              <Button icon={<ExportOutlined />} onClick={handleExportContracts}>
+            {/* Right: Action Buttons */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              <Button
+                icon={<ExportOutlined />}
+                onClick={handleExportContracts}
+                className="rounded-lg border-white/25 text-white bg-white/10 hover:bg-white/20 hover:border-white/40 shadow-none h-9 px-4"
+              >
                 Export
               </Button>
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateContract}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreateContract}
+                className="rounded-lg h-9 px-4 shadow-none font-medium"
+                style={{ background: "#2563eb", borderColor: "#2563eb" }}
+              >
                 Tạo hợp đồng mới
               </Button>
-            </Space>
-          </div>
-
-          <Row gutter={[16, 16]} className="mt-6">
-            <Col xs={24} sm={12} lg={6}>
-              <Card
-                className="rounded-2xl text-white"
-                variant="borderless"
-                style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
-              >
-                <Statistic
-                  title={<span className="text-white/80">Tổng hợp đồng</span>}
-                  value={contractSummary.total}
-                  styles={{ content: { color: "#ffffff" } }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card
-                className="rounded-2xl text-white"
-                variant="borderless"
-                style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
-              >
-                <Statistic
-                  title={<span className="text-white/80">Đang hiệu lực</span>}
-                  value={contractSummary.active}
-                  styles={{ content: { color: "#ffffff" } }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card
-                className="rounded-2xl text-white"
-                variant="borderless"
-                style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
-              >
-                <Statistic
-                  title={<span className="text-white/80">Đang xử lý</span>}
-                  value={contractSummary.inProgress}
-                  styles={{ content: { color: "#ffffff" } }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card
-                className="rounded-2xl text-white"
-                variant="borderless"
-                style={{ background: "rgba(15, 23, 42, 0.45)", border: "1px solid rgba(148, 163, 184, 0.2)" }}
-              >
-                <Statistic
-                  title={<span className="text-white/80">Tổng tiền thuê / tháng</span>}
-                  value={formatMoney(contractSummary.totalMonthlyRent)}
-                  styles={{ content: { color: "#ffffff" } }}
-                />
-              </Card>
-            </Col>
-          </Row>
-        </div>
-
-        <div className="p-6 space-y-6 bg-[#f7f9fc]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <Input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Tìm theo mã hợp đồng, bên thuê hoặc bất động sản"
-              prefix={<SearchOutlined className="text-slate-400" />}
-              allowClear
-              className="lg:max-w-[420px] rounded-xl"
-            />
-            <div className="text-sm text-slate-500">
-              {contractsMeta?.total ? `Tổng ${contractsMeta.total} hợp đồng trong hệ thống` : "Đang tải dữ liệu hợp đồng"}
             </div>
           </div>
 
-          <Tabs
-            activeKey={activeTab}
-            onChange={(key) => { setActiveTab(key); setPage(1); }}
-            items={tabItems}
-            className="rounded-2xl bg-white px-4 pt-2 shadow-sm"
-            tabBarStyle={{ marginBottom: 0 }}
-          />
+          {/* Stats Row */}
+          <div className="relative mt-7 grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { label: "Tổng hợp đồng", value: contractSummary.total },
+              { label: "Đang hiệu lực", value: contractSummary.active },
+              { label: "Đang xử lý", value: contractSummary.inProgress },
+              { label: "Tiền thuê / tháng", value: formatMoney(contractSummary.totalMonthlyRent) },
+            ].map((stat, idx) => (
+              <div
+                key={idx}
+                className="rounded-xl px-5 py-4"
+                style={{
+                  background: "rgba(255,255,255,0.07)",
+                  border: "1px solid rgba(255,255,255,0.13)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">
+                  {stat.label}
+                </p>
+                <p className="text-xl font-semibold text-white leading-none">
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+        {/* Content Area */}
+        <div className="px-8 py-6 space-y-5 bg-slate-50/70">
+          {/* Toolbar */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Tìm theo mã hợp đồng, bên thuê hoặc bất động sản..."
+              prefix={<SearchOutlined className="text-slate-400 text-sm" />}
+              allowClear
+              className="sm:max-w-[400px] rounded-lg"
+              style={{ height: 38 }}
+            />
+            <span className="text-[13px] text-slate-400 shrink-0">
+              {contractsMeta?.total
+                ? `Tổng ${contractsMeta.total} hợp đồng trong hệ thống`
+                : "Đang tải dữ liệu..."}
+            </span>
+          </div>
+
+          {/* Tabs */}
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: "#fff",
+              border: "1px solid #e8ecf0",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+            }}
+          >
+            <Tabs
+              activeKey={activeTab}
+              onChange={(key) => { setActiveTab(key); setPage(1); }}
+              items={tabItems}
+              className="px-4 pt-1"
+              tabBarStyle={{ marginBottom: 0, borderBottom: "1px solid #f0f2f5" }}
+            />
+          </div>
+
+          {/* Table */}
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              background: "#fff",
+              border: "1px solid #e8ecf0",
+              boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+            }}
+          >
             <Table
               dataSource={filteredContracts}
               columns={columns}
@@ -592,21 +582,50 @@ export default function ContractsPage() {
                 current: page,
                 pageSize: 10,
                 total: contractsMeta?.total || 0,
-                showTotal: (total) => `Tổng ${total} hợp đồng`,
+                showTotal: (total) => (
+                  <span className="text-slate-500 text-sm">Tổng {total} hợp đồng</span>
+                ),
                 onChange: (p) => setPage(p),
+                className: "px-5 py-3",
               }}
               scroll={{ x: 1180 }}
               locale={{
                 emptyText: (
-                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có hợp đồng nào" />
+                  <div className="py-16">
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description={
+                        <span className="text-slate-400 text-sm">Không có hợp đồng nào</span>
+                      }
+                    />
+                  </div>
                 ),
               }}
-              className="[&_.ant-table-thead_th]:bg-slate-50! [&_.ant-table-thead_th]:text-slate-600! [&_.ant-table-thead_th]:font-semibold! [&_.ant-table-thead_th]:text-xs! [&_.ant-table-thead_th]:uppercase!"
+              className="
+                [&_.ant-table-thead_th]:bg-slate-50
+                [&_.ant-table-thead_th]:text-slate-500
+                [&_.ant-table-thead_th]:font-semibold
+                [&_.ant-table-thead_th]:text-[11px]
+                [&_.ant-table-thead_th]:uppercase
+                [&_.ant-table-thead_th]:tracking-wider
+                [&_.ant-table-thead_th]:py-3
+                [&_.ant-table-thead_th]:px-5
+                [&_.ant-table-thead_th]:border-b
+                [&_.ant-table-thead_th]:border-slate-100
+                [&_.ant-table-tbody_td]:py-3.5
+                [&_.ant-table-tbody_td]:px-5
+                [&_.ant-table-tbody_td]:text-sm
+                [&_.ant-table-tbody_td]:text-slate-700
+                [&_.ant-table-tbody_tr:hover_td]:bg-slate-50/80
+                [&_.ant-table-tbody_tr]:border-b
+                [&_.ant-table-tbody_tr]:border-slate-50
+              "
             />
           </div>
         </div>
       </Card>
 
+      {/* Modals */}
       <ContractDetailModal
         open={detailOpen}
         contractDetail={contractDetail}
@@ -630,31 +649,48 @@ export default function ContractsPage() {
 
       <Modal
         open={smartCAModalOpen}
-        title="Ký hợp đồng điện tử"
+        title={
+          <div className="flex items-center gap-2 py-0.5">
+            <span className="text-base font-semibold text-slate-800">Ký hợp đồng điện tử</span>
+          </div>
+        }
         onCancel={handleCloseSmartCAModal}
         footer={null}
         destroyOnHidden
+        className="[&_.ant-modal-content]:rounded-2xl [&_.ant-modal-header]:rounded-t-2xl [&_.ant-modal-header]:border-b [&_.ant-modal-header]:border-slate-100 [&_.ant-modal-header]:pb-4 [&_.ant-modal-body]:pt-5"
       >
         {!smartca.transactionId && (
           <div className="space-y-4">
-            <Text className="text-gray-600">Chọn phương thức xác nhận chữ ký:</Text>
+            <Text className="text-slate-500 text-sm">Chọn phương thức xác nhận chữ ký:</Text>
             <Radio.Group
               value={signMethod}
               onChange={(e) => setSignMethod(e.target.value)}
               className="w-full"
             >
-              <div className="border rounded-lg px-4 py-3">
-                <Radio value="smartca">SmartCA (VNPT)</Radio>
+              <div className="border border-slate-200 rounded-xl px-4 py-3.5 hover:border-blue-400 transition-colors">
+                <Radio value="smartca">
+                  <span className="font-medium text-slate-700">SmartCA (VNPT)</span>
+                </Radio>
               </div>
             </Radio.Group>
             <Alert
               type="info"
               showIcon
-              message="Sau khi xác nhận, vui lòng mở ứng dụng SmartCA VNPT để hoàn tất ký hợp đồng."
+              message={
+                <span className="text-sm text-slate-600">
+                  Sau khi xác nhận, vui lòng mở ứng dụng SmartCA VNPT để hoàn tất ký hợp đồng.
+                </span>
+              }
+              className="rounded-xl border-blue-100 bg-blue-50"
             />
-            <div className="flex justify-end gap-2 pt-2">
-              <Button onClick={handleCloseSmartCAModal}>Hủy</Button>
-              <Button type="primary" loading={smartca.loading} onClick={handleStartSmartCASign}>
+            <div className="flex justify-end gap-2.5 pt-1">
+              <Button onClick={handleCloseSmartCAModal} className="rounded-lg h-9 px-5">Hủy</Button>
+              <Button
+                type="primary"
+                loading={smartca.loading}
+                onClick={handleStartSmartCASign}
+                className="rounded-lg h-9 px-5"
+              >
                 Xác nhận ký
               </Button>
             </div>
@@ -665,55 +701,57 @@ export default function ContractsPage() {
           <div className="space-y-4">
             <Alert
               type={
-                smartca.signStatus === "SIGNED"
-                  ? "success"
-                  : smartca.signStatus === "REJECTED" || smartca.signStatus === "EXPIRED" || smartca.signStatus === "ERROR"
-                    ? "error"
-                    : "info"
+                smartca.signStatus === "SIGNED" ? "success"
+                  : ["REJECTED", "EXPIRED", "ERROR"].includes(smartca.signStatus) ? "error"
+                  : "info"
               }
               showIcon
               message={
-                smartca.signStatus === "SIGNED"
-                  ? "Ký thành công"
-                  : smartca.signStatus === "REJECTED"
-                    ? "Bạn đã từ chối ký hợp đồng"
-                    : smartca.signStatus === "EXPIRED"
-                      ? "Phiên ký đã hết hạn, vui lòng thử lại"
-                      : smartca.signStatus === "ERROR"
-                        ? smartca.error || "Có lỗi xảy ra khi ký SmartCA"
-                        : "Đang chờ ký..."
+                <span className="font-medium text-sm">
+                  {smartca.signStatus === "SIGNED" ? "Ký thành công"
+                    : smartca.signStatus === "REJECTED" ? "Bạn đã từ chối ký hợp đồng"
+                    : smartca.signStatus === "EXPIRED" ? "Phiên ký đã hết hạn, vui lòng thử lại"
+                    : smartca.signStatus === "ERROR" ? smartca.error || "Có lỗi xảy ra khi ký SmartCA"
+                    : "Đang chờ xác nhận..."}
+                </span>
               }
               description={
-                smartca.signStatus === "SIGNED"
-                  ? "Hệ thống đang cập nhật lại trạng thái hợp đồng."
-                  : "Bạn có thể tạm đóng cửa sổ này. Khi mở lại sẽ tiếp tục hiển thị tiến trình ký."
+                <span className="text-[13px] text-slate-500">
+                  {smartca.signStatus === "SIGNED"
+                    ? "Hệ thống đang cập nhật lại trạng thái hợp đồng."
+                    : "Bạn có thể tạm đóng cửa sổ này. Khi mở lại sẽ tiếp tục hiển thị tiến trình ký."}
+                </span>
               }
+              className="rounded-xl"
             />
 
             {["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus) && (
-              <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
-                <div className="flex items-center gap-2 text-blue-700">
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-5 py-4">
+                <div className="flex items-center gap-2.5 text-blue-600 mb-2">
                   <Spin size="small" />
-                  <Text className="text-blue-700">Đang chờ xác nhận trên ứng dụng SmartCA...</Text>
+                  <Text className="text-blue-600 text-sm font-medium">
+                    Đang chờ xác nhận trên ứng dụng SmartCA...
+                  </Text>
                 </div>
-                <Text className="block mt-2 text-sm text-blue-600">
+                <Text className="block text-[13px] text-blue-500 mb-2.5">
                   Thời gian còn lại: {Math.max(0, smartca.expiredIn)} giây
                 </Text>
                 <Progress
-                  className="mt-2"
                   percent={progressPercent}
                   showInfo={false}
-                  strokeColor="#1677ff"
+                  strokeColor="#3b82f6"
+                  trailColor="#dbeafe"
                   status="active"
+                  strokeLinecap="round"
                 />
               </div>
             )}
 
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-1">
               {(smartca.signStatus === "SIGNED" || ["REJECTED", "EXPIRED", "ERROR"].includes(smartca.signStatus)) ? (
-                <Button type="primary" onClick={handleCloseSmartCAModal}>Đóng</Button>
+                <Button type="primary" onClick={handleCloseSmartCAModal} className="rounded-lg h-9 px-5">Đóng</Button>
               ) : (
-                <Button onClick={handleCloseSmartCAModal}>Đóng</Button>
+                <Button onClick={handleCloseSmartCAModal} className="rounded-lg h-9 px-5">Đóng</Button>
               )}
             </div>
           </div>

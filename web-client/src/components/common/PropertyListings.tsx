@@ -4,7 +4,13 @@ import { useRouter } from "next/navigation";
 import PropertyCard from "@/components/property/PropertyCard";
 import { DownOutlined } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
-import { getFeaturedPropertiesThunk, getListProperty } from "@/stores/slices/estate.slice";
+import {
+  getFeaturedPropertiesThunk,
+  getListProperty,
+  addFavoriteThunk,
+  removeFavoriteThunk,
+  getFavoriteStatusThunk,
+} from "@/stores/slices/estate.slice";
 
 function formatPrice(price: number): string {
   if (price >= 1_000_000_000) {
@@ -23,6 +29,7 @@ const PropertyListings = () => {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { data: featuredProperties, loading } = useAppSelector((state) => state.estate.featured);
+  const favoriteStatusMap = useAppSelector((state) => state.estate.favoriteStatusMap);
   const [visibleCount, setVisibleCount] = useState(8);
   const { isAuth } = useAppSelector(state => state.auth)
 
@@ -34,8 +41,26 @@ const PropertyListings = () => {
     }
   }, [dispatch, isAuth]);
 
+  // Fetch favorite status for visible properties
+  useEffect(() => {
+    if (!isAuth) return;
+    featuredProperties.slice(0, visibleCount).forEach((p) => {
+      if (favoriteStatusMap[p.id] === undefined) {
+        dispatch(getFavoriteStatusThunk(p.id));
+      }
+    });
+  }, [dispatch, isAuth, featuredProperties, visibleCount, favoriteStatusMap]);
+
   const handleToggleFavorite = (id: string) => {
-    console.log("Toggle favorite:", id);
+    if (!isAuth) {
+      router.push("/?auth=login");
+      return;
+    }
+    if (favoriteStatusMap[id]) {
+      dispatch(removeFavoriteThunk(id));
+    } else {
+      dispatch(addFavoriteThunk(id));
+    }
   };
 
   const handleExpand = () => {
@@ -92,6 +117,7 @@ const PropertyListings = () => {
               price={formatPrice(property.pricePerMonth)}
               area={`${property.areaSqm} m²`}
               location={`${property.district}, ${property.city}`}
+              isFavorite={!!favoriteStatusMap[property.id]}
               onToggleFavorite={handleToggleFavorite}
             />
           ))}

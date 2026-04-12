@@ -442,8 +442,11 @@ export const CONTRACT_EDITOR_STYLES = `
      PREVIEW MODE FIELD VALUES
      ═══════════════════════════════════════════════ */
   .contract-field-value {
-    font-weight: 600;
+    font-weight: 700;
     color: #111;
+    border-bottom: 1.5px solid #1e40af;
+    padding: 0 2px 1px;
+    letter-spacing: 0.01em;
   }
   .contract-field-empty {
     color: #9ca3af;

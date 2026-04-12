@@ -79,7 +79,7 @@ export interface RentalRequestAnalytics {
 
 export interface RevenueAnalytics {
   tongDoanhThuUocTinh: number;
-  doanhThuTheoLoai: KeyValueMetric[];
+  giaChoThueTheoLoai: KeyValueMetric[];
   doanhThuTheoKhuVuc: KeyValueMetric[];
   giaoDichThanhCong: number;
   giaoDichThatBai: number;

@@ -234,28 +234,36 @@ export default function PropertyDetailPage({ slug }: PropertyDetailPageProps) {
 
         {/* Main content */}
         <div className="flex gap-6 mt-6" ref={infoRef}>
-          {/* Left column */}
-          <div className="flex-1 min-w-0">
+          {/* Left column (Nội dung chính) */}
+          <div className="flex-1 min-w-0 space-y-6">
             <PropertyInfo
               property={property}
               isSaved={isSaved}
               favoriteLoading={favoriteActionLoading}
               onToggleFavorite={handleToggleFavorite}
             />
+            
+            {/* Phần các tab thông tin chi tiết */}
             <PropertyTabs property={property} />
+
+            {/* BÌNH LUẬN ĐÃ ĐƯỢC CHUYỂN SANG ĐÂY - Dưới thông tin tổng quan */}
+            <CommentSection propertyId={property.id} />
+
+            {/* Các tin đăng tương tự */}
             <SimilarListings currentPropertyId={property.id} city={property.city} />
           </div>
 
-          {/* Right sidebar */}
+          {/* Right sidebar (Chỉ còn thông tin người đăng) */}
           <div className="w-80 shrink-0 hidden lg:block">
-            <OwnerSidebar
-              owner={property.user}
-              propertyId={property.id}
-              isTenant={isTenant}
-              isLoggedIn={!!currentUser}
-              pricePerMonth={property.pricePerMonth}
-            />
-            <CommentSection propertyId={property.id} />
+            <div className="sticky top-24"> {/* Thêm sticky để sidebar trượt theo khi cuộn */}
+              <OwnerSidebar
+                owner={property.user}
+                propertyId={property.id}
+                isTenant={isTenant}
+                isLoggedIn={!!currentUser}
+                pricePerMonth={property.pricePerMonth}
+              />
+            </div>
           </div>
         </div>
 
