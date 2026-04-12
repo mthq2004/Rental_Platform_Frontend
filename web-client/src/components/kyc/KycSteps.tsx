@@ -56,19 +56,18 @@ export function StepOne() {
   );
 }
 
+// ... (các import giữ nguyên)
+
 export function StepTwo({
   frontImage,
   backImage,
-  onPickFront,
+  // Đã bỏ onPickFront và onPickBack
   onCaptureFront,
-  onPickBack,
   onCaptureBack,
 }: {
   frontImage?: string;
   backImage?: string;
-  onPickFront: (file: File) => void;
   onCaptureFront: (file: File) => void;
-  onPickBack: (file: File) => void;
   onCaptureBack: (file: File) => void;
 }) {
   return (
@@ -77,12 +76,13 @@ export function StepTwo({
         Chụp ảnh giấy tờ tùy thân
       </h2>
       <p className="mt-2 text-sm md:text-base" style={{ color: BRAND.muted }}>
-        Tải ảnh rõ nét hai mặt CCCD/CMND để hệ thống OCR xử lý tự động.
+        Chụp ảnh rõ nét hai mặt CCCD/CMND để hệ thống OCR xử lý trực tiếp.
       </p>
 
       <div className="mt-5 grid gap-3 md:grid-cols-2">
-        <UploadCard label="Mặt trước thẻ" imageUrl={frontImage} onPickFile={onPickFront} onCaptureFile={onCaptureFront} />
-        <UploadCard label="Mặt sau thẻ" imageUrl={backImage} onPickFile={onPickBack} onCaptureFile={onCaptureBack} />
+        {/* UploadCard bên dưới Primitives sẽ tự động chỉ hiện nút Camera nếu bạn đã sửa file KycPrimitives như mình hướng dẫn trước đó */}
+        <UploadCard label="Mặt trước thẻ" imageUrl={frontImage} onCaptureFile={onCaptureFront} />
+        <UploadCard label="Mặt sau thẻ" imageUrl={backImage} onCaptureFile={onCaptureBack} />
       </div>
 
       <div className="mt-4 rounded-2xl border px-4 py-3" style={{ background: "#F6F9FF", borderColor: "#DCE8FF" }}>
@@ -90,7 +90,7 @@ export function StepTwo({
           Công nghệ nhận diện thông minh
         </p>
         <p className="mt-1 text-sm leading-5" style={{ color: BRAND.muted }}>
-          Hệ thống dùng OCR để trích xuất thông tin tự động. Vui lòng đảm bảo ảnh đủ sáng, không lóa và đầy đủ 4 góc.
+          Hệ thống yêu cầu chụp ảnh trực tiếp để đảm bảo tính xác thực cao nhất. Vui lòng đảm bảo ảnh đủ sáng, không lóa.
         </p>
       </div>
 
@@ -103,13 +103,13 @@ export function StepTwo({
             <Hint ok text="Ảnh rõ nét, đủ sáng" />
             <Hint ok text="Hiển thị đủ 4 góc thẻ" />
             <Hint ok={false} text="Không lóa đèn flash" />
-            <Hint ok={false} text="Không che mất thông tin" />
+            <Hint ok={false} text="Không dùng ảnh chụp màn hình" />
           </div>
         </div>
 
         <div className="rounded-2xl p-3 text-white" style={{ background: `linear-gradient(155deg, ${BRAND.primary} 0%, #0A2E7A 100%)` }}>
           <p className="text-base font-semibold">Bảo mật dữ liệu</p>
-          <p className="mt-1 text-sm text-blue-100">Dữ liệu luôn được mã hóa AES-256 và dùng duy nhất cho định danh chủ tài khoản.</p>
+          <p className="mt-1 text-sm text-blue-100">Dữ liệu chụp trực tiếp giúp rút ngắn thời gian thẩm định hồ sơ.</p>
         </div>
       </div>
     </section>
@@ -119,17 +119,14 @@ export function StepTwo({
 export function StepThree({
   selfieImage,
   onCaptureSelfie,
-  onPickSelfie,
 }: {
   selfieImage?: string;
   onCaptureSelfie: (imageDataUrl: string) => void;
-  onPickSelfie: (file: File) => void;
 }) {
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const selfieInputRef = useRef<HTMLInputElement>(null);
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -142,7 +139,7 @@ export function StepThree({
 
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError("Trình duyệt chưa hỗ trợ camera hoặc đang chạy ở chế độ không an toàn.");
+      setCameraError("Trình duyệt chưa hỗ trợ camera.");
       return;
     }
 
@@ -164,43 +161,26 @@ export function StepThree({
       }
       setIsCameraOn(true);
     } catch {
-      setCameraError("Không thể mở camera. Vui lòng cấp quyền camera trên trình duyệt.");
+      setCameraError("Không thể mở camera. Vui lòng cấp quyền.");
     }
   };
 
   const captureFrame = () => {
-    if (!videoRef.current) {
-      return;
-    }
-
+    if (!videoRef.current) return;
     const video = videoRef.current;
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
-
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
+    if (!ctx) return;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
     onCaptureSelfie(dataUrl);
     stopCamera();
   };
 
-  const handlePickSelfie = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      onPickSelfie(file);
-      event.target.value = "";
-    }
-  };
-
   useEffect(() => {
-    return () => {
-      stopCamera();
-    };
+    return () => stopCamera();
   }, []);
 
   return (
@@ -210,104 +190,70 @@ export function StepThree({
           Xác thực khuôn mặt
         </h2>
         <p className="mt-2 text-sm md:text-base" style={{ color: BRAND.muted }}>
-          Hãy đặt khuôn mặt vào khung tròn, đảm bảo đủ sáng và làm theo hướng dẫn chuyển động.
+          Hãy đặt khuôn mặt vào khung tròn và chụp ảnh trực tiếp để xác minh chính chủ.
         </p>
 
         <div className="mt-6 space-y-3">
           <Guide icon={<UserCircle2 className="h-5 w-5" />} title="Giữ ổn định thiết bị" desc="Đặt camera ngang tầm mắt, giữ khuôn mặt nằm giữa khung." />
-          <Guide icon={<Camera className="h-5 w-5" />} title="Làm theo yêu cầu" desc="Hệ thống có thể yêu cầu chớp mắt hoặc quay nhẹ theo hướng dẫn." />
-          <Guide icon={<Sparkles className="h-5 w-5" />} title="Đảm bảo ánh sáng" desc="Tránh ngược sáng hoặc môi trường quá tối để tăng độ chính xác." />
+          <Guide icon={<Camera className="h-5 w-5" />} title="Chụp trực tiếp" desc="Hệ thống không chấp nhận ảnh tải lên để đảm bảo an toàn." />
+          <Guide icon={<Sparkles className="h-5 w-5" />} title="Đảm bảo ánh sáng" desc="Tránh ngược sáng để khuôn mặt rõ nét nhất." />
         </div>
       </div>
 
       <div className="rounded-3xl border p-3" style={{ background: BRAND.panel, borderColor: BRAND.border }}>
         <div className="relative h-[320px] overflow-hidden rounded-3xl border bg-slate-700 p-4 text-white md:h-[360px] xl:h-[400px]" style={{ borderColor: BRAND.border }}>
           <div className="flex items-center justify-between text-xs text-slate-200">
-            <span className="rounded-full bg-black/35 px-2 py-1">Hệ thống sẵn sàng</span>
-            <span className="rounded-full bg-black/35 px-2 py-1">Khoảng cách: OK</span>
+            <span className="rounded-full bg-black/35 px-2 py-1">Camera Live</span>
+            {isCameraOn && <span className="flex items-center gap-1.5 rounded-full bg-red-500 px-2 py-1"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> Đang quét</span>}
           </div>
 
           <div className="absolute inset-x-6 bottom-16 top-16 rounded-[32px] border-2 border-dashed border-slate-400/50" />
 
-          {selfieImage && !isCameraOn ? (
+          {selfieImage && !isCameraOn && (
             <div className="absolute inset-0">
               <Image src={selfieImage} alt="Selfie preview" fill unoptimized className="object-contain p-4" />
             </div>
-          ) : null}
+          )}
 
           <video ref={videoRef} className={`absolute inset-0 h-full w-full object-cover ${isCameraOn ? "block" : "hidden"}`} muted playsInline />
 
-          {!selfieImage && !isCameraOn ? (
+          {!selfieImage && !isCameraOn && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/20">
-                  <ImageUp className="h-7 w-7" />
-                </div>
-                <p className="mt-2 text-sm text-slate-200">Bật camera để chụp ảnh selfie</p>
+                <Camera className="mx-auto h-10 w-10 text-slate-400 mb-2" />
+                <p className="text-sm text-slate-200">Nhấn nút bên dưới để bắt đầu</p>
               </div>
             </div>
-          ) : null}
-
-          <div className="absolute bottom-6 left-1/2 w-[80%] -translate-x-1/2 rounded-2xl bg-white/15 p-4 text-center backdrop-blur-sm">
-            <p className="text-lg font-semibold md:text-2xl">Giữ nguyên vị trí</p>
-            <p className="text-xs text-slate-200 md:text-sm">Hệ thống đang quét khuôn mặt...</p>
-          </div>
+          )}
         </div>
 
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={startCamera}
-            className="rounded-lg px-3 py-2 text-sm font-medium text-white"
+            onClick={isCameraOn ? stopCamera : startCamera}
+            className="rounded-xl py-3 text-sm font-bold transition active:scale-95 border bg-white"
+            style={{ borderColor: BRAND.border, color: BRAND.text }}
+          >
+            {isCameraOn ? "Tắt camera" : "Bật camera"}
+          </button>
+
+          <button
+            type="button"
+            onClick={isCameraOn ? captureFrame : startCamera}
+            className="rounded-xl py-3 text-sm font-bold text-white shadow-lg transition active:scale-95"
             style={{ background: BRAND.primary }}
           >
-            Bật camera
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (isCameraOn) {
-                captureFrame();
-                return;
-              }
-              startCamera();
-            }}
-            className="rounded-lg px-3 py-2 text-sm font-medium text-white"
-            style={{ background: "#0A2E7A" }}
-          >
-            {isCameraOn ? "Chụp ảnh" : "Mở & chụp"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => selfieInputRef.current?.click()}
-            className="rounded-lg border px-3 py-2 text-sm font-medium"
-            style={{ borderColor: BRAND.border, color: BRAND.text, background: "#FFFFFF" }}
-          >
-            Chọn ảnh có sẵn
+            {isCameraOn ? "Chụp ảnh ngay" : "Mở & Chụp"}
           </button>
         </div>
 
-        <input
-          ref={selfieInputRef}
-          type="file"
-          accept="image/*"
-          capture="user"
-          onChange={handlePickSelfie}
-          className="hidden"
-        />
-
-        {cameraError ? (
-          <p className="mt-2 text-sm" style={{ color: "#D14343" }}>
-            {cameraError}
-          </p>
-        ) : null}
+        {cameraError && <p className="mt-3 text-center text-sm font-medium text-red-500">{cameraError}</p>}
       </div>
     </section>
   );
 }
 
+// ... (StepFour, Completion, StepContent giữ nguyên logic nhưng nhớ xóa các props onPick dư thừa)
 export function StepFour({
   frontImage,
   backImage,
@@ -465,16 +411,14 @@ export function StepContent({
       <StepTwo
         frontImage={frontImage}
         backImage={backImage}
-        onPickFront={onPickFront}
         onCaptureFront={onCaptureFront}
-        onPickBack={onPickBack}
         onCaptureBack={onCaptureBack}
       />
     );
   }
 
   if (step === 3) {
-    return <StepThree selfieImage={selfieImage} onCaptureSelfie={onCaptureSelfie} onPickSelfie={onPickSelfie} />;
+    return <StepThree selfieImage={selfieImage} onCaptureSelfie={onCaptureSelfie}  />;
   }
 
   return <StepFour frontImage={frontImage} backImage={backImage} selfieImage={selfieImage} kycData={kycData} />;

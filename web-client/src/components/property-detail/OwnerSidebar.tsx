@@ -20,6 +20,7 @@ import type { PropertyOwner } from "./types";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { createRentalRequest } from "@/stores/slices/contract.slice";
 import { createConversation } from "@/stores/slices/conversation.slice";
+import { getMissingRentalRequirements } from "@/utils/profile-completeness";
 
 interface OwnerSidebarProps {
   owner: PropertyOwner;
@@ -49,6 +50,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   const { message: messageApi } = App.useApp();
   const actionLoading = useAppSelector((state) => state.contract.actionLoading);
   const { detail } = useAppSelector(state => state.estate)
+  const currentUser = useAppSelector(state => state.auth.user);
   const [showPhone, setShowPhone] = useState(false);
   const [message, setMessage] = useState("");
   const [questionIdx, setQuestionIdx] = useState(0);
@@ -111,6 +113,28 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
       router.push("/");
       return;
     }
+
+    const missing = getMissingRentalRequirements(currentUser);
+    if (missing.length > 0) {
+      Modal.confirm({
+        title: "Cần bổ sung thông tin cá nhân",
+        content: (
+          <div>
+            <p className="mb-2">Để gửi yêu cầu thuê nhà, bạn cần bổ sung:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              {missing.map((item, idx) => (
+                <li key={idx} className="text-red-500">{item}</li>
+              ))}
+            </ul>
+          </div>
+        ),
+        okText: "Cập nhật hồ sơ",
+        cancelText: "Để sau",
+        onOk: () => router.push("/dashboard/profile"),
+      });
+      return;
+    }
+
     setRentalModalOpen(true);
   };
 

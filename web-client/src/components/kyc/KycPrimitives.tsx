@@ -81,58 +81,38 @@ export function Field({
 export function UploadCard({
   label,
   imageUrl,
-  onPickFile,
   onCaptureFile,
 }: {
   label: string;
   imageUrl?: string;
-  onPickFile: (file: File) => void;
   onCaptureFile: (file: File) => void;
 }) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
 
-  const handlePickFile = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      onPickFile(file);
-      event.target.value = "";
-    }
-  };
-
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
+    if (videoRef.current) videoRef.current.srcObject = null;
     setIsCameraOpen(false);
   };
 
   const openCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError("Trình duyệt chưa hỗ trợ camera hoặc đang chạy ở chế độ không an toàn.");
+      setCameraError("Trình duyệt không hỗ trợ camera.");
       setIsCameraOpen(true);
       return;
     }
-
     try {
       setCameraError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
-
       streamRef.current = stream;
       setIsCameraOpen(true);
-
       requestAnimationFrame(async () => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -140,142 +120,75 @@ export function UploadCard({
         }
       });
     } catch {
-      setCameraError("Không thể mở camera. Vui lòng cấp quyền camera và thử lại.");
+      setCameraError("Vui lòng cấp quyền camera.");
       setIsCameraOpen(true);
     }
   };
 
   const captureFromCamera = () => {
     const video = videoRef.current;
-    if (!video) {
-      return;
-    }
-
+    if (!video) return;
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
-
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          return;
+    if (ctx) {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
+          onCaptureFile(file);
+          stopCamera();
         }
-        const file = new File([blob], `${label.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}.jpg`, {
-          type: "image/jpeg",
-        });
-        onCaptureFile(file);
-        stopCamera();
-      },
-      "image/jpeg",
-      0.92,
-    );
+      }, "image/jpeg", 0.92);
+    }
   };
-
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
 
   return (
     <div>
       <p className="mb-2 text-sm font-semibold" style={{ color: BRAND.text }}>{label}</p>
-      <div className="rounded-2xl border border-dashed p-2.5" style={{ borderColor: BRAND.border, background: "#F7FAFF" }}>
-        <div className="relative h-36 w-full overflow-hidden rounded-xl border md:h-40" style={{ borderColor: BRAND.border, background: "#F2F6FC" }}>
+      <div className="rounded-2xl border border-dashed p-3 transition-colors hover:bg-slate-50" style={{ borderColor: BRAND.border, background: "#F7FAFF" }}>
+        <div className="relative h-44 w-full overflow-hidden rounded-xl border bg-[#F2F6FC]" style={{ borderColor: BRAND.border }}>
           {imageUrl ? (
             <Image src={imageUrl} alt={label} fill unoptimized className="object-contain p-1" />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "#EAF1FF", color: BRAND.primary }}>
-                <ImageUp className="h-6 w-6" />
-              </div>
-              <p className="mt-3 text-sm" style={{ color: BRAND.muted }}>Chưa có hình ảnh</p>
+            <div className="flex h-full flex-col items-center justify-center text-slate-400">
+              <Camera className="h-10 w-10 mb-2 opacity-20" />
+              <p className="text-xs font-medium">Yêu cầu chụp ảnh trực tiếp</p>
             </div>
           )}
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium"
-            style={{ borderColor: BRAND.border, color: BRAND.text, background: "#FFFFFF" }}
-          >
-            <Upload className="h-4 w-4" />
-            Chọn hình ảnh
-          </button>
-
-          <button
-            type="button"
-            onClick={openCamera}
-            className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white"
-            style={{ background: BRAND.primary }}
-          >
-            <Camera className="h-4 w-4" />
-            Chụp ảnh
-          </button>
-        </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handlePickFile}
-          className="hidden"
-        />
+        {/* Thiết kế lại nút Chụp ảnh to và rõ ràng */}
+        <button
+          type="button"
+          onClick={openCamera}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white transition active:scale-[0.98]"
+          style={{ background: BRAND.primary }}
+        >
+          <Camera className="h-5 w-5" />
+          Mở máy ảnh
+        </button>
       </div>
 
-      {isCameraOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-4 shadow-2xl">
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-base font-semibold" style={{ color: BRAND.text }}>Chụp ảnh: {label}</p>
-              <button
-                type="button"
-                onClick={stopCamera}
-                className="rounded-full p-1"
-                style={{ background: "#EEF3FB", color: BRAND.text }}
-              >
-                <X className="h-4 w-4" />
-              </button>
+      {isCameraOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-5 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-lg font-bold" style={{ color: BRAND.text }}>Chụp ảnh xác thực</span>
+              <button onClick={stopCamera} className="rounded-full bg-slate-100 p-2"><X className="h-5 w-5" /></button>
             </div>
-
-            <div className="relative overflow-hidden rounded-xl border" style={{ borderColor: BRAND.border, background: "#0f172a" }}>
-              <video ref={videoRef} className="h-[320px] w-full bg-black object-cover md:h-[420px]" playsInline muted />
+            <div className="relative aspect-video overflow-hidden rounded-2xl bg-black border-4 border-slate-100">
+              <video ref={videoRef} className="h-full w-full object-cover" playsInline muted />
             </div>
-
-            {cameraError ? (
-              <p className="mt-2 text-sm" style={{ color: "#D14343" }}>{cameraError}</p>
-            ) : null}
-
-            <div className="mt-3 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={stopCamera}
-                className="rounded-lg border px-3 py-2 text-sm font-medium"
-                style={{ borderColor: BRAND.border, color: BRAND.text }}
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={captureFromCamera}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-white"
-                style={{ background: BRAND.primary }}
-                disabled={!!cameraError}
-              >
-                Chụp ngay
-              </button>
+            {cameraError && <p className="mt-3 text-center text-sm font-medium text-red-500">{cameraError}</p>}
+            <div className="mt-5 flex gap-3">
+              <button onClick={stopCamera} className="flex-1 rounded-xl border py-3 font-semibold" style={{ borderColor: BRAND.border }}>Hủy</button>
+              <button onClick={captureFromCamera} className="flex-[2] rounded-xl py-3 font-bold text-white" style={{ background: BRAND.primary }}>Chụp ngay</button>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

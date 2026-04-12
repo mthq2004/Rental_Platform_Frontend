@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { propertySlug } from "@/utils/slug";
 import {
@@ -10,6 +10,12 @@ import {
   EnvironmentOutlined,
   PictureOutlined,
 } from "@ant-design/icons";
+import { useAppDispatch, useAppSelector } from "@/stores/hooks";
+import {
+  addFavoriteThunk,
+  removeFavoriteThunk,
+  getFavoriteStatusThunk,
+} from "@/stores/slices/estate.slice";
 
 interface PropertyImage {
   id: string;
@@ -77,9 +83,18 @@ function formatTimeAgo(dateStr: string): string {
 
 export default function PropertySearchCard({ property }: PropertySearchCardProps) {
   const router = useRouter();
-  const [isFavorite, setIsFavorite] = useState(false);
+  const dispatch = useAppDispatch();
+  const { isAuth } = useAppSelector((state) => state.auth);
+  const favoriteStatusMap = useAppSelector((state) => state.estate.favoriteStatusMap);
+  const isFavorite = !!favoriteStatusMap[property.id];
   const [showPhone, setShowPhone] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (isAuth && favoriteStatusMap[property.id] === undefined) {
+      dispatch(getFavoriteStatusThunk(property.id));
+    }
+  }, [dispatch, isAuth, property.id, favoriteStatusMap]);
 
   const primaryImage = property.images.find((img) => img.isPrimary) || property.images[0];
   const otherImages = property.images.filter((img) => !img.isPrimary).slice(0, 3);
@@ -96,7 +111,15 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
 
   const handleFavoriteToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsFavorite(!isFavorite);
+    if (!isAuth) {
+      router.push("/?auth=login");
+      return;
+    }
+    if (isFavorite) {
+      dispatch(removeFavoriteThunk(property.id));
+    } else {
+      dispatch(addFavoriteThunk(property.id));
+    }
   };
 
   return (

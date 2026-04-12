@@ -3,6 +3,7 @@
 import React, { useRef, useEffect } from "react";
 import {
   HeartOutlined,
+  HeartFilled,
   LeftOutlined,
   RightOutlined,
   PictureOutlined,
@@ -11,7 +12,12 @@ import {
 import { useRouter } from "next/navigation";
 import { propertySlug } from "@/utils/slug";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
-import { fetchSimilarPropertiesThunk } from "@/stores/slices/estate.slice";
+import {
+  fetchSimilarPropertiesThunk,
+  addFavoriteThunk,
+  removeFavoriteThunk,
+  getFavoriteStatusThunk,
+} from "@/stores/slices/estate.slice";
 
 interface SimilarListingsProps {
   currentPropertyId: string;
@@ -39,11 +45,36 @@ export default function SimilarListings({ currentPropertyId, city }: SimilarList
   const scrollRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const { data: allItems } = useAppSelector((state) => state.estate.similar);
+  const { isAuth } = useAppSelector((state) => state.auth);
+  const favoriteStatusMap = useAppSelector((state) => state.estate.favoriteStatusMap);
   const items = allItems.filter((p) => p.id !== currentPropertyId).slice(0, 8);
 
   useEffect(() => {
     dispatch(fetchSimilarPropertiesThunk({ city, limit: 10, sortBy: "newest" }));
   }, [dispatch, city]);
+
+  // Fetch favorite status for similar items
+  useEffect(() => {
+    if (!isAuth) return;
+    items.forEach((item) => {
+      if (favoriteStatusMap[item.id] === undefined) {
+        dispatch(getFavoriteStatusThunk(item.id));
+      }
+    });
+  }, [dispatch, isAuth, items, favoriteStatusMap]);
+
+  const handleToggleFavorite = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    if (!isAuth) {
+      router.push("/?auth=login");
+      return;
+    }
+    if (favoriteStatusMap[itemId]) {
+      dispatch(removeFavoriteThunk(itemId));
+    } else {
+      dispatch(addFavoriteThunk(itemId));
+    }
+  };
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -97,11 +128,15 @@ export default function SimilarListings({ currentPropertyId, city }: SimilarList
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 <button
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => handleToggleFavorite(e, item.id)}
                   className="absolute top-2 right-2 w-7 h-7 bg-white/80 rounded-full 
                     flex items-center justify-center hover:bg-white transition-colors"
                 >
-                  <HeartOutlined className="text-gray-500 text-sm" />
+                  {favoriteStatusMap[item.id] ? (
+                    <HeartFilled className="text-red-500 text-sm" />
+                  ) : (
+                    <HeartOutlined className="text-gray-500 text-sm" />
+                  )}
                 </button>
                 <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
                   <span className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded flex items-center gap-1">

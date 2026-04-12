@@ -17,6 +17,7 @@ import {
   DollarOutlined,
   UserOutlined,
   EnvironmentOutlined,
+  SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
@@ -165,11 +166,13 @@ const SIGNATURE_ACTION_LABELS: Record<string, string> = {
   CREATED: "Khởi tạo hợp đồng",
   SENT_TO_TENANT: "Gửi hợp đồng cho người thuê",
   SIGN_REQUESTED: "Yêu cầu ký hợp đồng",
+  SIGNED_REJECTED: "Từ chối ký hợp đồng",
   TENANT_SIGNED: "Người thuê đã ký xác nhận",
   LANDLORD_SIGNED: "Chủ nhà đã ký xác nhận",
   SIGNED_SUCCESS: "Ký hợp đồng thành công",
   ACTIVATED: "Hợp đồng đã được kích hoạt",
   CANCELLED: "Hợp đồng bị hủy",
+  BLOCKCHAIN_RECORDED: "Hợp đồng đã được ghi lên blockchain",
   BLOCKCHAIN_FAILED: "Lỗi ghi nhận blockchain",
 };
 
@@ -672,9 +675,16 @@ export default function ContractDetailPage() {
 
           <Space wrap>
             {(contract.signedContractUrl || contract.contractPdfUrl) && (
-              <Button icon={<DownloadOutlined />} href={contract.signedContractUrl || contract.contractPdfUrl || undefined} target="_blank">
-                Tải hợp đồng
-              </Button>
+              <>
+                <Button icon={<DownloadOutlined />} href={contract.signedContractUrl || contract.contractPdfUrl || undefined} target="_blank">
+                  Tải PDF {contract.signedContractUrl ? '(có chữ ký số)' : ''}
+                </Button>
+                {contract.signedContractUrl && contract.contractPdfUrl && (
+                  <Button icon={<DownloadOutlined />} href={contract.contractPdfUrl} target="_blank">
+                    Tải PDF (không chữ ký số)
+                  </Button>
+                )}
+              </>
             )}
             <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={contractsLoading || paymentsLoading}>
               Làm mới
@@ -937,6 +947,74 @@ export default function ContractDetailPage() {
               <h3 className="mt-2 text-xl font-semibold text-slate-900">Dòng thời gian xử lý hợp đồng</h3>
               <div className="mt-6">
                 {timelineItems.length ? <Timeline items={timelineItems} /> : <Empty description="Chưa có sự kiện ký kết nào" />}
+              </div>
+            </Card>
+
+            {/* Trạng thái chữ ký số */}
+            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+              <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Chữ ký số</Text>
+              <h3 className="mt-2 text-xl font-semibold text-slate-900">Trạng thái chữ ký điện tử</h3>
+              <div className="mt-6 space-y-4">
+                <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${contract.ownerSignedAt ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'}`}>
+                      <CheckCircleOutlined style={{ fontSize: 20 }} />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-800">Bên A - Chủ nhà</div>
+                      <div className="text-xs text-slate-500">{contract.owner?.name || contract.ownerId}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {contract.ownerSignedAt ? (
+                      <div>
+                        <Tag color="success" className="m-0">Đã ký số</Tag>
+                        <div className="mt-1 text-xs text-slate-400">{dayjs(contract.ownerSignedAt).format("HH:mm · DD/MM/YYYY")}</div>
+                      </div>
+                    ) : (
+                      <Tag color="default" className="m-0">Chưa ký</Tag>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${contract.tenantSignedAt ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'}`}>
+                      <CheckCircleOutlined style={{ fontSize: 20 }} />
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-800">Bên B - Người thuê</div>
+                      <div className="text-xs text-slate-500">{contract.tenant?.name || contract.tenantId}</div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {contract.tenantSignedAt ? (
+                      <div>
+                        <Tag color="success" className="m-0">Đã ký số</Tag>
+                        <div className="mt-1 text-xs text-slate-400">{dayjs(contract.tenantSignedAt).format("HH:mm · DD/MM/YYYY")}</div>
+                      </div>
+                    ) : (
+                      <Tag color="default" className="m-0">Chưa ký</Tag>
+                    )}
+                  </div>
+                </div>
+
+                {contract.blockchainTxHash && (
+                  <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
+                      <SafetyCertificateOutlined />
+                      Đã xác thực trên Blockchain
+                    </div>
+                    <div className="mt-2 break-all text-xs text-blue-600 font-mono">
+                      TX: {contract.blockchainTxHash}
+                    </div>
+                    {contract.blockchainNetwork && (
+                      <div className="mt-1 text-xs text-blue-500">
+                        Network: {contract.blockchainNetwork}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
           </div>

@@ -71,6 +71,13 @@ export interface RentalContract {
   notes?: string;
   contractPdfUrl?: string;
   signedContractUrl?: string;
+  ownerSignedAt?: string;
+  tenantSignedAt?: string;
+  ownerTransactionId?: string;
+  tenantTransactionId?: string;
+  signHash?: string;
+  blockchainTxHash?: string;
+  blockchainNetwork?: string;
   contractData?: Record<string, unknown>;
   contractHtml?: string;
   createdAt: string;

@@ -6,6 +6,8 @@ import DashboardPage from "../pages/dashboard/DashboardPage";
 import PropertyDetailPage from "../pages/properties/PropertyDetailPage";
 import ContractTemplatePage from "../pages/contracts/ContractTemplatePage";
 import ContractDetailPage from "../pages/contracts/ContractDetailPage";
+import StatisticsPage from "../pages/statistics/StatisticsPage";
+import ComplaintPage from "../pages/complaints/ComplaintPage";
 import { PublicRoute } from "../components/auth/PublicRoute";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import PropertyPendingPage from "../pages/properties/PropertyPendingPage";
@@ -81,6 +83,14 @@ const router = createBrowserRouter([
           {
             path: "contracts/:id",
             element: <ContractDetailPage />,
+          },
+          {
+            path: "statistics",
+            element: <StatisticsPage />,
+          },
+          {
+            path: "complaints",
+            element: <ComplaintPage />,
           },
           {
             path: "settings",

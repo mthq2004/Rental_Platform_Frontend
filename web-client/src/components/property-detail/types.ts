@@ -76,3 +76,28 @@ export interface CommentData {
   createdAt: string;
   replies?: CommentData[];
 }
+
+export interface ReviewData {
+  id: string;
+  rating: number;
+  comment: string;
+  imageUrls: string[];
+  reply: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+  reviewer: {
+    id: string;
+    fullName: string;
+    avatarUrl: string;
+  };
+}
+
+export interface ReviewListResponse {
+  items: ReviewData[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  averageRating: number;
+  totalReviews: number;
+}

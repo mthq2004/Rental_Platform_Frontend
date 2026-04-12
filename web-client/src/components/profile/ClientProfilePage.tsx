@@ -751,7 +751,6 @@ export default function ClientProfilePage() {
             <div style={styles.metaList}>
               <MetaRow icon={<MailOutlined />} label={user?.email || "—"} />
               <MetaRow icon={<PhoneOutlined />} label={user?.phone || "—"} />
-              <MetaRow icon={<LockOutlined />} label={roleLabel} muted />
             </div>
           </div>
 
@@ -1284,7 +1283,7 @@ const styles: Record<string, React.CSSProperties> = {
   pageWrapper: {
     height: "100%",
     minHeight: "100%",
-    background: "#f8fafc",
+    background: "white",
     display: "flex",
     overflow: "hidden",
     fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
