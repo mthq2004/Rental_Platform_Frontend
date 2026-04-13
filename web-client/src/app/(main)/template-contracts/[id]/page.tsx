@@ -703,7 +703,7 @@ const RentalContractPage = () => {
         // We stay on the page so they can click "Send" next, or redirect after delay
         setTimeout(() => {
           router.push("/dashboard/contracts");
-        }, 3000);
+        }, 2000);
       } else {
         throw new Error("Lưu nháp thất bại");
       }
@@ -889,14 +889,14 @@ const RentalContractPage = () => {
             >
               {isSaving ? "Đang lưu..." : <><SaveOutlined /> Lưu nháp</>}
             </button>
-            <button
+            {/* <button
               onClick={handlePrepareToSend}
               disabled={isSaving || !areAllRequiredFieldsFilled()}
               className="action-btn action-btn-primary"
               type="button"
             >
               {isSaving ? "Đang xử lý..." : <><SendOutlined /> Gửi ký</>}
-            </button>
+            </button> */}
           </div>
         </div>
 

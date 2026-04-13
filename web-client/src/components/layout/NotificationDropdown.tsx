@@ -1,5 +1,5 @@
 ﻿"use client";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Badge, Switch, Tabs, Popconfirm } from "antd";
 import {
     BellOutlined,
@@ -10,6 +10,10 @@ import {
     FileTextOutlined,
     DollarOutlined,
     SettingOutlined,
+    EditOutlined,
+    WarningOutlined,
+    CloseCircleOutlined,
+    SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { markAsRead, getNotification, deleteReadNotifications } from "@/stores/slices/notification.slice";
@@ -17,13 +21,24 @@ import type { Notification } from "@/stores/slices/notification.slice";
 import { useRouter } from "next/navigation";
 
 const TYPE_CONFIG: Record<string, { color: string; bg: string; borderColor: string; label: string; icon: React.ReactNode }> = {
-    PROPERTY_UPDATE: { color: "#1890ff", bg: "#e6f7ff", borderColor: "#91d5ff", label: "Bất động sản", icon: <HomeOutlined style={{ fontSize: 18 }} /> },
-    ADMIN_ACTION:    { color: "#fa8c16", bg: "#fff7e6", borderColor: "#ffd591", label: "Admin", icon: <SettingOutlined style={{ fontSize: 18 }} /> },
-    RENTAL_REQUEST:  { color: "#52c41a", bg: "#f6ffed", borderColor: "#b7eb8f", label: "Yêu cầu thuê", icon: <FileTextOutlined style={{ fontSize: 18 }} /> },
-    CONTRACT_CREATED:{ color: "#722ed1", bg: "#f9f0ff", borderColor: "#d3adf7", label: "Hợp đồng", icon: <FileTextOutlined style={{ fontSize: 18 }} /> },
-    PAYMENT:         { color: "#faad14", bg: "#fffbe6", borderColor: "#ffe58f", label: "Thanh toán", icon: <DollarOutlined style={{ fontSize: 18 }} /> },
-    SYSTEM:          { color: "#8c8c8c", bg: "#fafafa", borderColor: "#d9d9d9", label: "Hệ thống", icon: <SoundOutlined style={{ fontSize: 18 }} /> },
+    PROPERTY_UPDATE:    { color: "#1890ff", bg: "#e6f7ff", borderColor: "#91d5ff", label: "Bất động sản", icon: <HomeOutlined style={{ fontSize: 18 }} /> },
+    ADMIN_ACTION:       { color: "#fa8c16", bg: "#fff7e6", borderColor: "#ffd591", label: "Admin", icon: <SettingOutlined style={{ fontSize: 18 }} /> },
+    RENTAL_REQUEST:     { color: "#52c41a", bg: "#f6ffed", borderColor: "#b7eb8f", label: "Yêu cầu thuê", icon: <FileTextOutlined style={{ fontSize: 18 }} /> },
+    RENTAL_REQUEST_UPDATE: { color: "#13c2c2", bg: "#e6fffb", borderColor: "#87e8de", label: "Yêu cầu thuê", icon: <FileTextOutlined style={{ fontSize: 18 }} /> },
+    CONTRACT_CREATED:   { color: "#722ed1", bg: "#f9f0ff", borderColor: "#d3adf7", label: "Hợp đồng", icon: <FileTextOutlined style={{ fontSize: 18 }} /> },
+    CONTRACT_UPDATED:   { color: "#722ed1", bg: "#f9f0ff", borderColor: "#d3adf7", label: "Hợp đồng", icon: <EditOutlined style={{ fontSize: 18 }} /> },
+    CONTRACT_SIGNED:    { color: "#722ed1", bg: "#f9f0ff", borderColor: "#d3adf7", label: "Ký hợp đồng", icon: <SafetyCertificateOutlined style={{ fontSize: 18 }} /> },
+    DEPOSIT_PAYMENT:    { color: "#eb2f96", bg: "#fff0f6", borderColor: "#ffadd2", label: "Tiền cọc", icon: <DollarOutlined style={{ fontSize: 18 }} /> },
+    PAYMENT:            { color: "#faad14", bg: "#fffbe6", borderColor: "#ffe58f", label: "Thanh toán", icon: <DollarOutlined style={{ fontSize: 18 }} /> },
+    PAYMENT_REMINDER:   { color: "#1890ff", bg: "#e6f7ff", borderColor: "#91d5ff", label: "Nhắc thanh toán", icon: <DollarOutlined style={{ fontSize: 18 }} /> },
+    PAYMENT_DUE:        { color: "#fa8c16", bg: "#fff7e6", borderColor: "#ffd591", label: "Đến hạn", icon: <DollarOutlined style={{ fontSize: 18 }} /> },
+    PAYMENT_WARNING:    { color: "#f5222d", bg: "#fff1f0", borderColor: "#ffa39e", label: "Cảnh báo", icon: <WarningOutlined style={{ fontSize: 18 }} /> },
+    PAYMENT_OVERDUE:    { color: "#f5222d", bg: "#fff1f0", borderColor: "#ffa39e", label: "Trễ hạn", icon: <CloseCircleOutlined style={{ fontSize: 18 }} /> },
+    SYSTEM:             { color: "#8c8c8c", bg: "#fafafa", borderColor: "#d9d9d9", label: "Hệ thống", icon: <SoundOutlined style={{ fontSize: 18 }} /> },
 };
+
+// Các type cảnh báo cần hiển thị màu đỏ
+const WARNING_TYPES = ['PAYMENT_WARNING', 'PAYMENT_OVERDUE'];
 
 const NotificationDropdown = () => {
     const dispatch = useAppDispatch();
@@ -33,24 +48,44 @@ const NotificationDropdown = () => {
     const [showUnread, setShowUnread] = useState(false);
     const [activeTab, setActiveTab] = useState("all");
 
-    const filteredNotifications = showUnread
-        ? notifications.filter((n) => !n.isRead)
-        : (() => {
-              if (activeTab === "all") return notifications;
-              if (activeTab === "posts")
-                  return notifications.filter(
-                      (n) =>
-                          n.type === "PROPERTY_UPDATE" ||
-                          n.type === "ADMIN_ACTION"
-                  );
-              return notifications;
-          })();
+    const filteredNotifications = useMemo(() => {
+        if (showUnread) return notifications.filter((n) => !n.isRead);
+        if (activeTab === "all") return notifications;
+        if (activeTab === "posts")
+            return notifications.filter(
+                (n) =>
+                    n.type === "PROPERTY_UPDATE" ||
+                    n.type === "ADMIN_ACTION"
+            );
+        if (activeTab === "contracts")
+            return notifications.filter(
+                (n) =>
+                    n.type === "CONTRACT_CREATED" ||
+                    n.type === "CONTRACT_UPDATED" ||
+                    n.type === "CONTRACT_SIGNED" ||
+                    n.type === "RENTAL_REQUEST" ||
+                    n.type === "RENTAL_REQUEST_UPDATE" ||
+                    n.type === "DEPOSIT_PAYMENT"
+            );
+        if (activeTab === "payments")
+            return notifications.filter(
+                (n) =>
+                    n.type === "PAYMENT" ||
+                    n.type === "PAYMENT_REMINDER" ||
+                    n.type === "PAYMENT_DUE" ||
+                    n.type === "PAYMENT_WARNING" ||
+                    n.type === "PAYMENT_OVERDUE"
+            );
+        return notifications;
+    }, [notifications, showUnread, activeTab]);
 
     const unreadCount = notifications.filter((n) => !n.isRead).length;
 
     const tabItems = [
         { key: "all", label: "Tất cả" },
         { key: "posts", label: "Tin đăng" },
+        { key: "contracts", label: "Hợp đồng" },
+        { key: "payments", label: "Thanh toán" },
     ];
 
     const handleNotificationClick = (notification: Notification) => {
@@ -65,15 +100,39 @@ const NotificationDropdown = () => {
     };
 
     const getNotificationLink = (n: Notification): string | null => {
+        // Ưu tiên dùng actionUrl từ server nếu có
+        if (n.actionUrl) {
+            return n.actionUrl;
+        }
+
         const event = n.metadata?.event;
         const propertyId = n.metadata?.propertyId;
-        if (propertyId) {
-            if (event === "ESTATE_APPROVED" || event === "ESTATE_REJECTED") {
+        const contractId = n.metadata?.contractId;
+
+        // Link theo event type
+        switch (event) {
+            case 'ESTATE_APPROVED':
+            case 'ESTATE_REJECTED':
+            case 'ESTATE_CREATED':
                 return `/dashboard/posts`;
-            }
-            return `/post/create?id=${propertyId}&mode=edit`;
+            case 'RENTAL_REQUEST_CREATED':
+            case 'RENTAL_REQUEST_REVIEWED':
+                return `/dashboard/rental-requests`;
+            case 'CONTRACT_CREATED':
+            case 'CONTRACT_SENT_TO_TENANT':
+            case 'CONTRACT_TENANT_SIGNED':
+            case 'CONTRACT_OWNER_SIGNED':
+            case 'DEPOSIT_PAID':
+                return contractId ? `/dashboard/contracts/${contractId}` : `/dashboard/contracts`;
+            case 'PAYMENT_REMINDER':
+            case 'PAYMENT_DUE':
+            case 'PAYMENT_WARNING':
+            case 'PAYMENT_OVERDUE':
+                return `/dashboard/payments`;
+            default:
+                if (propertyId) return `/post/create?id=${propertyId}&mode=edit`;
+                return null;
         }
-        return null;
     };
 
     const handleMarkAllRead = () => {
@@ -89,10 +148,10 @@ const NotificationDropdown = () => {
     const readCount = notifications.filter((n) => n.isRead).length;
 
     const handleOpen = () => {
-        setIsOpen((prev) => {
-            if (!prev) dispatch(getNotification());
-            return !prev;
-        });
+        if (!isOpen) {
+            dispatch(getNotification());
+        }
+        setIsOpen((prev) => !prev);
     };
 
     const formatDate = (dateStr: string) => {
@@ -107,6 +166,8 @@ const NotificationDropdown = () => {
 
     const getTypeConfig = (type?: string) =>
         TYPE_CONFIG[type || "SYSTEM"] || TYPE_CONFIG.SYSTEM;
+
+    const isWarningType = (type?: string) => WARNING_TYPES.includes(type || '');
 
     return (
         <div className="relative">
@@ -182,11 +243,18 @@ const NotificationDropdown = () => {
                             ) : (
                                 filteredNotifications.map((notification) => {
                                     const cfg = getTypeConfig(notification.type);
+                                    const isWarning = isWarningType(notification.type);
                                     return (
                                     <div
                                         key={notification.id}
                                         onClick={() => handleNotificationClick(notification)}
-                                        className={`flex gap-3 px-4 py-4 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors ${!notification.isRead ? "bg-blue-50/40" : ""}`}
+                                        className={`flex gap-3 px-4 py-4 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors ${
+                                            isWarning
+                                                ? "bg-red-50/60 border-l-4 border-l-red-500"
+                                                : !notification.isRead
+                                                    ? "bg-blue-50/40"
+                                                    : ""
+                                        }`}
                                     >
                                         <div className="relative flex-shrink-0">
                                             <div
@@ -201,17 +269,17 @@ const NotificationDropdown = () => {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="text-sm font-semibold text-gray-900">
+                                                <h4 className={`text-sm font-semibold ${isWarning ? 'text-red-600' : 'text-gray-900'}`}>
                                                     {notification.title}
                                                 </h4>
                                                 <span
-                                                    className="text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                                                    className="text-[10px] px-1.5 py-0.5 rounded-full font-medium whitespace-nowrap"
                                                     style={{ background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.borderColor}` }}
                                                 >
                                                     {cfg.label}
                                                 </span>
                                             </div>
-                                            <p className="text-sm text-gray-600 leading-relaxed mb-2">
+                                            <p className={`text-sm leading-relaxed mb-2 ${isWarning ? 'text-red-500 font-medium' : 'text-gray-600'}`}>
                                                 {notification.body}
                                             </p>
                                             <span className="text-xs text-gray-400">

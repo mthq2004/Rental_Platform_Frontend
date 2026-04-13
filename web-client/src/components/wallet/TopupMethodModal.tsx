@@ -70,7 +70,7 @@ export function TopupMethodModal({
         </Button>,
       ]}
       width={620}
-      destroyOnClose
+      destroyOnHidden
     >
       <div className="space-y-4">
         <div className="rounded-2xl border border-[#E9E6FF] bg-gradient-to-r from-[#F7F5FF] via-white to-[#EEF3FF] p-4">

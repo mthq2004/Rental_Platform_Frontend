@@ -500,7 +500,7 @@ export default function WalletDashboardPage() {
               precision={0}
               formatter={(value) => formatCurrency(Number(value))}
               prefix={<DollarCircleOutlined className="text-[#315DD4]" />}
-              valueStyle={{ color: "#1E3FA0", fontWeight: 700 }}
+              styles={{ content: { color: "#1E3FA0", fontWeight: 700 } }}
             />
             <div className="mt-3 flex items-center gap-4 text-sm">
               <Text className="text-green-600"><ArrowUpOutlined /> Vào: {formatCurrency(totalIn)}</Text>
@@ -622,7 +622,7 @@ export default function WalletDashboardPage() {
         okText="Tiếp tục"
         confirmLoading={topupLoading}
         width={620}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={topupForm} layout="vertical" initialValues={{ amount: 25000 }}>
           <div className="mb-5 rounded-2xl border border-[#EBEEFF] bg-gradient-to-r from-[#F8F7FF] via-white to-[#F1F5FF] p-4">
@@ -713,7 +713,7 @@ export default function WalletDashboardPage() {
         onOk={handleWithdraw}
         okText="Gửi yêu cầu"
         confirmLoading={withdrawActionLoading}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={withdrawForm} layout="vertical">
           <div className="mb-3 rounded-xl border border-[#E8E6FF] bg-[#F8F9FF] px-4 py-3 text-sm text-[#4A4F8A]">

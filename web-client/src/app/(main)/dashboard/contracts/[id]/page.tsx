@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { App, Avatar, Button, Card, Col, DatePicker, Descriptions, Divider, Empty, Form, Input, InputNumber, Modal, Progress, Row, Select, Space, Spin, Tag, Timeline, Typography } from "antd";
+import { Alert, App, Avatar, Button, Card, Col, DatePicker, Descriptions, Divider, Empty, Form, Input, InputNumber, Modal, Progress, Radio, Row, Select, Space, Spin, Tag, Timeline, Typography } from "antd";
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -18,6 +18,8 @@ import {
   UserOutlined,
   EnvironmentOutlined,
   SafetyCertificateOutlined,
+  SendOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
@@ -35,8 +37,15 @@ import {
   createReport,
   getReportsByContract,
   updateReportStatus,
+  sendContractToTenant,
 } from "@/stores/slices/contract.slice";
 import { createConversation } from "@/stores/slices/conversation.slice";
+import {
+  handleSignResult,
+  resetSmartCAState,
+  signContract,
+  tickSmartCARemaining,
+} from "@/stores/slices/smartca.slice";
 import { getPropertyDetailThunk } from "@/stores/slices/estate.slice";
 import type {
   Payment,
@@ -241,6 +250,8 @@ const getContractProgress = (contract?: RentalContract | null) => {
   return Math.max(0, Math.min(100, Math.round((passedDays / totalDays) * 100)));
 };
 
+const SMARTCA_POLLING_MS = 4000;
+
 export default function ContractDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -265,6 +276,7 @@ export default function ContractDetailPage() {
     reportActionLoading,
   } = useAppSelector((state) => state.contract);
   const { detail: propertyDetail } = useAppSelector((state) => state.estate);
+  const smartca = useAppSelector((state) => state.smartca);
 
   const [payOpen, setPayOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState("other");
@@ -282,6 +294,11 @@ export default function ContractDetailPage() {
   const [showOwnerPhone, setShowOwnerPhone] = useState(false);
   const [tenantUser, setTenantUser] = useState<ReturnType<typeof normalizeUser> | null>(null);
   const [ownerUser, setOwnerUser] = useState<ReturnType<typeof normalizeUser> | null>(null);
+  const [smartCAModalOpen, setSmartCAModalOpen] = useState(false);
+  const [signingRole, setSigningRole] = useState<"OWNER" | "TENANT" | null>(null);
+  const finalizedRef = useRef(false);
+
+  const hasActiveSigningSession = Boolean(smartca.transactionId) && ["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus);
 
   useEffect(() => {
     if (!contractId) return;
@@ -437,6 +454,110 @@ export default function ContractDetailPage() {
       },
     });
   };
+
+  const handleSendToTenant = () => {
+    if (!contract) return;
+    modal.confirm({
+      title: "Gửi hợp đồng cho người thuê",
+      icon: <SendOutlined />,
+      content: "Hợp đồng sẽ được gửi cho người thuê để ký. Bạn có chắc chắn?",
+      okText: "Gửi hợp đồng",
+      cancelText: "Hủy",
+      onOk: async () => {
+        try {
+          await dispatch(sendContractToTenant(contract.rentalId)).unwrap();
+          message.success("Đã gửi hợp đồng cho người thuê");
+          handleRefresh();
+        } catch (error: any) {
+          message.error(error || "Gửi thất bại");
+        }
+      },
+    });
+  };
+
+  const handleTenantSign = () => {
+    if (!contractId) return;
+    if (hasActiveSigningSession) {
+      setSmartCAModalOpen(true);
+      return;
+    }
+    finalizedRef.current = false;
+    dispatch(resetSmartCAState());
+    setSigningRole("TENANT");
+    setSmartCAModalOpen(true);
+  };
+
+  const handleOwnerSign = () => {
+    if (!contractId) return;
+    if (hasActiveSigningSession) {
+      setSmartCAModalOpen(true);
+      return;
+    }
+    finalizedRef.current = false;
+    dispatch(resetSmartCAState());
+    setSigningRole("OWNER");
+    setSmartCAModalOpen(true);
+  };
+
+  const handleStartSmartCASign = async () => {
+    if (!contractId) return;
+    try {
+      const result = await dispatch(signContract(contractId)).unwrap();
+      if ((result as any)?.resumed) {
+        message.info("Đã tiếp tục phiên ký SmartCA đang chờ xác nhận");
+      } else {
+        message.info("Vui lòng mở ứng dụng SmartCA VNPT để xác nhận ký hợp đồng");
+      }
+    } catch (err: any) {
+      message.error(err || "Không thể khởi tạo phiên ký SmartCA");
+    }
+  };
+
+  const handleCloseSmartCAModal = () => {
+    setSmartCAModalOpen(false);
+    if (["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus) && smartca.transactionId) {
+      return;
+    }
+    setSigningRole(null);
+    finalizedRef.current = false;
+    dispatch(resetSmartCAState());
+  };
+
+  // SmartCA countdown
+  useEffect(() => {
+    if (!smartCAModalOpen || !smartca.transactionId || !["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus)) return;
+    const timer = setInterval(() => { dispatch(tickSmartCARemaining()); }, 1000);
+    return () => clearInterval(timer);
+  }, [dispatch, smartCAModalOpen, smartca.transactionId, smartca.signStatus]);
+
+  // SmartCA polling
+  useEffect(() => {
+    if (!smartCAModalOpen || !smartca.transactionId || !["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus)) return;
+    const poll = () => dispatch(handleSignResult(smartca.transactionId!));
+    poll();
+    const intervalId = setInterval(poll, SMARTCA_POLLING_MS);
+    return () => clearInterval(intervalId);
+  }, [dispatch, smartCAModalOpen, smartca.transactionId, smartca.signStatus]);
+
+  // SmartCA result handler
+  useEffect(() => {
+    if (!smartCAModalOpen || !contractId) return;
+    if (finalizedRef.current) return;
+    if (smartca.signStatus === "SIGNED") {
+      finalizedRef.current = true;
+      message.success(signingRole === "OWNER" ? "Chủ nhà đã ký hợp đồng thành công" : "Người thuê đã ký hợp đồng thành công");
+      handleRefresh();
+      setTimeout(() => { handleCloseSmartCAModal(); }, 800);
+      return;
+    }
+    if (smartca.signStatus === "REJECTED") { finalizedRef.current = true; message.warning("Bạn đã từ chối ký hợp đồng"); return; }
+    if (smartca.signStatus === "EXPIRED") { finalizedRef.current = true; message.error("Phiên ký đã hết hạn, vui lòng thử lại"); return; }
+    if (smartca.signStatus === "ERROR") { finalizedRef.current = true; message.error(smartca.error || "Ký SmartCA thất bại"); }
+  }, [smartca.signStatus, smartCAModalOpen, contractId, signingRole, handleRefresh, message, smartca.error]);
+
+  const progressPercent = smartca.initialExpiredIn > 0
+    ? Math.max(0, Math.min(100, (smartca.expiredIn / smartca.initialExpiredIn) * 100))
+    : 0;
 
   const openPaymentModal = () => {
     if (!currentPayment) return;
@@ -622,7 +743,7 @@ export default function ContractDetailPage() {
     () =>
       (contract?.signatureLog || []).map((log) => ({
         color: log.action.includes("SIGNED") || log.action === "ACTIVATED" ? "green" : log.action === "CANCELLED" ? "red" : "blue",
-        children: (
+        content: (
           <div className="flex flex-col gap-1">
             <span className="font-medium text-slate-700">
               {SIGNATURE_ACTION_LABELS[log.action] || log.action.replace(/_/g, " ")}
@@ -654,94 +775,192 @@ export default function ContractDetailPage() {
   } else {
     const sidebarImage = getPropertyImage(property);
     content = (
-      <div className="space-y-6 pb-6">
-      <div className="rounded-[28px] bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-6 py-6 text-white shadow-xl shadow-slate-900/10">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="space-y-8 -m-6 p-6 pb-8 bg-white">
+      <div
+        className="relative rounded-[28px] px-8 py-8 text-white shadow-xl overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #0B1B3B 0%, #102454 50%, #1B3A7A 100%)" }}
+      >
+        {/* Subtle background texture */}
+        <div
+          className="absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: "radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 20%, #fff 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
+          }}
+        />
+
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
-            <Button ghost icon={<ArrowLeftOutlined />} onClick={() => router.back()} className="border-white/20 text-white hover:border-white/40 hover:text-white">
+            <Button
+              ghost
+              icon={<ArrowLeftOutlined />}
+              onClick={() => router.back()}
+              className="border-white/20 text-white hover:border-white/40 hover:text-white"
+            >
               Quay lại danh sách
             </Button>
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold tracking-[0.18em] uppercase text-slate-100">
-                <FileTextOutlined />
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-[11px] font-semibold tracking-widest uppercase text-white/90">
+                <FileTextOutlined className="text-[10px]" />
                 Contract Detail
               </div>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight">{contract.contractCode}</h1>
-              <p className="mt-2 max-w-3xl text-sm text-slate-300">
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
                 Trang chi tiết hợp đồng, theo dõi tiến trình ký kết, kích hoạt và thanh toán theo dữ liệu thực từ hệ thống.
               </p>
             </div>
           </div>
 
-          <Space wrap>
+          <Space wrap className="shrink-0">
             {(contract.signedContractUrl || contract.contractPdfUrl) && (
               <>
-                <Button icon={<DownloadOutlined />} href={contract.signedContractUrl || contract.contractPdfUrl || undefined} target="_blank">
-                  Tải PDF {contract.signedContractUrl ? '(có chữ ký số)' : ''}
+                <Button
+                  icon={<DownloadOutlined />}
+                  href={contract.signedContractUrl || contract.contractPdfUrl || undefined}
+                  target="_blank"
+                  className="rounded-lg border-white/25 text-white bg-white/10 hover:bg-white/20 hover:border-white/40 shadow-none h-9 px-4"
+                >
+                  Tải PDF {contract.signedContractUrl ? '(có chữ ký số)' : '(không chữ ký số)'}
                 </Button>
                 {contract.signedContractUrl && contract.contractPdfUrl && (
-                  <Button icon={<DownloadOutlined />} href={contract.contractPdfUrl} target="_blank">
+                  <Button
+                    icon={<DownloadOutlined />}
+                    href={contract.contractPdfUrl}
+                    target="_blank"
+                    className="rounded-lg border-white/25 text-white bg-white/10 hover:bg-white/20 hover:border-white/40 shadow-none h-9 px-4"
+                  >
                     Tải PDF (không chữ ký số)
                   </Button>
                 )}
               </>
             )}
-            <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={contractsLoading || paymentsLoading}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={handleRefresh}
+              loading={contractsLoading || paymentsLoading}
+              className="rounded-lg border-white/25 text-white bg-white/10 hover:bg-white/20 hover:border-white/40 shadow-none h-9 px-4"
+            >
               Làm mới
             </Button>
+            {contract.status === "draft" && isOwnerSide && (
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                onClick={handleSendToTenant}
+                loading={actionLoading}
+                className="rounded-lg h-9 px-4 shadow-none font-medium"
+                style={{ background: "#2563eb", borderColor: "#2563eb" }}
+              >
+                Gửi cho người thuê
+              </Button>
+            )}
+            {contract.status === "pending_tenant" && isTenantSide && (
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={handleTenantSign}
+                loading={actionLoading}
+                className="rounded-lg h-9 px-4 shadow-none font-medium"
+                style={{ background: "#2563eb", borderColor: "#2563eb" }}
+              >
+                Ký hợp đồng
+              </Button>
+            )}
+            {(contract.status === "tenant_signed" || contract.status === "pending_landlord") && isOwnerSide && (
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={handleOwnerSign}
+                loading={actionLoading}
+                className="rounded-lg h-9 px-4 shadow-none font-medium"
+                style={{ background: "#2563eb", borderColor: "#2563eb" }}
+              >
+                Ký hợp đồng
+              </Button>
+            )}
+            {contract.status === "owner_signed" && isTenantSide && (
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={handleTenantSign}
+                loading={actionLoading}
+                className="rounded-lg h-9 px-4 shadow-none font-medium"
+                style={{ background: "#2563eb", borderColor: "#2563eb" }}
+              >
+                Ký hợp đồng
+              </Button>
+            )}
             {contract.status === "fully_signed" && isOwnerSide && (
-              <Button type="primary" icon={<CheckCircleOutlined />} onClick={handleActivate} loading={actionLoading}>
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={handleActivate}
+                loading={actionLoading}
+                className="rounded-lg h-9 px-4 shadow-none font-medium"
+                style={{ background: "#2563eb", borderColor: "#2563eb" }}
+              >
                 Kích hoạt hợp đồng
               </Button>
             )}
             {canPay && (
-              <Button type="primary" icon={<WalletOutlined />} onClick={openPaymentModal} loading={actionLoading}>
+              <Button
+                type="primary"
+                icon={<WalletOutlined />}
+                onClick={openPaymentModal}
+                loading={actionLoading}
+                className="rounded-lg h-9 px-4 shadow-none font-medium"
+                style={{ background: "#2563eb", borderColor: "#2563eb" }}
+              >
                 Thanh toán ngay
               </Button>
             )}
           </Space>
         </div>
 
-        <Row gutter={[16, 16]} className="mt-6">
-          <Col xs={24} sm={12} lg={6}>
-            <Card variant="borderless" className="rounded-2xl bg-white/10 text-white">
-              <Text className="text-xs uppercase tracking-[0.16em] text-slate-300">Trạng thái hợp đồng</Text>
-              <div className="mt-2 flex items-center gap-2">
-                <Tag color={contractStatus?.color || "default"} icon={contractStatus?.icon} className="m-0 border-0">
-                  {contractStatus?.label || contract.status}
-                </Tag>
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card variant="borderless" className="rounded-2xl bg-white/10 text-white">
-              <Text className="text-xs uppercase tracking-[0.16em] text-slate-300">Thanh toán</Text>
-              <div className="mt-2 flex items-center gap-2">
-                <Tag color={paymentStatus.color} icon={paymentStatus.icon} className="m-0 border-0">
-                  {paymentStatus.label}
-                </Tag>
-              </div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card variant="borderless" className="rounded-2xl bg-white/10 text-white">
-              <Text className="text-xs uppercase tracking-[0.16em] text-slate-300">Tiền thuê / tháng</Text>
-              <div className="mt-2 text-2xl font-semibold">{formatMoney(contract.monthlyRent)}</div>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card variant="borderless" className="rounded-2xl bg-white/10 text-white">
-              <Text className="text-xs uppercase tracking-[0.16em] text-slate-300">Tiến độ hợp đồng</Text>
-              <Progress percent={getContractProgress(contract)} showInfo={false} strokeColor="#60a5fa" trailColor="rgba(255,255,255,0.15)" className="mt-3" />
-            </Card>
-          </Col>
-        </Row>
+        <div className="relative mt-7 grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div
+            className="rounded-xl px-5 py-4"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
+          >
+            <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Trạng thái hợp đồng</p>
+            <div className="flex items-center gap-2">
+              <Tag color={contractStatus?.color || "default"} icon={contractStatus?.icon} className="m-0 border-0">
+                {contractStatus?.label || contract.status}
+              </Tag>
+            </div>
+          </div>
+          <div
+            className="rounded-xl px-5 py-4"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
+          >
+            <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Thanh toán</p>
+            <div className="flex items-center gap-2">
+              <Tag color={paymentStatus.color} icon={paymentStatus.icon} className="m-0 border-0">
+                {paymentStatus.label}
+              </Tag>
+            </div>
+          </div>
+          <div
+            className="rounded-xl px-5 py-4"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
+          >
+            <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Tiền thuê / tháng</p>
+            <p className="text-xl font-semibold text-white leading-none">{formatMoney(contract.monthlyRent)}</p>
+          </div>
+          <div
+            className="rounded-xl px-5 py-4"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
+          >
+            <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Tiến độ hợp đồng</p>
+            <Progress percent={getContractProgress(contract)} showInfo={false} strokeColor="#60a5fa" railColor="rgba(255,255,255,0.15)" className="mt-1" />
+          </div>
+        </div>
       </div>
 
-      <Row gutter={[24, 24]} align="top">
+      <Row gutter={[24, 32]} align="top">
         <Col xs={24} xl={16}>
-          <div className="space-y-6">
-            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+          <div className="space-y-8 pb-2">
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tổng quan hợp đồng</Text>
@@ -773,9 +992,9 @@ export default function ContractDetailPage() {
                 <Descriptions.Item label="Phí internet">{formatMoney(contract.internetFee || 0)}</Descriptions.Item>
                 <Descriptions.Item label="Phí trễ hạn">{formatMoney(contract.lateFeePerDay || 0)}</Descriptions.Item>
               </Descriptions>
-            </Card>
+            </div>
 
-            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử thanh toán</Text>
@@ -836,9 +1055,9 @@ export default function ContractDetailPage() {
                   <Empty description="Chưa có dữ liệu thanh toán cho hợp đồng này" />
                 )}
               </div>
-            </Card>
+            </div>
 
-            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Chấm dứt hợp đồng</Text>
@@ -891,9 +1110,9 @@ export default function ContractDetailPage() {
                 )}
                 {terminationLoading && <Text className="text-xs text-slate-400">Đang tải yêu cầu...</Text>}
               </div>
-            </Card>
+            </div>
 
-            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Khiếu nại</Text>
@@ -940,18 +1159,18 @@ export default function ContractDetailPage() {
                 )}
                 {reportsLoading && <Text className="text-xs text-slate-400">Đang tải khiếu nại...</Text>}
               </div>
-            </Card>
+            </div>
 
-            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
               <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử ký kết</Text>
               <h3 className="mt-2 text-xl font-semibold text-slate-900">Dòng thời gian xử lý hợp đồng</h3>
               <div className="mt-6">
                 {timelineItems.length ? <Timeline items={timelineItems} /> : <Empty description="Chưa có sự kiện ký kết nào" />}
               </div>
-            </Card>
+            </div>
 
             {/* Trạng thái chữ ký số */}
-            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
               <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Chữ ký số</Text>
               <h3 className="mt-2 text-xl font-semibold text-slate-900">Trạng thái chữ ký điện tử</h3>
               <div className="mt-6 space-y-4">
@@ -1016,13 +1235,13 @@ export default function ContractDetailPage() {
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           </div>
         </Col>
 
         <Col xs={24} xl={8}>
-          <div className="space-y-6">
-            <Card className="overflow-hidden rounded-3xl shadow-sm" styles={{ body: { padding: 0 } }}>
+          <div className="space-y-8">
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="relative h-56 w-full bg-slate-100">
                 {sidebarImage ? (
                   <img src={sidebarImage} alt={getPropertyTitle(property)} className="h-full w-full object-cover" />
@@ -1113,9 +1332,9 @@ export default function ContractDetailPage() {
                   </div>
                 </div>
               </div>
-            </Card>
+            </div>
 
-            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
               <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Thanh toán hiện tại</Text>
               <h3 className="mt-2 text-xl font-semibold text-slate-900">{paymentStatus.label}</h3>
 
@@ -1151,9 +1370,9 @@ export default function ContractDetailPage() {
                   <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có kỳ thanh toán nào" />
                 )}
               </div>
-            </Card>
+            </div>
 
-            <Card className="rounded-3xl shadow-sm" styles={{ body: { padding: 24 } }}>
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
               <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Thông tin nhanh</Text>
               <div className="mt-4 space-y-3 text-sm text-slate-600">
                 <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
@@ -1173,7 +1392,7 @@ export default function ContractDetailPage() {
                   <span className="font-medium text-slate-900">{formatMoney(contract.managementFee || 0)}</span>
                 </div>
               </div>
-            </Card>
+            </div>
           </div>
         </Col>
       </Row>
@@ -1307,7 +1526,117 @@ export default function ContractDetailPage() {
         payment={invoicePayment}
         items={invoiceItems}
         contract={contract}
+        tenantName={tenantDisplayName !== "Chưa có thông tin" ? tenantDisplayName : undefined}
+        tenantPhone={getUserPhone(tenantInfo) !== "Chưa có SĐT" ? getUserPhone(tenantInfo) : undefined}
+        ownerName={ownerDisplayName !== "Chưa có thông tin" ? ownerDisplayName : undefined}
+        propertyTitle={getPropertyTitle(property)}
+        propertyAddress={getPropertyAddress(property)}
       />
+
+      {/* SmartCA Signing Modal */}
+      <Modal
+        open={smartCAModalOpen}
+        onCancel={handleCloseSmartCAModal}
+        footer={null}
+        title="Ký hợp đồng bằng SmartCA"
+        width={540}
+        destroyOnHidden
+      >
+        {!smartca.transactionId && (
+          <div className="space-y-4">
+            <Radio.Group value="smartca" className="w-full">
+              <div className="border border-slate-200 rounded-xl px-4 py-3.5 hover:border-blue-400 transition-colors">
+                <Radio value="smartca">
+                  <span className="font-medium text-slate-700">SmartCA (VNPT)</span>
+                </Radio>
+              </div>
+            </Radio.Group>
+            <Alert
+              type="info"
+              showIcon
+              title={
+                <span className="text-sm text-slate-600">
+                  Sau khi xác nhận, vui lòng mở ứng dụng SmartCA VNPT để hoàn tất ký hợp đồng.
+                </span>
+              }
+              className="rounded-xl border-blue-100 bg-blue-50"
+            />
+            <div className="flex justify-end gap-2.5 pt-1">
+              <Button onClick={handleCloseSmartCAModal} className="rounded-lg h-9 px-5">Hủy</Button>
+              <Button
+                type="primary"
+                loading={smartca.loading}
+                onClick={handleStartSmartCASign}
+                className="rounded-lg h-9 px-5"
+              >
+                Xác nhận ký
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {smartca.transactionId && (
+          <div className="space-y-4">
+            <Alert
+              type={
+                smartca.signStatus === "SIGNED" ? "success"
+                  : ["REJECTED", "EXPIRED", "ERROR"].includes(smartca.signStatus) ? "error"
+                  : "info"
+              }
+              showIcon
+              title={
+                <span className="font-medium text-sm">
+                  {smartca.signStatus === "SIGNED" ? "Ký thành công"
+                    : smartca.signStatus === "REJECTED" ? "Bạn đã từ chối ký hợp đồng"
+                    : smartca.signStatus === "EXPIRED" ? "Phiên ký đã hết hạn, vui lòng thử lại"
+                    : smartca.signStatus === "ERROR" ? smartca.error || "Có lỗi xảy ra khi ký SmartCA"
+                    : "Đang chờ xác nhận..."}
+                </span>
+              }
+              description={
+                <span className="text-[13px] text-slate-500">
+                  {smartca.signStatus === "SIGNED"
+                    ? "Hệ thống đang cập nhật lại trạng thái hợp đồng."
+                    : "Bạn có thể tạm đóng cửa sổ này. Khi mở lại sẽ tiếp tục hiển thị tiến trình ký."}
+                </span>
+              }
+              className="rounded-xl"
+            />
+
+            {["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus) && (
+              <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-5 py-4">
+                <div className="flex items-center gap-2.5 text-blue-600 mb-2">
+                  <Spin size="small" />
+                  <Text className="text-blue-600 text-sm font-medium">
+                    Đang chờ xác nhận trên ứng dụng SmartCA...
+                  </Text>
+                </div>
+                <Text className="block text-[13px] text-blue-500 mb-2.5">
+                  Thời gian còn lại: {Math.max(0, smartca.expiredIn)} giây
+                </Text>
+                <Progress
+                  percent={progressPercent}
+                  showInfo={false}
+                  strokeColor="#3b82f6"
+                  railColor="#dbeafe"
+                  status="active"
+                  strokeLinecap="round"
+                />
+              </div>
+            )}
+
+            <div className="flex justify-end pt-1">
+              <Button
+                type={["SIGNED", "REJECTED", "EXPIRED", "ERROR"].includes(smartca.signStatus) ? "primary" : "default"}
+                onClick={handleCloseSmartCAModal}
+                className="rounded-lg h-9 px-5"
+              >
+                Đóng
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </>
   );
 }

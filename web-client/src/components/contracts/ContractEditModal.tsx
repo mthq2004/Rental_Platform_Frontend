@@ -63,7 +63,6 @@ export default function ContractEditModal({
       onOk={onSubmit}
       confirmLoading={actionLoading}
       destroyOnHidden
-      forceRender
       width={720}
       centered
       className="professional-modal"

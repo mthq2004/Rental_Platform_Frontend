@@ -121,7 +121,7 @@ const StatisticsPage = () => {
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <Card className="enterprise-kpi-card" variant="borderless">
-            <Statistic title="Giao dịch thất bại" value={metrics.revenue.giaoDichThatBai} formatter={(v) => num.format(Number(v))} valueStyle={{ color: "#dc2626" }} />
+            <Statistic title="Giao dịch thất bại" value={metrics.revenue.giaoDichThatBai} formatter={(v) => num.format(Number(v))} styles={{ content: { color: "#dc2626" } }} />
           </Card>
         </Col>
       </Row>
@@ -241,12 +241,12 @@ const StatisticsPage = () => {
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={8}>
           <Card className="enterprise-kpi-card" variant="borderless">
-            <Statistic title="Tin bị report" value={metrics.moderation.tinBiReport} formatter={(v) => num.format(Number(v))} valueStyle={{ color: "#dc2626" }} />
+            <Statistic title="Tin bị report" value={metrics.moderation.tinBiReport} formatter={(v) => num.format(Number(v))} styles={{ content: { color: "#dc2626" } }} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
           <Card className="enterprise-kpi-card" variant="borderless">
-            <Statistic title="User bị khóa" value={metrics.moderation.userBiKhoa} formatter={(v) => num.format(Number(v))} valueStyle={{ color: "#f97316" }} />
+            <Statistic title="User bị khóa" value={metrics.moderation.userBiKhoa} formatter={(v) => num.format(Number(v))} styles={{ content: { color: "#f97316" } }} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>

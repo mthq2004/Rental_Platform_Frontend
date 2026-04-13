@@ -59,7 +59,7 @@ const TemplateModal = ({
       cancelText="Hủy"
       confirmLoading={confirmLoading}
       width={820}
-      destroyOnClose
+      destroyOnHidden
       centered
       maskClosable={false}
       styles={{ body: { maxHeight: "70vh", overflowY: "auto", paddingTop: 10 } }}

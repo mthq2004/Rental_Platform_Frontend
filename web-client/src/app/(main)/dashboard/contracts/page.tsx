@@ -678,7 +678,7 @@ export default function ContractsPage() {
             <Alert
               type="info"
               showIcon
-              message={
+              title={
                 <span className="text-sm text-slate-600">
                   Sau khi xác nhận, vui lòng mở ứng dụng SmartCA VNPT để hoàn tất ký hợp đồng.
                 </span>
@@ -708,7 +708,7 @@ export default function ContractsPage() {
                   : "info"
               }
               showIcon
-              message={
+              title={
                 <span className="font-medium text-sm">
                   {smartca.signStatus === "SIGNED" ? "Ký thành công"
                     : smartca.signStatus === "REJECTED" ? "Bạn đã từ chối ký hợp đồng"
@@ -742,7 +742,7 @@ export default function ContractsPage() {
                   percent={progressPercent}
                   showInfo={false}
                   strokeColor="#3b82f6"
-                  trailColor="#dbeafe"
+                  railColor="#dbeafe"
                   status="active"
                   strokeLinecap="round"
                 />

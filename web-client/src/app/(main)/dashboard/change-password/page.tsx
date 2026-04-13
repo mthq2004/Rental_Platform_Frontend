@@ -65,7 +65,7 @@ export default function ChangePasswordPage() {
             type="info"
             icon={<InfoCircleOutlined className="text-lg" />}
             showIcon
-            message={
+            title={
               <span className="font-semibold text-base">
                 {authProvider === "google" ? "Tài khoản Google" : "Tài khoản Facebook"}
               </span>

@@ -10,6 +10,8 @@ export interface Notification {
     createdAt: string;
     type?: string;
     metadata?: Record<string, any>;
+    actionUrl?: string;
+    priority?: string;
 }
 
 interface NotificationState {

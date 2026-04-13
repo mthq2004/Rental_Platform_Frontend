@@ -274,17 +274,17 @@ const ComplaintPage = () => {
             </Col>
             <Col xs={12} sm={6}>
               <Card className="enterprise-panel" variant="borderless" style={{ textAlign: "center" }}>
-                <Statistic title="Mới / Chờ xử lý" value={stats.open + stats.admin} valueStyle={{ color: "#dc2626" }} prefix={<WarningOutlined />} />
+                <Statistic title="Mới / Chờ xử lý" value={stats.open + stats.admin} styles={{ content: { color: "#dc2626" } }} prefix={<WarningOutlined />} />
               </Card>
             </Col>
             <Col xs={12} sm={6}>
               <Card className="enterprise-panel" variant="borderless" style={{ textAlign: "center" }}>
-                <Statistic title="Đang thương lượng" value={stats.negotiating} valueStyle={{ color: "#f97316" }} prefix={<ClockCircleOutlined />} />
+                <Statistic title="Đang thương lượng" value={stats.negotiating} styles={{ content: { color: "#f97316" } }} prefix={<ClockCircleOutlined />} />
               </Card>
             </Col>
             <Col xs={12} sm={6}>
               <Card className="enterprise-panel" variant="borderless" style={{ textAlign: "center" }}>
-                <Statistic title="Đã giải quyết" value={stats.resolved} valueStyle={{ color: "#16a34a" }} prefix={<CheckCircleOutlined />} />
+                <Statistic title="Đã giải quyết" value={stats.resolved} styles={{ content: { color: "#16a34a" } }} prefix={<CheckCircleOutlined />} />
               </Card>
             </Col>
           </Row>
