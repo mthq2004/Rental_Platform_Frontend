@@ -6,6 +6,9 @@ import {
   Bed,
   Briefcase,
   AlertCircle,
+  MapPin,
+  Store,
+  BedSingle,
 } from 'lucide-react-native';
 
 export const PROPERTY_META: Record<
@@ -66,14 +69,14 @@ export const PROPERTY_META: Record<
 
   land: {
     label: 'Đất',
-    icon: Landmark,
+    icon: MapPin,
     amenities: ['Vị trí đẹp', 'Gần trường học', 'Gần chợ', 'Đường rộng'],
     fields: ['areaSqm', 'ownershipType'],
   },
 
   office: {
     label: 'Văn phòng / Mặt bằng kinh doanh',
-    icon: Briefcase,
+    icon: Store,
     amenities: [
       'WiFi tốc độ cao',
       'Điều hòa',
@@ -93,7 +96,7 @@ export const PROPERTY_META: Record<
 
   room: {
     label: 'Phòng trọ',
-    icon: Bed,
+    icon: BedSingle,
     amenities: [
       'Máy lạnh',
       'Nóng lạnh',

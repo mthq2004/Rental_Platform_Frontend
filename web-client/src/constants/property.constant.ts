@@ -1,11 +1,11 @@
 import { PropertyType, PropertyField } from '@/types/property.type';
 import {
-  HomeOutlined,
-  BankOutlined,
-  EnvironmentOutlined,
-  AppstoreOutlined,
-  ShopOutlined,
-} from '@ant-design/icons';
+  Home,
+  MapPin,
+  Building2,
+  Landmark,
+  HotelIcon,
+} from 'lucide-react';
 
 export const PROPERTY_META: Record<
   PropertyType,
@@ -18,7 +18,7 @@ export const PROPERTY_META: Record<
 > = {
   apartment: {
     label: 'Chung cư / Căn hộ',
-    icon: BankOutlined,
+    icon: Building2,
     amenities: [
       'Hồ bơi',
       'Phòng gym',
@@ -48,7 +48,7 @@ export const PROPERTY_META: Record<
 
   house: {
     label: 'Nhà ở',
-    icon: HomeOutlined,
+    icon: Home,
     amenities: ['Sân vườn', 'Gara ô tô', 'Sân thượng', 'An ninh'],
     fields: [
       'areaSqm',
@@ -65,14 +65,14 @@ export const PROPERTY_META: Record<
 
   land: {
     label: 'Đất',
-    icon: EnvironmentOutlined,
+    icon: MapPin,
     amenities: ['Vị trí đẹp', 'Gần trường học', 'Gần chợ', 'Đường rộng'],
     fields: ['areaSqm', 'ownershipType'],
   },
 
   office: {
     label: 'Văn phòng / Mặt bằng kinh doanh',
-    icon: ShopOutlined,
+    icon: Landmark,
     amenities: [
       'WiFi tốc độ cao',
       'Điều hòa',
@@ -92,7 +92,7 @@ export const PROPERTY_META: Record<
 
   room: {
     label: 'Phòng trọ',
-    icon: AppstoreOutlined,
+    icon: HotelIcon,
     amenities: [
       'Máy lạnh',
       'Nóng lạnh',
@@ -111,4 +111,3 @@ export const PROPERTY_META: Record<
     ],
   },
 };
-

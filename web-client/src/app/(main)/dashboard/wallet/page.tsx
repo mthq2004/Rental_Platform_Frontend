@@ -484,7 +484,7 @@ export default function WalletDashboardPage() {
               precision={0}
               formatter={(value) => formatCurrency(Number(value))}
               prefix={<ClockCircleOutlined className="text-[#1A9A5F]" />}
-              valueStyle={{ color: "#11774A", fontWeight: 700 }}
+              style={{ color: "#1A9A5F", fontWeight: 700 }}
             />
           </Card>
         </Col>

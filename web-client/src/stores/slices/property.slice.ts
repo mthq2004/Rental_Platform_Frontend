@@ -29,7 +29,7 @@ interface PropertyState {
     loading: boolean;
     loadingPropertyStatus: boolean;
     loadingProperty: boolean;
-    property: PropertyFormData | null;
+    property: PropertyData | null;
     properties: PropertyData[];
     message: PropertyMessage | null;
     statusCount: StatusCount[] | null;

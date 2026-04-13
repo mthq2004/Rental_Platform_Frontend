@@ -77,6 +77,7 @@ const initialFormData: PropertyFormData = {
   rules: [],
   status: "draft",
   approvalStatus: "pending",
+  rejectionReason: "",
 };
 
 const NUMERIC_FIELDS = new Set<keyof PropertyFormData>([

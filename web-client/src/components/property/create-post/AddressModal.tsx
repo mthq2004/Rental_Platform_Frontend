@@ -56,8 +56,11 @@ export default function AddressModal({
     }
   };
 
+  /* =========================
+     Handlers
+  ========================= */
   const handleProvinceChange = async (code: number, option: any) => {
-    setSelectedProvince({ code, name: option.children });
+    setSelectedProvince({ code, name: option.label });
     setSelectedDistrict(null);
     setSelectedWard(null);
     setDistricts([]);
@@ -75,7 +78,7 @@ export default function AddressModal({
   };
 
   const handleDistrictChange = async (code: number, option: any) => {
-    setSelectedDistrict({ code, name: option.children });
+    setSelectedDistrict({ code, name: option.label });
     setSelectedWard(null);
     setWards([]);
 
@@ -91,8 +94,14 @@ export default function AddressModal({
   };
 
   const handleWardChange = (code: number, option: any) => {
-    setSelectedWard({ code, name: option.children });
+    setSelectedWard({ code, name: option.label });
   };
+
+  /* =========================
+     Filter function (search)
+  ========================= */
+  const filterOption = (input: string, option: any) =>
+    option?.label?.toLowerCase().includes(input.toLowerCase());
 
   /* =========================
      Confirm
@@ -167,17 +176,18 @@ export default function AddressModal({
             </label>
             <Select
               size="large"
+              showSearch
+              allowClear
               className="w-full"
-              placeholder="Chọn Tỉnh/Thành phố"
+              placeholder="Tìm hoặc chọn Tỉnh/Thành phố"
               value={selectedProvince?.code}
               onChange={handleProvinceChange}
-            >
-              {provinces.map((p) => (
-                <Option key={p.code} value={p.code}>
-                  {p.name}
-                </Option>
-              ))}
-            </Select>
+              filterOption={filterOption}
+              options={provinces.map((p) => ({
+                value: p.code,
+                label: p.name,
+              }))}
+            />
           </div>
 
           {/* District */}
@@ -187,18 +197,19 @@ export default function AddressModal({
             </label>
             <Select
               size="large"
+              showSearch
+              allowClear
               className="w-full"
-              placeholder="Chọn Quận/Huyện"
+              placeholder="Tìm hoặc chọn Quận/Huyện"
               disabled={!selectedProvince}
               value={selectedDistrict?.code}
               onChange={handleDistrictChange}
-            >
-              {districts.map((d) => (
-                <Option key={d.code} value={d.code}>
-                  {d.name}
-                </Option>
-              ))}
-            </Select>
+              filterOption={filterOption}
+              options={districts.map((d) => ({
+                value: d.code,
+                label: d.name,
+              }))}
+            />
           </div>
 
           {/* Ward */}
@@ -208,18 +219,19 @@ export default function AddressModal({
             </label>
             <Select
               size="large"
+              showSearch
+              allowClear
               className="w-full"
-              placeholder="Chọn Xã/Phường"
+              placeholder="Tìm hoặc chọn Xã/Phường"
               disabled={!selectedDistrict}
               value={selectedWard?.code}
               onChange={handleWardChange}
-            >
-              {wards.map((w) => (
-                <Option key={w.code} value={w.code}>
-                  {w.name}
-                </Option>
-              ))}
-            </Select>
+              filterOption={filterOption}
+              options={wards.map((w) => ({
+                value: w.code,
+                label: w.name,
+              }))}
+            />
           </div>
 
           {/* Street */}

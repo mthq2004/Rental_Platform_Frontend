@@ -89,7 +89,8 @@ export interface PropertyFormData {
   amenities: string[];
   rules: { text: string; order: number }[];
   status: string;
-  approvalStatus: string
+  approvalStatus: string;
+  rejectionReason?: string;
 }
 
 export interface StepProps {
