@@ -238,7 +238,11 @@ export default function WalletDashboardPage() {
   const handleContinueTopup = async () => {
     try {
       const values = await topupForm.validateFields();
-      const amount = Number(values.amount);
+      const amount = Number(String(values.amount || "").replace(/,/g, ""));
+      if (!amount || Number.isNaN(amount)) {
+        message.error("Vui lòng nhập số tiền hợp lệ");
+        return;
+      }
       setSelectedTopupAmount(amount);
       setSelectedTopupMethod("momo");
       setTopupOpen(false);
@@ -665,6 +669,7 @@ export default function WalletDashboardPage() {
                 min={10000}
                 step={10000}
                 controls={false}
+                stringMode
                 placeholder="Nhập số tiền cần nạp"
                 formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
               />
