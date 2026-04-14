@@ -237,7 +237,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
           <div className="flex gap-2">
             {/* Gọi điện */}
             <a
-              href={`tel:${owner.phone?.replace(/\*/g, '') || ''}`}
+              onClick={handleChat}
               className="flex-1 flex items-center justify-center gap-1.5 border border-gray-300
                 text-gray-700 hover:border-green-400 hover:text-green-600
                 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
