@@ -47,6 +47,10 @@ interface Report {
   title: string;
   description: string;
   adminNote?: string;
+  cancelRequested?: boolean;
+  cancelRequestedBy?: string;
+  cancelRequestedAt?: string;
+  cancelledAt?: string;
   createdAt: string;
   resolvedAt?: string;
   histories: ReportHistory[];
@@ -67,6 +71,8 @@ interface ReportStats {
   negotiating: number;
   admin: number;
   resolved: number;
+  cancelRequested: number;
+  cancelled: number;
 }
 
 const money = new Intl.NumberFormat("vi-VN", {
@@ -80,6 +86,8 @@ const statusConfig: Record<string, { color: string; label: string }> = {
   negotiating: { color: "orange", label: "Đang thương lượng" },
   admin: { color: "blue", label: "Gửi admin" },
   resolved: { color: "green", label: "Đã giải quyết" },
+  cancel_requested: { color: "gold", label: "Đang chờ hủy" },
+  cancelled: { color: "default", label: "Đã hủy" },
 };
 
 const priorityConfig: Record<string, { color: string; label: string }> = {
@@ -98,7 +106,15 @@ const typeConfig: Record<string, string> = {
 
 const ComplaintPage = () => {
   const [reports, setReports] = useState<Report[]>([]);
-  const [stats, setStats] = useState<ReportStats>({ total: 0, open: 0, negotiating: 0, admin: 0, resolved: 0 });
+  const [stats, setStats] = useState<ReportStats>({
+    total: 0,
+    open: 0,
+    negotiating: 0,
+    admin: 0,
+    resolved: 0,
+    cancelRequested: 0,
+    cancelled: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -125,7 +141,15 @@ const ComplaintPage = () => {
       const url = `/contract/admin/reports${queryString ? `?${queryString}` : ""}`;
       const res = await http.get(url);
       setReports(res.data.reports || []);
-      setStats(res.data.stats || { total: 0, open: 0, negotiating: 0, admin: 0, resolved: 0 });
+      setStats(res.data.stats || {
+        total: 0,
+        open: 0,
+        negotiating: 0,
+        admin: 0,
+        resolved: 0,
+        cancelRequested: 0,
+        cancelled: 0,
+      });
     } catch {
       setReports([]);
     } finally {
@@ -168,6 +192,16 @@ const ComplaintPage = () => {
       message.error("Không thể xử lý khiếu nại");
     } finally {
       setResolving(false);
+    }
+  };
+
+  const handleApproveCancel = async (report: Report) => {
+    try {
+      await http.put(`/contract/reports/${report.id}/status`, { status: "cancelled", adminNote: "Admin duyệt hủy" });
+      message.success("Đã duyệt hủy khiếu nại");
+      fetchReports();
+    } catch {
+      message.error("Không thể duyệt hủy khiếu nại");
     }
   };
 
@@ -236,9 +270,14 @@ const ComplaintPage = () => {
           <Button size="small" icon={<EyeOutlined />} onClick={() => handleViewDetail(record)}>
             Chi tiết
           </Button>
-          {record.status !== "resolved" && (
+          {record.status !== "resolved" && record.status !== "cancelled" && (
             <Button size="small" type="primary" icon={<CheckCircleOutlined />} onClick={() => handleResolve(record)}>
               Xử lý
+            </Button>
+          )}
+          {record.status === "cancel_requested" && (
+            <Button size="small" icon={<CheckCircleOutlined />} onClick={() => handleApproveCancel(record)}>
+              Duyệt hủy
             </Button>
           )}
         </div>
@@ -274,7 +313,7 @@ const ComplaintPage = () => {
             </Col>
             <Col xs={12} sm={6}>
               <Card className="enterprise-panel" variant="borderless" style={{ textAlign: "center" }}>
-                <Statistic title="Mới / Chờ xử lý" value={stats.open + stats.admin} styles={{ content: { color: "#dc2626" } }} prefix={<WarningOutlined />} />
+                <Statistic title="Mới / Chờ xử lý" value={stats.open + stats.admin + stats.cancelRequested} styles={{ content: { color: "#dc2626" } }} prefix={<WarningOutlined />} />
               </Card>
             </Col>
             <Col xs={12} sm={6}>
@@ -312,6 +351,8 @@ const ComplaintPage = () => {
                   { value: "negotiating", label: "Đang thương lượng" },
                   { value: "admin", label: "Gửi admin" },
                   { value: "resolved", label: "Đã giải quyết" },
+                  { value: "cancel_requested", label: "Đang chờ hủy" },
+                  { value: "cancelled", label: "Đã hủy" },
                 ]}
               />
               <Select
@@ -364,9 +405,14 @@ const ComplaintPage = () => {
         onCancel={() => setDetailModalOpen(false)}
         footer={[
           <Button key="close" onClick={() => setDetailModalOpen(false)}>Đóng</Button>,
-          selectedReport?.status !== "resolved" && (
+          selectedReport?.status !== "resolved" && selectedReport?.status !== "cancelled" && (
             <Button key="resolve" type="primary" onClick={() => { setDetailModalOpen(false); handleResolve(selectedReport!); }}>
               Xử lý khiếu nại
+            </Button>
+          ),
+          selectedReport?.status === "cancel_requested" && (
+            <Button key="approve-cancel" onClick={() => { setDetailModalOpen(false); handleApproveCancel(selectedReport!); }}>
+              Duyệt hủy
             </Button>
           ),
         ]}
@@ -429,6 +475,7 @@ const ComplaintPage = () => {
             <div style={{ fontSize: 12, color: "var(--ent-subtitle)" }}>
               Ngày tạo: {new Date(selectedReport.createdAt).toLocaleString("vi-VN")}
               {selectedReport.resolvedAt && ` · Ngày giải quyết: ${new Date(selectedReport.resolvedAt).toLocaleString("vi-VN")}`}
+              {selectedReport.cancelledAt && ` · Ngày hủy: ${new Date(selectedReport.cancelledAt).toLocaleString("vi-VN")}`}
             </div>
           </div>
         )}

@@ -125,6 +125,13 @@ export default function WalletDashboardPage() {
   const [selectedTopupMethod, setSelectedTopupMethod] = useState<WalletTopupMethod>("momo");
   const topupAmount = Form.useWatch("amount", topupForm);
 
+  const parseAmountValue = (value: unknown) => {
+    if (value == null) return 0;
+    if (typeof value === "number") return value;
+    const parsed = Number(String(value).replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
   const fetchData = useCallback(
     async (
       nextPage = page,
@@ -238,7 +245,7 @@ export default function WalletDashboardPage() {
   const handleContinueTopup = async () => {
     try {
       const values = await topupForm.validateFields();
-      const amount = Number(String(values.amount || "").replace(/,/g, ""));
+      const amount = parseAmountValue(values.amount);
       if (!amount || Number.isNaN(amount)) {
         message.error("Vui lòng nhập số tiền hợp lệ");
         return;
@@ -636,7 +643,7 @@ export default function WalletDashboardPage() {
             <div className="mb-3 text-sm font-medium text-[#3C356E]">Chọn nhanh</div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {QUICK_TOPUP_AMOUNTS.map((amount) => {
-                const active = Number(topupAmount || 0) === amount;
+                const active = parseAmountValue(topupAmount) === amount;
                 return (
                   <Button
                     key={amount}
@@ -647,7 +654,9 @@ export default function WalletDashboardPage() {
                         : "bg-white border-[#E5E7F0] hover:border-[#5B5BFF]"
                       }
                     `}
-                    onClick={() => topupForm.setFieldsValue({ amount })}
+                    onClick={() => {
+                      topupForm.setFieldsValue({ amount });
+                    }}
                   >
                     {formatCurrency(amount)}
                   </Button>
@@ -672,6 +681,7 @@ export default function WalletDashboardPage() {
                 stringMode
                 placeholder="Nhập số tiền cần nạp"
                 formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                parser={(value) => String(value || "").replace(/,/g, "")}
               />
               <Input
                 size="large"

@@ -148,18 +148,21 @@ export interface TerminationRequest {
   note?: string;
   requestedTerminationDate: string;
   earlyTerminationFee?: number;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
+  status: 'pending' | 'approved' | 'rejected' | 'negotiating' | 'admin_review' | 'admin_processing' | 'resolved' | 'cancelled';
   reviewedBy?: string;
   reviewedAt?: string;
   reviewNote?: string;
+  resolution?: 'continue_contract' | 'terminate_contract';
+  resolvedBy?: string;
+  resolvedAt?: string;
   createdAt: string;
 }
 
 // Report / Dispute Types
 export type ReportType = 'payment' | 'deposit' | 'property' | 'contract' | 'other';
 export type ReportPriority = 'low' | 'medium' | 'high';
-export type ReportStatus = 'open' | 'negotiating' | 'admin' | 'resolved';
-export type ReportAction = 'CREATED' | 'NEGOTIATING' | 'SENT_TO_ADMIN' | 'RESOLVED';
+export type ReportStatus = 'open' | 'admin' | 'resolved' | 'cancel_requested' | 'cancelled' | 'negotiating';
+export type ReportAction = 'CREATED' | 'SENT_TO_ADMIN' | 'RESOLVED' | 'CANCEL_REQUESTED' | 'CANCELLED' | 'NEGOTIATING';
 
 export interface ReportHistory {
   id: string;
@@ -183,6 +186,10 @@ export interface ReportItem {
   title: string;
   description: string;
   adminNote?: string;
+  cancelRequested?: boolean;
+  cancelRequestedBy?: string;
+  cancelRequestedAt?: string;
+  cancelledAt?: string;
   createdAt: string;
   resolvedAt?: string;
   histories?: ReportHistory[];

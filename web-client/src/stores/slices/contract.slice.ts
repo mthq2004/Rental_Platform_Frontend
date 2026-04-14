@@ -389,6 +389,17 @@ export const reviewTerminationRequest = createAsyncThunk(
   }
 );
 
+export const updateTerminationStatus = createAsyncThunk(
+  "contract/updateTerminationStatus",
+  async ({ terminationId, data }: { terminationId: string; data: { status: string; resolution?: string; note?: string } }, { rejectWithValue }) => {
+    try {
+      return await http.put(`/contract/terminations/${terminationId}/status`, data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
 export const confirmPayment = createAsyncThunk(
   "contract/confirmPayment",
   async ({ paymentId, data }: { paymentId: string; data: { paymentMethod: string; paymentType?: string; transactionId?: string; transactionRef?: string; paidAmount?: number } }, { rejectWithValue }) => {
@@ -588,6 +599,11 @@ export const contractSlice = createSlice({
       .addCase(reviewTerminationRequest.pending, (state) => { state.terminationActionLoading = true; })
       .addCase(reviewTerminationRequest.fulfilled, (state) => { state.terminationActionLoading = false; })
       .addCase(reviewTerminationRequest.rejected, (state) => { state.terminationActionLoading = false; });
+
+    builder
+      .addCase(updateTerminationStatus.pending, (state) => { state.terminationActionLoading = true; })
+      .addCase(updateTerminationStatus.fulfilled, (state) => { state.terminationActionLoading = false; })
+      .addCase(updateTerminationStatus.rejected, (state) => { state.terminationActionLoading = false; });
 
     builder
       .addCase(confirmPayment.pending, (state) => { state.actionLoading = true; })

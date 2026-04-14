@@ -34,6 +34,7 @@ import {
   createTerminationRequest,
   getTerminationRequests,
   reviewTerminationRequest,
+  updateTerminationStatus,
   createReport,
   getReportsByContract,
   updateReportStatus,
@@ -147,14 +148,20 @@ const TERMINATION_STATUS_LABELS: Record<TerminationRequest["status"], { label: s
   pending: { label: "Đang chờ", color: "processing" },
   approved: { label: "Đã chấp thuận", color: "success" },
   rejected: { label: "Bị từ chối", color: "error" },
+  negotiating: { label: "Đang thương lượng", color: "warning" },
+  admin_review: { label: "Chờ admin xem xét", color: "purple" },
+  admin_processing: { label: "Admin đang xử lý", color: "geekblue" },
+  resolved: { label: "Đã giải quyết", color: "success" },
   cancelled: { label: "Đã hủy", color: "default" },
 };
 
 const REPORT_STATUS_LABELS: Record<ReportStatus, { label: string; color: string }> = {
   open: { label: "Mới tạo", color: "processing" },
-  negotiating: { label: "Đang thương lượng", color: "warning" },
   admin: { label: "Chờ admin xử lý", color: "purple" },
   resolved: { label: "Đã giải quyết", color: "success" },
+  cancel_requested: { label: "Đang chờ hủy", color: "gold" },
+  cancelled: { label: "Đã hủy", color: "default" },
+  negotiating: { label: "Đang thương lượng", color: "warning" },
 };
 
 const REPORT_TYPE_LABELS: Record<ReportType, string> = {
@@ -289,6 +296,13 @@ export default function ContractDetailPage() {
   const [reviewForm] = Form.useForm();
   const [reportOpen, setReportOpen] = useState(false);
   const [reportForm] = Form.useForm();
+  const [reportDetailOpen, setReportDetailOpen] = useState(false);
+  const [reportDetailItem, setReportDetailItem] = useState<ReportItem | null>(null);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [terminationUpdateOpen, setTerminationUpdateOpen] = useState(false);
+  const [terminationUpdateForm] = Form.useForm();
+  const [terminationDetailOpen, setTerminationDetailOpen] = useState(false);
+  const [terminationDetailItem, setTerminationDetailItem] = useState<TerminationRequest | null>(null);
   const [selectedReport, setSelectedReport] = useState<ReportItem | null>(null);
   const [showTenantPhone, setShowTenantPhone] = useState(false);
   const [showOwnerPhone, setShowOwnerPhone] = useState(false);
@@ -366,16 +380,25 @@ export default function ContractDetailPage() {
     [terminationRequests]
   );
   const latestTermination = terminationList[0] || null;
-  const hasPendingTermination = terminationList.some((item) => item.status === "pending");
-  const canRequestTermination = contract?.status === "active" && !hasPendingTermination;
-  const canReviewTermination = Boolean(
-    latestTermination && latestTermination.status === "pending" && latestTermination.requestedBy !== user?.id
-  );
   const reportItems = useMemo(
     () => (Array.isArray(reports) ? reports.filter((item) => item.rentalId === contractId) : []),
     [contractId, reports]
   );
   const latestReport = reportItems[0] || null;
+  const isAdminReportBlocking = Boolean(latestReport && ["open", "admin", "cancel_requested"].includes(latestReport.status));
+  const activeTerminationStatuses: TerminationRequest["status"][] = [
+    "pending",
+    "rejected",
+    "negotiating",
+    "admin_review",
+    "admin_processing",
+  ];
+  const hasActiveTermination = Boolean(latestTermination && activeTerminationStatuses.includes(latestTermination.status));
+  const isTerminationAdminBlocking = Boolean(latestTermination && ["admin_review", "admin_processing"].includes(latestTermination.status));
+  const canRequestTermination = contract?.status === "active" && !hasActiveTermination && !isTerminationAdminBlocking && !isAdminReportBlocking;
+  const canReviewTermination = Boolean(
+    latestTermination && latestTermination.status === "pending" && latestTermination.requestedBy !== user?.id
+  );
 
   const invoiceItems = useMemo(() => {
     if (!invoicePayment) return [] as Payment[];
@@ -724,6 +747,11 @@ export default function ContractDetailPage() {
     }
   };
 
+  const handleOpenReportDetail = (report: ReportItem) => {
+    setReportDetailItem(report);
+    setReportDetailOpen(true);
+  };
+
   const handleUpdateReportStatus = async (report: ReportItem, status: ReportStatus, note?: string) => {
     try {
       await dispatch(
@@ -736,6 +764,77 @@ export default function ContractDetailPage() {
       dispatch(getReportsByContract(report.rentalId));
     } catch (error: any) {
       message.error(error || "Cập nhật khiếu nại thất bại");
+    }
+  };
+
+  const getTerminationUpdateOptions = (request?: TerminationRequest | null) => {
+    if (!request) return [] as Array<{ value: string; label: string }>;
+    if (user?.role === "ADMIN") {
+      if (request.status === "admin_review") {
+        return [
+          { value: "admin_processing", label: "Admin đang xử lý" },
+          { value: "resolved", label: "Đã giải quyết" },
+        ];
+      }
+      if (request.status === "admin_processing") {
+        return [{ value: "resolved", label: "Đã giải quyết" }];
+      }
+      return [];
+    }
+
+    if (request.status === "rejected") {
+      return [
+        { value: "negotiating", label: "Đang thương lượng" },
+        { value: "admin_review", label: "Gửi admin xem xét" },
+      ];
+    }
+    if (request.status === "negotiating") {
+      return [
+        { value: "resolved", label: "Đã giải quyết" },
+        { value: "admin_review", label: "Gửi admin xem xét" },
+      ];
+    }
+    return [];
+  };
+
+  const handleOpenTerminationUpdate = (request: TerminationRequest, nextStatus?: TerminationRequest["status"]) => {
+    setSelectedTermination(request);
+    terminationUpdateForm.resetFields();
+    terminationUpdateForm.setFieldsValue({
+      status: nextStatus || "negotiating",
+      resolution: "continue_contract",
+    });
+    setTerminationUpdateOpen(true);
+  };
+
+  const handleOpenTerminationDetail = (request: TerminationRequest) => {
+    setTerminationDetailItem(request);
+    setTerminationDetailOpen(true);
+  };
+
+  const handleSubmitTerminationUpdate = async () => {
+    if (!selectedTermination) return;
+    try {
+      const values = await terminationUpdateForm.validateFields();
+      await dispatch(
+        updateTerminationStatus({
+          terminationId: selectedTermination.terminationRequestId,
+          data: {
+            status: values.status,
+            resolution: values.status === "resolved" ? values.resolution : undefined,
+            note: values.note,
+          },
+        })
+      ).unwrap();
+      message.success("Đã cập nhật yêu cầu chấm dứt");
+      setTerminationUpdateOpen(false);
+      if (contract?.rentalId) {
+        dispatch(getTerminationRequests(contract.rentalId));
+        dispatch(getContractDetail(contract.rentalId));
+      }
+    } catch (error: any) {
+      if (error?.errorFields) return;
+      message.error(error || "Cập nhật yêu cầu thất bại");
     }
   };
 
@@ -1058,114 +1157,269 @@ export default function ContractDetailPage() {
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Chấm dứt hợp đồng</Text>
-                  <h3 className="mt-2 text-xl font-semibold text-slate-900">Quản lý yêu cầu chấm dứt</h3>
+                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">Bảng điều khiển chấm dứt</h3>
+                  <Text className="text-sm text-slate-500">Theo dõi trạng thái, lịch sử và xử lý yêu cầu chấm dứt theo chuẩn nghiệp vụ.</Text>
                 </div>
-                {latestTermination && (
-                  <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color}>
-                    {TERMINATION_STATUS_LABELS[latestTermination.status].label}
-                  </Tag>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {latestTermination && (
+                    <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color} className="m-0">
+                      {TERMINATION_STATUS_LABELS[latestTermination.status].label}
+                    </Tag>
+                  )}
+                  {canRequestTermination && (
+                    <Button type="primary" icon={<ExclamationCircleOutlined />} onClick={handleOpenTermination} loading={terminationActionLoading}>
+                      Gửi yêu cầu chấm dứt
+                    </Button>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-5">
+              <div className="mt-6">
                 {!terminationList.length && (
                   <Empty description="Chưa có yêu cầu chấm dứt" />
                 )}
 
-                {latestTermination && (
-                  <div className="rounded-2xl border border-slate-200 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <Text strong>Yêu cầu gần nhất</Text>
-                      <Text className="text-xs text-slate-500">{formatDate(latestTermination.createdAt)}</Text>
+                {terminationList.length > 0 && (
+                  <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-slate-900">Yêu cầu gần nhất</div>
+                        {latestTermination && (
+                          <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color} className="m-0">
+                            {TERMINATION_STATUS_LABELS[latestTermination.status].label}
+                          </Tag>
+                        )}
+                      </div>
+                      {latestTermination && (
+                        <Descriptions column={1} size="small" className="mt-3">
+                          <Descriptions.Item label="Lý do">{TERMINATION_REASON_LABELS[latestTermination.reason] || latestTermination.reason}</Descriptions.Item>
+                          <Descriptions.Item label="Ngày chấm dứt dự kiến">{formatDate(latestTermination.requestedTerminationDate)}</Descriptions.Item>
+                          <Descriptions.Item label="Phí chấm dứt sớm">{formatMoney(latestTermination.earlyTerminationFee || 0)}</Descriptions.Item>
+                          <Descriptions.Item label="Ghi chú">{latestTermination.note || "—"}</Descriptions.Item>
+                          <Descriptions.Item label="Ghi chú phản hồi">{latestTermination.reviewNote || "—"}</Descriptions.Item>
+                          {latestTermination.status === "resolved" && (
+                            <Descriptions.Item label="Kết quả">
+                              {latestTermination.resolution === "terminate_contract" ? "Chấm dứt hợp đồng" : "Tiếp tục hợp đồng"}
+                            </Descriptions.Item>
+                          )}
+                          {latestTermination.resolvedAt && (
+                            <Descriptions.Item label="Thời điểm giải quyết">{formatDate(latestTermination.resolvedAt)}</Descriptions.Item>
+                          )}
+                        </Descriptions>
+                      )}
+                      {latestTermination && ["pending", "rejected", "negotiating", "admin_review", "admin_processing"].includes(latestTermination.status) && (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {latestTermination.status === "pending" && latestTermination.requestedBy !== user?.id && (
+                            <Button size="small" onClick={() => handleOpenReview(latestTermination)}>
+                              Xử lý yêu cầu
+                            </Button>
+                          )}
+                          {latestTermination.status === "rejected" && (
+                            <>
+                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "negotiating")}>
+                                Bắt đầu thương lượng
+                              </Button>
+                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "admin_review")}>
+                                Gửi tranh chấp lên admin
+                              </Button>
+                            </>
+                          )}
+                          {latestTermination.status === "negotiating" && (
+                            <>
+                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
+                                Xác nhận đã giải quyết
+                              </Button>
+                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "admin_review")}>
+                                Gửi tranh chấp lên admin
+                              </Button>
+                            </>
+                          )}
+                          {latestTermination.status === "admin_review" && user?.role === "ADMIN" && (
+                            <>
+                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "admin_processing")}>
+                                Bắt đầu xử lý
+                              </Button>
+                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
+                                Giải quyết xong
+                              </Button>
+                            </>
+                          )}
+                          {latestTermination.status === "admin_processing" && user?.role === "ADMIN" && (
+                            <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
+                              Giải quyết xong
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <Descriptions column={1} size="small" className="mt-3">
-                      <Descriptions.Item label="Lý do">{TERMINATION_REASON_LABELS[latestTermination.reason] || latestTermination.reason}</Descriptions.Item>
-                      <Descriptions.Item label="Ngày chấm dứt dự kiến">{formatDate(latestTermination.requestedTerminationDate)}</Descriptions.Item>
-                      <Descriptions.Item label="Phí chấm dứt sớm">{formatMoney(latestTermination.earlyTerminationFee || 0)}</Descriptions.Item>
-                      <Descriptions.Item label="Ghi chú">{latestTermination.note || "—"}</Descriptions.Item>
-                      <Descriptions.Item label="Ghi chú phản hồi">{latestTermination.reviewNote || "—"}</Descriptions.Item>
-                    </Descriptions>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-slate-900">Lịch sử yêu cầu</div>
+                        <Text className="text-xs text-slate-500">{terminationList.length - 1} yêu cầu trước</Text>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {terminationList.slice(1).length === 0 && (
+                          <div className="text-xs text-slate-500">Chưa có lịch sử</div>
+                        )}
+                        {terminationList.slice(1).map((item) => (
+                          <div key={item.terminationRequestId} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-sm font-semibold text-slate-800">
+                                {TERMINATION_REASON_LABELS[item.reason] || item.reason}
+                              </div>
+                              <Tag color={TERMINATION_STATUS_LABELS[item.status].color} className="m-0">
+                                {TERMINATION_STATUS_LABELS[item.status].label}
+                              </Tag>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                              <span>{formatDate(item.createdAt)}</span>
+                              <Button size="small" onClick={() => handleOpenTerminationDetail(item)}>
+                                Xem chi tiết
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                {canRequestTermination && (
-                  <Button type="primary" icon={<ExclamationCircleOutlined />} onClick={handleOpenTermination} loading={terminationActionLoading}>
-                    Gửi yêu cầu chấm dứt
-                  </Button>
-                )}
-                {canReviewTermination && latestTermination && (
-                  <Button onClick={() => handleOpenReview(latestTermination)} loading={terminationActionLoading}>
-                    Xử lý yêu cầu
-                  </Button>
-                )}
-                {latestTermination?.status === "rejected" && (
-                  <Button onClick={() => handleOpenReport({ title: `Tranh chấp chấm dứt hợp đồng ${contract.contractCode}` })}>
-                    Gửi tranh chấp lên admin
-                  </Button>
-                )}
-                {terminationLoading && <Text className="text-xs text-slate-400">Đang tải yêu cầu...</Text>}
-              </div>
+              {terminationLoading && <Text className="mt-4 block text-xs text-slate-400">Đang tải yêu cầu...</Text>}
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Khiếu nại</Text>
-                  <h3 className="mt-2 text-xl font-semibold text-slate-900">Tranh chấp & xử lý admin</h3>
+                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">Tranh chấp & xử lý admin</h3>
+                  <Text className="text-sm text-slate-500">Ghi nhận và theo dõi toàn bộ khiếu nại liên quan hợp đồng.</Text>
                 </div>
-                {latestReport && (
-                  <Tag color={REPORT_STATUS_LABELS[latestReport.status].color}>
-                    {REPORT_STATUS_LABELS[latestReport.status].label}
-                  </Tag>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {latestReport && (
+                    <Tag color={REPORT_STATUS_LABELS[latestReport.status].color} className="m-0">
+                      {REPORT_STATUS_LABELS[latestReport.status].label}
+                    </Tag>
+                  )}
+                  <Button
+                    type="primary"
+                    onClick={() => handleOpenReport()}
+                    loading={reportActionLoading}
+                    disabled={isAdminReportBlocking || isTerminationAdminBlocking}
+                  >
+                    Tạo khiếu nại
+                  </Button>
+                </div>
               </div>
 
-              <div className="mt-5">
-                {!reportItems.length && <Empty description="Chưa có khiếu nại" />}
-
-                {latestReport && (
-                  <div className="rounded-2xl border border-slate-200 p-4">
+              <div className="mt-6 space-y-4">
+                {latestTermination && ["admin_review", "admin_processing"].includes(latestTermination.status) && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <Text strong>{latestReport.title}</Text>
-                      <Text className="text-xs text-slate-500">{formatDate(latestReport.createdAt)}</Text>
+                      <Text strong>Tranh chấp chấm dứt hợp đồng</Text>
+                      <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color} className="m-0">
+                        {TERMINATION_STATUS_LABELS[latestTermination.status].label}
+                      </Tag>
                     </div>
-                    <Descriptions column={1} size="small" className="mt-3">
-                      <Descriptions.Item label="Loại">{REPORT_TYPE_LABELS[latestReport.type] || latestReport.type}</Descriptions.Item>
-                      <Descriptions.Item label="Mức độ">{latestReport.priority}</Descriptions.Item>
-                      <Descriptions.Item label="Nội dung">{latestReport.description}</Descriptions.Item>
-                      <Descriptions.Item label="Ghi chú admin">{latestReport.adminNote || "—"}</Descriptions.Item>
-                    </Descriptions>
+                    <div className="mt-2 text-xs text-amber-700">
+                      Yêu cầu chấm dứt đang được admin xem xét và xử lý.
+                    </div>
+                  </div>
+                )}
+
+                {!reportItems.length && !latestTermination && <Empty description="Chưa có khiếu nại" />}
+
+                {reportItems.length > 0 && (
+                  <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-slate-900">Khiếu nại gần nhất</div>
+                        {latestReport && (
+                          <Tag color={REPORT_STATUS_LABELS[latestReport.status].color} className="m-0">
+                            {REPORT_STATUS_LABELS[latestReport.status].label}
+                          </Tag>
+                        )}
+                      </div>
+                      {latestReport && (
+                        <>
+                          <Descriptions column={1} size="small" className="mt-3">
+                            <Descriptions.Item label="Tiêu đề">{latestReport.title}</Descriptions.Item>
+                            <Descriptions.Item label="Loại">{REPORT_TYPE_LABELS[latestReport.type] || latestReport.type}</Descriptions.Item>
+                            <Descriptions.Item label="Mức độ">{latestReport.priority}</Descriptions.Item>
+                            <Descriptions.Item label="Nội dung">{latestReport.description}</Descriptions.Item>
+                            <Descriptions.Item label="Ghi chú admin">{latestReport.adminNote || "—"}</Descriptions.Item>
+                          </Descriptions>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {latestReport.status === "open" && latestReport.createdBy === user?.id && (
+                              <Button size="small" onClick={() => handleUpdateReportStatus(latestReport, "cancelled")}>
+                                Hủy khiếu nại
+                              </Button>
+                            )}
+                            {latestReport.status === "admin" && latestReport.createdBy === user?.id && (
+                              <Button size="small" disabled>
+                                Đang chờ admin xử lý
+                              </Button>
+                            )}
+                            {latestReport.status === "admin" && user?.role === "ADMIN" && (
+                              <Button size="small" onClick={() => handleUpdateReportStatus(latestReport, "resolved")}>
+                                Đã giải quyết
+                              </Button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-semibold text-slate-900">Lịch sử khiếu nại</div>
+                        <Text className="text-xs text-slate-500">{reportItems.length - 1} khiếu nại trước</Text>
+                      </div>
+                      <div className="mt-4 space-y-3">
+                        {reportItems.slice(1).length === 0 && (
+                          <div className="text-xs text-slate-500">Chưa có lịch sử</div>
+                        )}
+                        {reportItems.slice(1).map((report) => (
+                          <div key={report.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-sm font-semibold text-slate-800">
+                                {report.title}
+                              </div>
+                              <Tag color={REPORT_STATUS_LABELS[report.status].color} className="m-0">
+                                {REPORT_STATUS_LABELS[report.status].label}
+                              </Tag>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                              <span>{formatDate(report.createdAt)}</span>
+                              <Button size="small" onClick={() => handleOpenReportDetail(report)}>
+                                Xem chi tiết
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button type="primary" onClick={() => handleOpenReport()} loading={reportActionLoading}>
-                  Tạo khiếu nại
-                </Button>
-                {latestReport?.status === "open" && latestReport.createdBy === user?.id && (
-                  <Button onClick={() => handleUpdateReportStatus(latestReport, "negotiating")}>Bắt đầu thương lượng</Button>
-                )}
-                {latestReport?.status === "negotiating" && (
-                  <Button onClick={() => handleUpdateReportStatus(latestReport, "admin")}>Gửi admin xử lý</Button>
-                )}
-                {latestReport?.status === "admin" && user?.role === "ADMIN" && (
-                  <Button onClick={() => handleUpdateReportStatus(latestReport, "resolved")}>Đã giải quyết</Button>
-                )}
-                {reportsLoading && <Text className="text-xs text-slate-400">Đang tải khiếu nại...</Text>}
-              </div>
+              {reportsLoading && <Text className="mt-4 block text-xs text-slate-400">Đang tải khiếu nại...</Text>}
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử ký kết</Text>
-              <h3 className="mt-2 text-xl font-semibold text-slate-900">Dòng thời gian xử lý hợp đồng</h3>
-              <div className="mt-6">
-                {timelineItems.length ? <Timeline items={timelineItems} /> : <Empty description="Chưa có sự kiện ký kết nào" />}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử ký kết</Text>
+                  <h3 className="mt-2 text-xl font-semibold text-slate-900">Dòng thời gian xử lý hợp đồng</h3>
+                </div>
+                <Button onClick={() => setTimelineOpen(true)}>Xem lịch sử ký kết</Button>
+              </div>
+              <div className="mt-4 text-sm text-slate-500">
+                Xem toàn bộ lịch sử ký kết trong cửa sổ chi tiết.
               </div>
             </div>
 
@@ -1493,6 +1747,88 @@ export default function ContractDetailPage() {
       </Modal>
 
       <Modal
+        open={terminationUpdateOpen}
+        onCancel={() => setTerminationUpdateOpen(false)}
+        onOk={handleSubmitTerminationUpdate}
+        okText="Cập nhật"
+        cancelText="Đóng"
+        confirmLoading={terminationActionLoading}
+        title="Cập nhật trạng thái chấm dứt"
+      >
+        <Form form={terminationUpdateForm} layout="vertical">
+          <Form.Item
+            name="status"
+            label="Trạng thái"
+            rules={[{ required: true, message: "Vui lòng chọn trạng thái" }]}
+          >
+            <Select
+              options={getTerminationUpdateOptions(selectedTermination)}
+            />
+          </Form.Item>
+          <Form.Item shouldUpdate>
+            {() => {
+              const status = terminationUpdateForm.getFieldValue("status");
+              if (status !== "resolved") return null;
+              return (
+                <Form.Item
+                  name="resolution"
+                  label="Kết quả"
+                  rules={[{ required: true, message: "Vui lòng chọn kết quả" }]}
+                >
+                  <Select
+                    options={[
+                      { value: "continue_contract", label: "Tiếp tục hợp đồng" },
+                      { value: "terminate_contract", label: "Chấm dứt hợp đồng" },
+                    ]}
+                  />
+                </Form.Item>
+              );
+            }}
+          </Form.Item>
+          <Form.Item name="note" label="Ghi chú">
+            <Input.TextArea rows={3} placeholder="Ghi chú bổ sung" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        open={terminationDetailOpen}
+        onCancel={() => setTerminationDetailOpen(false)}
+        footer={<Button onClick={() => setTerminationDetailOpen(false)}>Đóng</Button>}
+        title="Chi tiết yêu cầu chấm dứt"
+      >
+        {terminationDetailItem && (
+          <Descriptions column={1} size="small">
+            <Descriptions.Item label="Trang thai">
+              {TERMINATION_STATUS_LABELS[terminationDetailItem.status].label}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ly do">
+              {TERMINATION_REASON_LABELS[terminationDetailItem.reason] || terminationDetailItem.reason}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ngay tao">{formatDate(terminationDetailItem.createdAt)}</Descriptions.Item>
+            <Descriptions.Item label="Ngay cham dut du kien">
+              {formatDate(terminationDetailItem.requestedTerminationDate)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Phi cham dut som">
+              {formatMoney(terminationDetailItem.earlyTerminationFee || 0)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Ghi chu">{terminationDetailItem.note || "—"}</Descriptions.Item>
+            <Descriptions.Item label="Ghi chu phan hoi">{terminationDetailItem.reviewNote || "—"}</Descriptions.Item>
+            {terminationDetailItem.status === "resolved" && (
+              <Descriptions.Item label="Ket qua">
+                {terminationDetailItem.resolution === "terminate_contract" ? "Cham dut hop dong" : "Tiep tuc hop dong"}
+              </Descriptions.Item>
+            )}
+            {terminationDetailItem.resolvedAt && (
+              <Descriptions.Item label="Thoi diem giai quyet">
+                {formatDate(terminationDetailItem.resolvedAt)}
+              </Descriptions.Item>
+            )}
+          </Descriptions>
+        )}
+      </Modal>
+
+      <Modal
         open={reportOpen}
         onCancel={() => setReportOpen(false)}
         onOk={handleSubmitReport}
@@ -1515,6 +1851,44 @@ export default function ContractDetailPage() {
             <Input.TextArea rows={4} placeholder="Mô tả chi tiết vấn đề" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        open={reportDetailOpen}
+        onCancel={() => setReportDetailOpen(false)}
+        footer={<Button onClick={() => setReportDetailOpen(false)}>Đóng</Button>}
+        title="Chi tiết khiếu nại"
+      >
+        {reportDetailItem && (
+          <Descriptions column={1} size="small">
+            <Descriptions.Item label="Trạng thái">
+              {REPORT_STATUS_LABELS[reportDetailItem.status].label}
+            </Descriptions.Item>
+            <Descriptions.Item label="Tiêu đề">{reportDetailItem.title}</Descriptions.Item>
+            <Descriptions.Item label="Loại">{REPORT_TYPE_LABELS[reportDetailItem.type] || reportDetailItem.type}</Descriptions.Item>
+            <Descriptions.Item label="Mức độ">{reportDetailItem.priority}</Descriptions.Item>
+            <Descriptions.Item label="Nội dung">{reportDetailItem.description}</Descriptions.Item>
+            <Descriptions.Item label="Ghi chú admin">{reportDetailItem.adminNote || "—"}</Descriptions.Item>
+            <Descriptions.Item label="Ngày tạo">{formatDate(reportDetailItem.createdAt)}</Descriptions.Item>
+            {reportDetailItem.resolvedAt && (
+              <Descriptions.Item label="Ngày giải quyết">{formatDate(reportDetailItem.resolvedAt)}</Descriptions.Item>
+            )}
+          </Descriptions>
+        )}
+      </Modal>
+
+      <Modal
+        open={timelineOpen}
+        onCancel={() => setTimelineOpen(false)}
+        footer={<Button onClick={() => setTimelineOpen(false)}>Đóng</Button>}
+        title="Lịch sử ký kết hợp đồng"
+        width={700}
+      >
+        {timelineItems.length ? (
+          <Timeline items={timelineItems} />
+        ) : (
+          <Empty description="Chưa có sự kiện ký kết nào" />
+        )}
       </Modal>
 
       <InvoiceModal
