@@ -51,6 +51,19 @@ const IconFile = () => (
   </svg>
 );
 
+const IconCall = ({ isVideo }: { isVideo: boolean }) => (
+  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="#1a73e8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    {isVideo ? (
+      <>
+        <path d="M15 10l5-3v10l-5-3" />
+        <rect x="3" y="7" width="12" height="10" rx="2" />
+      </>
+    ) : (
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.86 19.86 0 0 1 3 5.18 2 2 0 0 1 5 3h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L9 10a16 16 0 0 0 6 6l.36-.25a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+    )}
+  </svg>
+);
+
 const REACTIONS = [
   { key: "love", emoji: "❤️", label: "Yêu thích" },
   { key: "like", emoji: "👍", label: "Thích" },
@@ -206,6 +219,16 @@ const MessageBubble = ({
   }
 
   const isMedia = msg.messageType === "IMAGE" || msg.messageType === "VIDEO";
+  const isCall =
+    msg.messageType === "CALL_VIDEO" ||
+    msg.messageType === "CALL_VOICE" ||
+    msg.messageType === "CALL_MISSED";
+  const callLabel =
+    msg.messageType === "CALL_VIDEO"
+      ? "Cuộc gọi video"
+      : msg.messageType === "CALL_VOICE"
+        ? "Cuộc gọi thoại"
+        : "Cuộc gọi nhỡ";
   const hasReactions = !!(msg.reactions && msg.reactions.length > 0);
 
   return (
@@ -258,6 +281,20 @@ const MessageBubble = ({
               <div className={`${isMedia ? "p-[3px]" : "py-[9px] px-[14px]"}`}>
               {msg.messageType === "TEXT" && (
                 <span className="whitespace-pre-wrap">{msg.content}</span>
+              )}
+
+              {isCall && (
+                <div className={`flex items-center gap-3 px-1 ${isMe ? "text-[#1a73e8]" : "text-slate-700"}`}>
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full ${msg.messageType === "CALL_MISSED" ? "bg-red-50" : "bg-blue-50"}`}>
+                    <IconCall isVideo={msg.messageType === "CALL_VIDEO"} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-semibold text-[#111827]">{callLabel}</span>
+                    <span className="text-[12px] text-zinc-500">
+                      {msg.content || (msg.duration ? `Thời lượng: ${Math.round(msg.duration)}s` : msg.messageType === "CALL_MISSED" ? "Không bắt máy" : "Không có thông tin")}
+                    </span>
+                  </div>
+                </div>
               )}
 
               {msg.messageType === "IMAGE" && msg.fileUrl && (

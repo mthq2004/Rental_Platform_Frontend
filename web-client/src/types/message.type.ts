@@ -1,4 +1,4 @@
-export type MessageType = "TEXT" | "IMAGE" | "VIDEO" | "FILE";
+export type MessageType = "TEXT" | "IMAGE" | "VIDEO" | "FILE" | "CALL_VIDEO" | "CALL_VOICE" | "CALL_MISSED";
 
 export interface Reaction {
   userId: string;

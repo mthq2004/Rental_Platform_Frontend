@@ -108,6 +108,7 @@ export default function ChatPage() {
           messages={messages}
           loading={messageLoading}
           currentUserId={user.id}
+          participantId={selectedConversation.participant.id}
           participantName={selectedConversation.participant.fullName}
           participantAvatar={selectedConversation.participant.avatarUrl}
           isOnline={isOnline}

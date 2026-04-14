@@ -7,6 +7,8 @@ import GoogleAuthProviderWrapper from "@/components/auth/GoogleAuthProvider";
 import AntdConfigProvider from "@/components/common/AntdConfigProvider";
 import AuthTokenSync from "@/components/auth/AuthTokenSync";
 import { ChatSocketProvider } from "@/contexts/ChatSocketContext";
+import { CallProvider } from "@/contexts/CallContext";
+import CallOverlay from "@/components/call/CallOverlay";
 import AIChatBox from "@/components/chat/AIChatBox";
 import { NotificationSocketProvider } from "@/contexts/NotificationSocketContext";
 
@@ -63,8 +65,11 @@ export default function RootLayout({
                 <AuthTokenSync />
                 <NotificationSocketProvider>
                 <ChatSocketProvider>
-                  {children}
-                  <AIChatBox />
+                  <CallProvider>
+                    {children}
+                    <AIChatBox />
+                    <CallOverlay />
+                  </CallProvider>
                 </ChatSocketProvider>
                 </NotificationSocketProvider>
               </ReduxProvider>

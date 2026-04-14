@@ -14,6 +14,7 @@ import { Message } from "@/types/message.type";
 import MessageBubble from "./MessageBubble";
 import { reactMessage, SendMessagePayload } from "@/stores/slices/message.slice";
 import { useAppDispatch } from "@/stores/hooks";
+import { useCall } from "@/contexts/CallContext";
 import ConversationTagModal from "./ConversationTagModal";
 import { formatTime } from "@/utils/format";
 
@@ -30,6 +31,7 @@ interface ChatWindowProps {
   conversationId: string;
   messages?: Message[];
   loading?: boolean;
+  participantId?: string;
   currentUserId: string;
   isLoading?: boolean;
   hasNextPage?: boolean;
@@ -44,6 +46,7 @@ export default function ChatWindow({
   conversationId,
   messages = [],
   loading,
+  participantId,
   currentUserId,
   isLoading = false,
   hasNextPage = false,
@@ -54,12 +57,14 @@ export default function ChatWindow({
   isOnline = false,
 }: ChatWindowProps) {
   const dispatch = useAppDispatch();
+  const { startCall } = useCall();
   const containerRef = useRef<HTMLDivElement>(null);
   const previousHeightRef = useRef<number>(0);
   const isFetchingRef = useRef(false);
   const isPrependingRef = useRef(false);
   const isFirstLoadRef = useRef(true);
   const [showTagModal, setShowTagModal] = useState(false);
+
 
   const [replyTo, setReplyTo] = useState<{
     id: string;
@@ -114,6 +119,7 @@ export default function ChatWindow({
     dispatch(reactMessage({ messageId, emoji }));
   };
 
+
   const moreItems = [
     { key: "tag", icon: <TagsOutlined />, label: "Gắn phân loại", onClick: () => setShowTagModal(true) },
   ];
@@ -156,6 +162,15 @@ export default function ChatWindow({
               type="text"
               icon={<PhoneOutlined />}
               className="text-gray-500 hover:text-blue-500"
+              onClick={() =>
+                startCall({
+                  conversationId,
+                  calleeId: participantId || "",
+                  callType: "VOICE",
+                  participantName,
+                  participantAvatar,
+                })
+              }
             />
           </Tooltip>
           <Tooltip title="Gọi Video">
@@ -163,6 +178,15 @@ export default function ChatWindow({
               type="text"
               icon={<VideoCameraOutlined />}
               className="text-gray-500 hover:text-blue-500"
+              onClick={() =>
+                startCall({
+                  conversationId,
+                  calleeId: participantId || "",
+                  callType: "VIDEO",
+                  participantName,
+                  participantAvatar,
+                })
+              }
             />
           </Tooltip>
           <Tooltip title="Gắn phân loại">
@@ -271,6 +295,7 @@ export default function ChatWindow({
         conversationId={conversationId}
         onClose={() => setShowTagModal(false)}
       />
+
     </div>
   );
 }
