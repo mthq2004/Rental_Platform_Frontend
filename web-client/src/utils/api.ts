@@ -24,8 +24,8 @@ class HttpClient {
     if (token) {
       // Save to Secure Cookie
       Cookies.set("accessToken", token, {
-        // secure: true // Chỉ gửi cookie qua HTTPS, localhost không hỗ trợ secure cookie, nên chỉ bật secure khi ở production
-        secure: process.env.NODE_ENV === 'production',
+        secure: true, // Chỉ gửi cookie qua HTTPS, localhost không hỗ trợ secure cookie, nên chỉ bật secure khi ở production
+        // secure: process.env.NODE_ENV === 'production',
         sameSite: "strict",
         expires: 7 // 7 days
       });
@@ -118,13 +118,7 @@ class HttpClient {
     }
 
     if (!response.ok) {
-      if (response.status === 401) {
-        // Token expired or invalid
-        this.setAccessToken(null);
-        if (typeof window !== "undefined" && window.location.pathname !== "/") {
-          window.location.href = "/";
-        }
-      }
+      // Không tự động logout/redirect khi 401 - để từng Redux slice tự xử lý
       try {
         const error = await response.json();
         throw new Error(error.message || `HTTP Error: ${response.status}`);

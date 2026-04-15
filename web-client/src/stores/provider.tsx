@@ -47,10 +47,11 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
       try {
         await store.dispatch(getProfileUser()).unwrap();
       } catch {
+        // Không redirect tự động - chỉ logout state, để route guard hoặc user tự xử lý
         store.dispatch(logout());
-        if (typeof window !== "undefined" && window.location.pathname !== "/") {
-          window.location.href = "/";
-        }
+        //  if (typeof window !== "undefined" && window.location.pathname !== "/") {
+        //   window.location.href = "/";
+        // }
       } finally {
         isCheckingSession.current = false;
       }

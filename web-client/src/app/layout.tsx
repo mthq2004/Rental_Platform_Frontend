@@ -10,7 +10,7 @@ import { ChatSocketProvider } from "@/contexts/ChatSocketContext";
 import { CallProvider } from "@/contexts/CallContext";
 import CallOverlay from "@/components/call/CallOverlay";
 import AIChatBox from "@/components/chat/AIChatBox";
-import { NotificationSocketProvider } from "@/contexts/NotificationSocketContext";
+// import { NotificationSocketProvider } from "@/contexts/NotificationSocketContext"; // notification-service chưa deploy
 
 // Suppress Antd React 19 compatibility warning and hydration mismatch
 if (typeof window !== "undefined") {
@@ -63,7 +63,7 @@ export default function RootLayout({
             <GoogleAuthProviderWrapper>
               <ReduxProvider>
                 <AuthTokenSync />
-                <NotificationSocketProvider>
+                {/* <NotificationSocketProvider> */}
                 <ChatSocketProvider>
                   <CallProvider>
                     {children}
@@ -71,7 +71,7 @@ export default function RootLayout({
                     <CallOverlay />
                   </CallProvider>
                 </ChatSocketProvider>
-                </NotificationSocketProvider>
+                {/* </NotificationSocketProvider> */}
               </ReduxProvider>
             </GoogleAuthProviderWrapper>
           </AntdConfigProvider>
