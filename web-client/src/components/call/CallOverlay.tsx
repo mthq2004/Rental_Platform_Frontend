@@ -3,9 +3,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useCall } from "@/contexts/CallContext";
 import {
-  Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX,
+  Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, Volume1,
   Video, VideoOff, MessageCircle, Settings2,
   Minimize2, Maximize2, Signal, Clock, RefreshCw,
+  Expand, Shrink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -61,6 +62,40 @@ const NetworkIcon = ({ quality }: { quality: string }) => (
   <Signal size={12} color={networkQualityColor(quality)} />
 );
 
+// ── FullscreenCtrlBtn ─────────────────────────────────────────────────────────
+interface FullscreenCtrlBtnProps {
+  onClick: () => void;
+  active?: boolean; label?: string;
+  activeColor?: string;
+  children: React.ReactNode;
+}
+const FullscreenCtrlBtn: React.FC<FullscreenCtrlBtnProps> = ({ onClick, active, label, activeColor, children }) => {
+  const bg = active
+    ? (activeColor ? `${activeColor}22` : "rgba(55,138,221,0.2)")
+    : "rgba(255,255,255,0.08)";
+  const clr = active
+    ? (activeColor ?? T.blueLight)
+    : "rgba(255,255,255,0.8)";
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      style={{
+        width: 54, height: 54, borderRadius: 16,
+        background: bg,
+        border: `1.5px solid ${active ? (activeColor ? `${activeColor}44` : "rgba(55,138,221,0.3)") : "rgba(255,255,255,0.12)"}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "pointer", color: clr,
+        transition: "background 0.15s, border-color 0.15s, transform 0.12s",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = active ? (activeColor ? `${activeColor}33` : "rgba(55,138,221,0.3)") : "rgba(255,255,255,0.14)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = bg; e.currentTarget.style.transform = "translateY(0)"; }}
+    >
+      {children}
+    </button>
+  );
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function CallOverlay() {
   const {
@@ -72,11 +107,60 @@ export default function CallOverlay() {
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Persistent hidden audio element for voice calls — never unmounts, avoids all callback-ref timing issues
+  const persistentAudioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    const el = document.createElement("audio");
+    el.autoplay = true;
+    document.body.appendChild(el);
+    persistentAudioRef.current = el;
+    return () => {
+      el.pause();
+      el.srcObject = null;
+      document.body.removeChild(el);
+      persistentAudioRef.current = null;
+    };
+  }, []);
+
+  // Callback refs to attach stream immediately on mount (for video elements)
+  const setLocalVideoRef = React.useCallback((el: HTMLVideoElement | null) => {
+    localVideoRef.current = el;
+    if (el && localStream) { el.srcObject = localStream; el.play().catch(() => {}); }
+  }, [localStream]);
+  const setRemoteVideoRef = React.useCallback((el: HTMLVideoElement | null) => {
+    remoteVideoRef.current = el;
+    if (el && remoteStream) { el.srcObject = remoteStream; el.play().catch(() => {}); }
+  }, [remoteStream]);
+  // Keep remoteAudioRef for volume/mute controls (points to visual audio element in overlay)
+  const setRemoteAudioRef = React.useCallback((el: HTMLAudioElement | null) => {
+    remoteAudioRef.current = el;
+  }, []);
+
   const [isMinimized, setIsMinimized]     = useState(false);
+  const [isFullscreen, setIsFullscreen]   = useState(false);
   const [isMicMuted, setIsMicMuted]       = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [isVideoOff, setIsVideoOff]       = useState(false);
   const [isVideoSwapped, setIsVideoSwapped] = useState(false); // swap local ↔ remote như Zalo
+  const [volumeLevel, setVolumeLevel]     = useState(100); // 0-100
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [showControlsInFullscreen, setShowControlsInFullscreen] = useState(true);
+  const controlsTimerRef = useRef<number | null>(null);
+
+  // Attach remoteStream to persistent audio element for voice calls
+  useEffect(() => {
+    const el = persistentAudioRef.current;
+    if (!el) return;
+    if (remoteStream && callState.callType !== "VIDEO") {
+      el.srcObject = remoteStream;
+      el.volume = volumeLevel / 100;
+      el.muted = isSpeakerMuted;
+      el.play().catch(() => {});
+    } else {
+      el.pause();
+      el.srcObject = null;
+    }
+  }, [remoteStream, callState.callType, isSpeakerMuted, volumeLevel]);
 
   const [dragPos, setDragPos]     = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -115,20 +199,50 @@ export default function CallOverlay() {
 
   // ── Stream binding ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (localVideoRef.current && localStream) localVideoRef.current.srcObject = localStream;
-  }, [localStream, isVideoOff, isVideoSwapped, isMinimized, callState.status]);
+    const el = localVideoRef.current;
+    if (el && localStream) { el.srcObject = localStream; el.play().catch(() => {}); }
+  }, [localStream, isVideoOff, isVideoSwapped, isMinimized, isFullscreen, callState.status]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) remoteVideoRef.current.srcObject = remoteStream;
-    if (remoteAudioRef.current && remoteStream)  remoteAudioRef.current.srcObject  = remoteStream;
-  }, [remoteStream, isVideoSwapped, isMinimized, callState.status]);
+    // Video element: plays both video + audio of remote stream (VIDEO calls)
+    const vid = remoteVideoRef.current;
+    if (vid && remoteStream) { vid.srcObject = remoteStream; vid.play().catch(() => {}); }
+    // Voice call audio is handled by persistentAudioRef (see above useEffect)
+  }, [remoteStream, isVideoSwapped, isMinimized, isFullscreen, callState.status, callState.callType]);
 
   // ── Reset on idle ─────────────────────────────────────────────────────────
   useEffect(() => {
     if (callState.status !== "idle") return;
-    setIsMinimized(false); setIsMicMuted(false);
+    setIsMinimized(false); setIsFullscreen(false); setIsMicMuted(false);
     setIsSpeakerMuted(false); setIsVideoOff(false); setIsVideoSwapped(false);
+    setVolumeLevel(100); setShowVolumeSlider(false);
   }, [callState.status]);
+
+  // ── Auto-hide controls in fullscreen ──────────────────────────────────────
+  useEffect(() => {
+    if (!isFullscreen || callState.status !== "active") return;
+    const resetTimer = () => {
+      setShowControlsInFullscreen(true);
+      if (controlsTimerRef.current) window.clearTimeout(controlsTimerRef.current);
+      controlsTimerRef.current = window.setTimeout(() => setShowControlsInFullscreen(false), 3500);
+    };
+    resetTimer();
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("click", resetTimer);
+    return () => {
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("click", resetTimer);
+      if (controlsTimerRef.current) window.clearTimeout(controlsTimerRef.current);
+    };
+  }, [isFullscreen, callState.status]);
+
+  // ── ESC to exit fullscreen ────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsFullscreen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isFullscreen]);
 
   // ── Minimized init position ───────────────────────────────────────────────
   useEffect(() => {
@@ -210,9 +324,17 @@ export default function CallOverlay() {
   };
   const toggleSpeaker = () => {
     const next = !isSpeakerMuted;
-    if (remoteVideoRef.current) { remoteVideoRef.current.muted = next; remoteVideoRef.current.volume = next ? 0 : 1; }
-    if (remoteAudioRef.current) { remoteAudioRef.current.muted = next; remoteAudioRef.current.volume = next ? 0 : 1; }
+    const vol = next ? 0 : volumeLevel / 100;
+    if (remoteVideoRef.current) { remoteVideoRef.current.muted = next; remoteVideoRef.current.volume = vol; }
+    if (persistentAudioRef.current) { persistentAudioRef.current.muted = next; persistentAudioRef.current.volume = vol; }
     setIsSpeakerMuted(next);
+  };
+  const handleVolumeChange = (val: number) => {
+    setVolumeLevel(val);
+    const vol = val / 100;
+    if (remoteVideoRef.current) { remoteVideoRef.current.volume = vol; remoteVideoRef.current.muted = val === 0; }
+    if (persistentAudioRef.current) { persistentAudioRef.current.volume = vol; persistentAudioRef.current.muted = val === 0; }
+    setIsSpeakerMuted(val === 0);
   };
   const toggleVideo = () => {
     const next = !isVideoOff;
@@ -220,7 +342,344 @@ export default function CallOverlay() {
     setIsVideoOff(next);
   };
 
+  const VolumeIcon = volumeLevel === 0 || isSpeakerMuted ? VolumeX : volumeLevel < 50 ? Volume1 : Volume2;
+
   if (!isVisible) return null;
+
+  // ── Fullscreen mode ───────────────────────────────────────────────────────
+  if (isFullscreen && callState.status === "active") {
+    return (
+      <motion.div
+        key="call-fullscreen"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.25 }}
+        style={{
+          position: "fixed", inset: 0, zIndex: 2000,
+          fontFamily: T.fontBase,
+          background: `linear-gradient(180deg, ${T.navy0} 0%, #010E1A 100%)`,
+          display: "flex", flexDirection: "column",
+          overflow: "hidden", cursor: showControlsInFullscreen ? "default" : "none",
+        }}
+      >
+        {/* ── VIDEO FULLSCREEN ──────────────────────────────────── */}
+        {isVideo ? (
+          <>
+            {/* Main video */}
+            <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+              {isVideoSwapped ? (
+                localStream && !isVideoOff ? (
+                  <video ref={setLocalVideoRef} autoPlay muted playsInline
+                    style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: T.navy0 }}>
+                    <VideoOff size={52} color="rgba(181,212,244,0.2)" />
+                    <span style={{ fontSize: 16, color: "rgba(181,212,244,0.35)", fontWeight: 500 }}>{isVideoOff ? "Camera đã tắt" : "Đang khởi động camera..."}</span>
+                  </div>
+                )
+              ) : (
+                showRemoteVideo ? (
+                  <video ref={setRemoteVideoRef} autoPlay playsInline
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, background: T.navy0 }}>
+                    <Avatar name={callState.participant?.name} avatarUrl={callState.participant?.avatarUrl} size={140} fontSize={52} />
+                    <span style={{ fontSize: 16, color: "rgba(181,212,244,0.35)", fontWeight: 500, marginTop: 12 }}>Đang chờ video từ đối phương...</span>
+                  </div>
+                )
+              )}
+
+              {/* PiP in fullscreen */}
+              <div
+                onClick={() => setIsVideoSwapped((v) => !v)}
+                title="Nhấn để đổi chỗ"
+                style={{
+                  position: "absolute", bottom: 100, right: 24,
+                  width: 200, height: 150, borderRadius: 16,
+                  overflow: "hidden",
+                  border: "2px solid rgba(255,255,255,0.2)",
+                  background: T.navy0,
+                  boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+                  cursor: "pointer",
+                  transition: "transform 0.15s, box-shadow 0.15s, opacity 0.3s",
+                  opacity: showControlsInFullscreen ? 1 : 0.4,
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "scale(1.04)"; (e.currentTarget as HTMLDivElement).style.opacity = "1"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = "scale(1)"; (e.currentTarget as HTMLDivElement).style.opacity = showControlsInFullscreen ? "1" : "0.4"; }}
+              >
+                {isVideoSwapped ? (
+                  showRemoteVideo ? (
+                    <video ref={setRemoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#0A1628" }}>
+                      <VideoOff size={22} color="#4B5563" />
+                    </div>
+                  )
+                ) : (
+                  showLocalVideo && !isVideoOff ? (
+                    <video ref={setLocalVideoRef} autoPlay muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
+                  ) : (
+                    <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6, background: "#0A1628" }}>
+                      <VideoOff size={18} color="#4B5563" />
+                      <span style={{ fontSize: 11, color: "#4B5563" }}>{isVideoOff ? "Camera tắt" : "Camera"}</span>
+                    </div>
+                  )
+                )}
+                {/* Mic indicator */}
+                <div style={{ position: "absolute", bottom: 8, left: 8, width: 26, height: 26, borderRadius: "50%", background: isMicMuted ? "rgba(199,32,43,0.85)" : "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {isMicMuted ? <MicOff size={12} color="#fff" /> : <Mic size={12} color="rgba(255,255,255,0.8)" />}
+                </div>
+                {/* Label */}
+                <div style={{ position: "absolute", top: 8, left: 0, right: 0, textAlign: "center", fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.6)", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>
+                  {isVideoSwapped ? (callState.participant?.name ?? "Đối phương") : "Bạn"}
+                </div>
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, textAlign: "center", paddingBottom: 6 }}>
+                  <span style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>NHẤN ĐỂ ĐỔI</span>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          /* ── VOICE FULLSCREEN ──────────────────────────────────── */
+          <div style={{
+            flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            position: "relative", overflow: "hidden",
+          }}>
+            {/* Ambient background effect */}
+            <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 40%, rgba(55,138,221,0.08) 0%, transparent 70%)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", inset: 0, backgroundImage: "radial-gradient(circle, rgba(181,212,244,0.03) 1px, transparent 1px)", backgroundSize: "40px 40px", pointerEvents: "none" }} />
+
+            {/* Pulse rings */}
+            <div style={{ position: "relative", marginBottom: 40 }}>
+              {[0, 0.8, 1.6, 2.4].map((delay, i) => (
+                <div key={i} style={{
+                  position: "absolute",
+                  inset: -(30 + i * 22),
+                  borderRadius: "50%",
+                  border: "1.5px solid rgba(181,212,244,0.12)",
+                  animation: `ringPulse 2.6s ease-out ${delay}s infinite`,
+                }} />
+              ))}
+              <Avatar name={callState.participant?.name} avatarUrl={callState.participant?.avatarUrl} size={160} fontSize={58} />
+              <div style={{
+                position: "absolute", bottom: -4, right: -4,
+                width: 36, height: 36, borderRadius: "50%",
+                background: T.navy3,
+                border: `3px solid ${T.navy0}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Phone size={16} color={T.white} />
+              </div>
+            </div>
+
+            {/* Name */}
+            <p style={{ fontSize: 32, fontWeight: 800, color: T.white, margin: 0, letterSpacing: "-0.02em", textAlign: "center" }}>
+              {callState.participant?.name ?? "Người dùng"}
+            </p>
+
+            {/* Duration & quality */}
+            <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 24, padding: "8px 18px",
+              }}>
+                <Clock size={16} color={T.blueLight} />
+                <span style={{ fontSize: 20, fontWeight: 700, color: T.blueLight, fontVariantNumeric: "tabular-nums" }}>
+                  {formattedDuration}
+                </span>
+              </div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 24, padding: "8px 14px",
+              }}>
+                <NetworkIcon quality={networkQuality} />
+                <span style={{ fontSize: 13, color: "rgba(181,212,244,0.7)", fontWeight: 500 }}>{qualityLabel}</span>
+              </div>
+            </div>
+
+            {/* Audio waveform */}
+            <div style={{
+              marginTop: 40,
+              height: 80, display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            }}>
+              {Array.from({ length: 28 }).map((_, i) => (
+                <div key={i} style={{
+                  width: 4.5, borderRadius: 3,
+                  background: `linear-gradient(180deg, ${T.orange} 0%, ${T.blue} 100%)`,
+                  opacity: 0.7,
+                  animation: `waveAnimFS 1.15s ease-in-out ${(i * 0.055).toFixed(3)}s infinite`,
+                }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── FULLSCREEN TOP BAR ──────────────────────────────────── */}
+        <div style={{
+          position: "absolute", top: 0, left: 0, right: 0,
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "16px 24px",
+          background: "linear-gradient(180deg, rgba(2,27,50,0.85) 0%, transparent 100%)",
+          transition: "opacity 0.3s",
+          opacity: showControlsInFullscreen ? 1 : 0,
+          pointerEvents: showControlsInFullscreen ? "auto" : "none",
+          zIndex: 10,
+        }}>
+          {/* Status pill */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 8,
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: 24, padding: "8px 16px",
+          }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: "50%",
+              background: T.green,
+              boxShadow: `0 0 8px ${T.green}`,
+              animation: "dotPulse 1.4s ease-in-out infinite",
+            }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>{statusLabel}</span>
+            {isVideo && (
+              <span style={{ fontSize: 12, color: "rgba(181,212,244,0.6)", marginLeft: 4 }}>
+                <Clock size={12} style={{ verticalAlign: "middle", marginRight: 4 }} />{formattedDuration}
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {isVideo && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 5,
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 20, padding: "6px 12px",
+              }}>
+                <NetworkIcon quality={networkQuality} />
+                <span style={{ fontSize: 12, color: "rgba(181,212,244,0.7)", fontWeight: 500 }}>{qualityLabel}</span>
+              </div>
+            )}
+            {/* Exit fullscreen */}
+            <button
+              onClick={() => setIsFullscreen(false)}
+              style={{
+                width: 38, height: 38, borderRadius: 12,
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", color: "rgba(255,255,255,0.7)",
+              }}
+              title="Thoát toàn màn hình (ESC)"
+            >
+              <Shrink size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── FULLSCREEN BOTTOM CONTROLS ──────────────────────────── */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0,
+          display: "flex", flexDirection: "column", alignItems: "center",
+          padding: "0 24px 28px",
+          background: "linear-gradient(0deg, rgba(2,27,50,0.9) 0%, rgba(2,27,50,0.5) 60%, transparent 100%)",
+          transition: "opacity 0.3s",
+          opacity: showControlsInFullscreen ? 1 : 0,
+          pointerEvents: showControlsInFullscreen ? "auto" : "none",
+          zIndex: 10,
+        }}>
+          {/* Volume slider row */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12,
+            marginBottom: 20, width: "100%", maxWidth: 400,
+            transition: "opacity 0.2s, height 0.2s",
+            opacity: showVolumeSlider ? 1 : 0,
+            height: showVolumeSlider ? 36 : 0,
+            overflow: "hidden",
+          }}>
+            <VolumeIcon size={16} color="rgba(255,255,255,0.6)" />
+            <div style={{ flex: 1, position: "relative", height: 36, display: "flex", alignItems: "center" }}>
+              <div style={{
+                position: "absolute", left: 0, right: 0, height: 4, borderRadius: 2,
+                background: "rgba(255,255,255,0.12)",
+              }} />
+              <div style={{
+                position: "absolute", left: 0, height: 4, borderRadius: 2,
+                width: `${volumeLevel}%`,
+                background: `linear-gradient(90deg, ${T.blue} 0%, ${T.blueLight} 100%)`,
+              }} />
+              <input
+                type="range" min={0} max={100} value={volumeLevel}
+                onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                style={{
+                  position: "absolute", left: 0, right: 0,
+                  width: "100%", height: 36, opacity: 0, cursor: "pointer", margin: 0,
+                }}
+              />
+              <div style={{
+                position: "absolute", left: `calc(${volumeLevel}% - 8px)`,
+                width: 16, height: 16, borderRadius: "50%",
+                background: T.white,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                pointerEvents: "none",
+                transition: "left 0.05s",
+              }} />
+            </div>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 600, minWidth: 32, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+              {volumeLevel}%
+            </span>
+          </div>
+
+          {/* Control buttons */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <FullscreenCtrlBtn onClick={toggleMic} active={isMicMuted} label={isMicMuted ? "Bật mic" : "Tắt mic"} activeColor={T.red}>
+              {isMicMuted ? <MicOff size={20} /> : <Mic size={20} />}
+            </FullscreenCtrlBtn>
+            <FullscreenCtrlBtn
+              onClick={() => setShowVolumeSlider((v) => !v)}
+              active={showVolumeSlider}
+              label="Âm lượng"
+            >
+              <VolumeIcon size={20} />
+            </FullscreenCtrlBtn>
+            {isVideo && (
+              <FullscreenCtrlBtn onClick={toggleVideo} active={isVideoOff} label={isVideoOff ? "Bật camera" : "Tắt camera"} activeColor={T.red}>
+                {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
+              </FullscreenCtrlBtn>
+            )}
+            {/* End call */}
+            <button
+              onClick={endCall}
+              style={{
+                width: 64, height: 64, borderRadius: "50%",
+                background: T.red, border: "none",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer",
+                boxShadow: `0 6px 24px rgba(199,32,43,0.5)`,
+                transition: "transform 0.12s, box-shadow 0.12s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.08)"; e.currentTarget.style.boxShadow = `0 8px 32px rgba(199,32,43,0.65)`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = `0 6px 24px rgba(199,32,43,0.5)`; }}
+              title="Kết thúc cuộc gọi"
+            >
+              <PhoneOff size={24} color={T.white} />
+            </button>
+          </div>
+        </div>
+
+        <audio ref={setRemoteAudioRef} autoPlay />
+        <style>{`
+          @keyframes ringPulse { 0% { transform:scale(.86);opacity:.75 } 55% { transform:scale(1.02);opacity:.22 } 100% { transform:scale(1.1);opacity:0 } }
+          @keyframes dotPulse { 0%,100% { opacity:.45;transform:scale(.82) } 50% { opacity:1;transform:scale(1.15) } }
+          @keyframes waveAnimFS { 0%,100% { height:8px;opacity:.2 } 50% { height:52px;opacity:1 } }
+          @keyframes waveAnim { 0%,100% { height:6px;opacity:.25 } 50% { height:34px;opacity:1 } }
+        `}</style>
+      </motion.div>
+    );
+  }
 
   // ── Minimized bubble ──────────────────────────────────────────────────────
   if (isMinimized) {
@@ -324,7 +783,7 @@ export default function CallOverlay() {
             )}
           </div>
 
-          <audio ref={remoteAudioRef} autoPlay />
+          <audio ref={setRemoteAudioRef} autoPlay />
           <style>{`@keyframes dotPulse{0%,100%{opacity:.45;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}`}</style>
         </motion.div>
       </div>
@@ -396,20 +855,37 @@ export default function CallOverlay() {
                 {statusLabel}
               </div>
 
-              {/* Minimize button */}
-              <button
-                onClick={() => setIsMinimized(true)}
-                style={{
-                  width: 34, height: 34, borderRadius: 10,
-                  background: "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", color: "rgba(255,255,255,0.65)",
-                }}
-                title="Thu nhỏ"
-              >
-                <Minimize2 size={15} />
-              </button>
+              {/* Fullscreen & Minimize buttons */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                {callState.status === "active" && (
+                  <button
+                    onClick={() => setIsFullscreen(true)}
+                    style={{
+                      width: 34, height: 34, borderRadius: 10,
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      cursor: "pointer", color: "rgba(255,255,255,0.65)",
+                    }}
+                    title="Toàn màn hình"
+                  >
+                    <Expand size={15} />
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsMinimized(true)}
+                  style={{
+                    width: 34, height: 34, borderRadius: 10,
+                    background: "rgba(255,255,255,0.08)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer", color: "rgba(255,255,255,0.65)",
+                  }}
+                  title="Thu nhỏ"
+                >
+                  <Minimize2 size={15} />
+                </button>
+              </div>
             </div>
 
             {/* Avatar area */}
@@ -488,7 +964,7 @@ export default function CallOverlay() {
               }}>
                 {localStream && !isVideoOff ? (
                   <video
-                    ref={localVideoRef}
+                    ref={setLocalVideoRef}
                     autoPlay muted playsInline
                     style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}
                   />
@@ -554,7 +1030,7 @@ export default function CallOverlay() {
                   // Hiển thị local to
                   localStream ? (
                     <video
-                      ref={localVideoRef}
+                      ref={setLocalVideoRef}
                       autoPlay muted playsInline
                       style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }}
                     />
@@ -567,7 +1043,7 @@ export default function CallOverlay() {
                 ) : (
                   // Hiển thị remote to
                   showRemoteVideo ? (
-                    <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <video ref={setRemoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   ) : (
                     <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: "#041B32" }}>
                       <VideoOff size={28} color="rgba(181,212,244,0.3)" />
@@ -606,7 +1082,7 @@ export default function CallOverlay() {
                 {isVideoSwapped ? (
                   // PiP hiện remote
                   showRemoteVideo ? (
-                    <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <video ref={setRemoteVideoRef} autoPlay playsInline style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   ) : (
                     <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#0A1628" }}>
                       <VideoOff size={16} color="#4B5563" />
@@ -615,7 +1091,7 @@ export default function CallOverlay() {
                 ) : (
                   // PiP hiện local
                   showLocalVideo ? (
-                    <video ref={localVideoRef} autoPlay muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
+                    <video ref={setLocalVideoRef} autoPlay muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", transform: "scaleX(-1)" }} />
                   ) : (
                     <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, background: "#0A1628" }}>
                       <VideoOff size={14} color="#4B5563" />
@@ -709,17 +1185,64 @@ export default function CallOverlay() {
                   <IconCtrlBtn onClick={toggleMic} active={isMicMuted} label={isMicMuted ? "Bật mic" : "Tắt mic"}>
                     {isMicMuted ? <MicOff size={16} /> : <Mic size={16} />}
                   </IconCtrlBtn>
-                  <IconCtrlBtn onClick={toggleSpeaker} active={isSpeakerMuted} label={isSpeakerMuted ? "Bật loa" : "Tắt loa"}>
-                    {isSpeakerMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                  </IconCtrlBtn>
+                  {/* Speaker / Volume */}
+                  <div style={{ position: "relative" }}
+                    onMouseEnter={() => setShowVolumeSlider(true)}
+                    onMouseLeave={() => setShowVolumeSlider(false)}
+                  >
+                    <IconCtrlBtn onClick={toggleSpeaker} active={isSpeakerMuted} label={isSpeakerMuted ? "Bật loa" : "Tắt loa"}>
+                      <VolumeIcon size={16} />
+                    </IconCtrlBtn>
+                    {/* Volume popup */}
+                    {showVolumeSlider && (
+                      <div style={{
+                        position: "absolute", bottom: 50, left: "50%", transform: "translateX(-50%)",
+                        background: T.white, borderRadius: 14, padding: "14px 10px",
+                        boxShadow: "0 8px 32px rgba(4,44,83,0.22), 0 0 0 1px rgba(0,0,0,0.06)",
+                        display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+                        width: 44, height: 160, zIndex: 20,
+                      }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: T.gray600, fontVariantNumeric: "tabular-nums" }}>{volumeLevel}</span>
+                        <div style={{ flex: 1, position: "relative", width: 6, borderRadius: 3, background: T.gray100 }}>
+                          <div style={{
+                            position: "absolute", bottom: 0, left: 0, right: 0,
+                            height: `${volumeLevel}%`, borderRadius: 3,
+                            background: `linear-gradient(0deg, ${T.blue} 0%, ${T.blueLight} 100%)`,
+                          }} />
+                          <input
+                            type="range" min={0} max={100} value={volumeLevel}
+                            onChange={(e) => handleVolumeChange(Number(e.target.value))}
+                            style={{
+                              position: "absolute", left: "50%", bottom: 0,
+                              width: 110, height: 44, opacity: 0, cursor: "pointer",
+                              transform: "translateX(-50%) rotate(-90deg)",
+                              transformOrigin: "center center",
+                              margin: 0,
+                            }}
+                          />
+                          <div style={{
+                            position: "absolute", left: "50%", transform: "translateX(-50%)",
+                            bottom: `calc(${volumeLevel}% - 7px)`,
+                            width: 14, height: 14, borderRadius: "50%",
+                            background: T.white, border: `2px solid ${T.blue}`,
+                            boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
+                            pointerEvents: "none",
+                          }} />
+                        </div>
+                        <VolumeIcon size={13} color={T.gray400} />
+                      </div>
+                    )}
+                  </div>
                   {isVideo && (
                     <IconCtrlBtn onClick={toggleVideo} active={isVideoOff} label={isVideoOff ? "Bật camera" : "Tắt camera"}>
                       {isVideoOff ? <VideoOff size={16} /> : <Video size={16} />}
                     </IconCtrlBtn>
                   )}
-                  <IconCtrlBtn onClick={() => {}} label="Cài đặt">
-                    <Settings2 size={16} />
-                  </IconCtrlBtn>
+                  {callState.status === "active" && (
+                    <IconCtrlBtn onClick={() => setIsFullscreen(true)} label="Toàn màn hình">
+                      <Expand size={16} />
+                    </IconCtrlBtn>
+                  )}
                 </div>
 
                 {/* End call button */}
@@ -745,7 +1268,7 @@ export default function CallOverlay() {
           </div>
         </motion.div>
 
-        <audio ref={remoteAudioRef} autoPlay />
+        <audio ref={setRemoteAudioRef} autoPlay />
 
         <style>{`
           @keyframes ringPulse {
@@ -846,3 +1369,4 @@ function IconCtrlBtn({ onClick, active, label, children }: IconCtrlBtnProps) {
     </button>
   );
 }
+

@@ -129,12 +129,18 @@ const conversationSlice = createSlice({
       state.currentConversationId = action.payload;
     },
     setUserOnline: (state, action) => {
-      state.onlineUsers.push(action.payload);
+      if (!state.onlineUsers.includes(action.payload)) {
+        state.onlineUsers.push(action.payload);
+      }
     },
     setUserOffline: (state, action) => {
       state.onlineUsers = state.onlineUsers.filter(
         id => id !== action.payload
       );
+    },
+    setOnlineUsersSnapshot: (state, action: { payload: string[] }) => {
+      // Thay thế hoàn toàn bằng snapshot từ server (authoritative)
+      state.onlineUsers = action.payload;
     }
   },
   extraReducers: (builder) => {
@@ -189,5 +195,5 @@ const conversationSlice = createSlice({
   },
 });
 
-export const { updateUnreadCount, addConversation, updateConversationOnNewMessage, setCurrentConversation, setUserOffline, setUserOnline } = conversationSlice.actions;
+export const { updateUnreadCount, addConversation, updateConversationOnNewMessage, setCurrentConversation, setUserOffline, setUserOnline, setOnlineUsersSnapshot } = conversationSlice.actions;
 export default conversationSlice.reducer;

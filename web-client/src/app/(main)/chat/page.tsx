@@ -36,7 +36,12 @@ export default function ChatPage() {
   const { onlineUsers } = useAppSelector((state) => state.conversation);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const initialConversationId = searchParams.get("conversationId");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     dispatch(fetchConversations());
@@ -76,14 +81,15 @@ export default function ChatPage() {
     dispatch(sendMessage(data));
   };
 
-  if (conversationLoading && conversations.length === 0) {
+  if (!mounted || (conversationLoading && conversations.length === 0)) {
     return (
       <div className="h-full flex items-center justify-center bg-white">
         <Spin size="large" />
       </div>
     );
   }
-    if (!isAuth) {
+
+  if (!isAuth) {
     return (
       <div className="flex h-[calc(100vh-73px)] items-center justify-center bg-slate-50">
         <Empty description="Bạn cần đăng nhập để sử dụng chức năng chat" />

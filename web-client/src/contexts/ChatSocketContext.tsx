@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import socketService from '@/services/chat.socket';
-import { addConversation, setUserOffline, setUserOnline, updateConversationOnNewMessage } from '@/stores/slices/conversation.slice';
+import { addConversation, setUserOffline, setUserOnline, setOnlineUsersSnapshot, updateConversationOnNewMessage } from '@/stores/slices/conversation.slice';
 import { addRealtimeMessage, updateMessageReaction } from '@/stores/slices/message.slice';
 import { useAppDispatch, useAppSelector } from '@/stores/hooks';
 import { store } from '@/stores/store';
@@ -41,6 +41,7 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       socketService.off('disconnect');
       socketService.off("user_online");
       socketService.off("user_offline");
+      socketService.off("online_users_snapshot");
       socketService.off("message_reaction");
 
       socketService.on('connect', () => {
@@ -49,6 +50,10 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       socketService.on('disconnect', () => {
         setIsConnected(false);
+      });
+
+      socketService.on("online_users_snapshot", (userIds: string[]) => {
+        dispatch(setOnlineUsersSnapshot(userIds));
       });
 
       socketService.on("user_online", (userId) => {
@@ -98,6 +103,7 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     return () => {
       isMounted = false;
+      dispatch(setOnlineUsersSnapshot([])); // xóa trạng thái online khi disconnect/logout
       socketService.disconnect();
     };
   }, [isAuth]);

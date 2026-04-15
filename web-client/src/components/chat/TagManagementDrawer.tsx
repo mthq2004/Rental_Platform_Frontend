@@ -144,8 +144,7 @@ export default function TagManagementDrawer({
         }
         open={open}
         onClose={onClose}
-        width={420}
-        styles={{ body: { padding: 0 } }}
+        styles={{ body: { padding: 0 }, wrapper: { width: 420 } }}
       >
         <div className="flex flex-col h-full">
           <div className="flex-1 overflow-y-auto">

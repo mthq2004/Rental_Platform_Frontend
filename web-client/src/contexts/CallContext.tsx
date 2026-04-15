@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
-import { message } from "antd";
+import { App } from "antd";
 import socketService from "@/services/chat.socket";
 import { useSocket } from "@/contexts/ChatSocketContext";
 import { useAppSelector } from "@/stores/hooks";
@@ -56,6 +56,7 @@ export const useCall = () => {
 };
 
 export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { message } = App.useApp();
   const { isConnected } = useSocket();
   const conversations = useAppSelector((state) => state.conversation.conversations);
 
@@ -163,7 +164,11 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     pc.ontrack = (event) => {
       const [stream] = event.streams;
       if (stream) {
-        setRemoteStream(stream);
+        // Wrap in a new MediaStream reference so React always detects a change
+        // and re-runs effects/callback-refs even when the same MediaStream object
+        // gets new tracks added (e.g., audio track first, then video track)
+        const fresh = new MediaStream(stream.getTracks());
+        setRemoteStream(fresh);
       }
     };
 
