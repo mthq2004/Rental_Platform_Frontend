@@ -178,6 +178,32 @@ export const verifyEmailOtp = createAsyncThunk(
   }
 );
 
+// Forgot Password - Step 1: Request OTP
+export const requestForgotPasswordOtp = createAsyncThunk(
+  "auth/requestForgotPasswordOtp",
+  async (phone: string, { rejectWithValue }) => {
+    try {
+      const response = await http.post("/estate/auth/forgot-password/request-otp", { phone });
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Không thể gửi OTP");
+    }
+  }
+);
+
+// Forgot Password - Step 2: Reset Password with OTP
+export const resetPasswordWithOtp = createAsyncThunk(
+  "auth/resetPasswordWithOtp",
+  async (data: { phone: string; otp: string; newPassword: string }, { rejectWithValue }) => {
+    try {
+      const response = await http.post("/estate/auth/forgot-password/reset", data);
+      return response;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Đặt lại mật khẩu thất bại");
+    }
+  }
+);
+
 export const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -394,6 +420,33 @@ export const authSlice = createSlice({
         }
       })
       .addCase(verifyEmailOtp.rejected, (state) => {
+        state.loading = false;
+      });
+
+    // Forgot Password OTP
+    builder
+      .addCase(requestForgotPasswordOtp.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(requestForgotPasswordOtp.fulfilled, (state) => {
+        state.loading = false;
+        state.otpSent = true;
+      })
+      .addCase(requestForgotPasswordOtp.rejected, (state) => {
+        state.loading = false;
+      });
+
+    // Reset Password
+    builder
+      .addCase(resetPasswordWithOtp.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(resetPasswordWithOtp.fulfilled, (state) => {
+        state.loading = false;
+        state.otpSent = false;
+        state.otpVerified = false;
+      })
+      .addCase(resetPasswordWithOtp.rejected, (state) => {
         state.loading = false;
       });
   },

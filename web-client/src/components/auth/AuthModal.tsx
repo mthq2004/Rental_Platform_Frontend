@@ -14,8 +14,9 @@ import {
     FacebookFilled,
 } from "@ant-design/icons";
 import { useAppSelector, useAppDispatch } from "@/stores/hooks";
-import { requestPhoneOtp, signupWithPhone, resetOtpState, loginUser } from "@/stores/slices/auth.slice";
+import { requestPhoneOtp, signupWithPhone, resetOtpState, loginUser, requestForgotPasswordOtp, resetPasswordWithOtp } from "@/stores/slices/auth.slice";
 import envConfig from "@/config";
+import Link from "next/link";
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -32,7 +33,7 @@ const AuthModal = ({
 }: AuthModalProps) => {
     const { message } = App.useApp();
     const dispatch = useAppDispatch();
-    const [view, setView] = useState<"login" | "register">(initialView);
+    const [view, setView] = useState<"login" | "register" | "forgot">(initialView);
     const [googleLoading, setGoogleLoading] = useState(false);
     const [facebookLoading, setFacebookLoading] = useState(false);
     const { loading, isAuth, otpSent } = useAppSelector((state) => state.auth);
@@ -45,13 +46,29 @@ const AuthModal = ({
     const [confirmPassword, setConfirmPassword] = useState("");
     const [countdown, setCountdown] = useState(0);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
+
+    // Forgot password flow states
+    type ForgotStep = "phone" | "otp" | "password";
+    const [forgotStep, setForgotStep] = useState<ForgotStep>("phone");
+
+    // Load remembered phone on mount
+    useEffect(() => {
+        const savedPhone = localStorage.getItem("rememberedPhone");
+        if (savedPhone) {
+            setPhone(savedPhone);
+            setRememberMe(true);
+        }
+    }, []);
 
     // Sync view when initialView changes or modal opens
     useEffect(() => {
         if (isOpen) {
             setView(initialView);
             setRegisterStep("phone");
-            setPhone("");
+            setForgotStep("phone");
+            const savedPhone = localStorage.getItem("rememberedPhone");
+            setPhone(savedPhone || "");
             setOtp("");
             setPassword("");
             setConfirmPassword("");
@@ -79,11 +96,15 @@ const AuthModal = ({
 
     // Move to OTP step when OTP is sent
     useEffect(() => {
-        if (otpSent && registerStep === "phone") {
+        if (otpSent && registerStep === "phone" && view === "register") {
             setRegisterStep("otp");
-            setCountdown(120); // 2 minutes countdown
+            setCountdown(120);
         }
-    }, [otpSent, registerStep]);
+        if (otpSent && forgotStep === "phone" && view === "forgot") {
+            setForgotStep("otp");
+            setCountdown(120);
+        }
+    }, [otpSent, registerStep, forgotStep, view]);
 
     // Handle request OTP
     const handleRequestOtp = async () => {
@@ -95,6 +116,7 @@ const AuthModal = ({
             message.error("Vui lòng đồng ý với điều khoản sử dụng");
             return;
         }
+        
         try {
             await dispatch(requestPhoneOtp(phone)).unwrap();
             message.success("OTP đã được gửi đến số điện thoại của bạn");
@@ -168,13 +190,24 @@ const AuthModal = ({
 
     // Go back in register flow
     const handleBack = () => {
-        if (registerStep === "otp") {
-            setRegisterStep("phone");
-            setOtp("");
-        } else if (registerStep === "password") {
-            setRegisterStep("otp");
-            setPassword("");
-            setConfirmPassword("");
+        if (view === "register") {
+            if (registerStep === "otp") {
+                setRegisterStep("phone");
+                setOtp("");
+            } else if (registerStep === "password") {
+                setRegisterStep("otp");
+                setPassword("");
+                setConfirmPassword("");
+            }
+        } else if (view === "forgot") {
+            if (forgotStep === "otp") {
+                setForgotStep("phone");
+                setOtp("");
+            } else if (forgotStep === "password") {
+                setForgotStep("otp");
+                setPassword("");
+                setConfirmPassword("");
+            }
         }
     };
 
@@ -188,10 +221,76 @@ const AuthModal = ({
             message.error("Vui lòng nhập mật khẩu");
             return;
         }
+       
         try {
             await dispatch(loginUser({ phone, password })).unwrap();
+            // Nhớ tài khoản
+            if (rememberMe) {
+                localStorage.setItem("rememberedPhone", phone);
+            } else {
+                localStorage.removeItem("rememberedPhone");
+            }
         } catch (error: any) {
             message.error(error?.message || "Đăng nhập thất bại. Vui lòng thử lại");
+        }
+    };
+
+    // Forgot Password - Request OTP
+    const handleForgotRequestOtp = async () => {
+        if (!phone || phone.length < 9) {
+            message.error("Vui lòng nhập số điện thoại hợp lệ");
+            return;
+        }
+        
+        try {
+            await dispatch(requestForgotPasswordOtp(phone)).unwrap();
+            message.success("OTP đã được gửi đến số điện thoại của bạn");
+        } catch (error: any) {
+            message.error(error?.message || "Không thể gửi OTP");
+        }
+    };
+
+    // Forgot Password - Verify OTP
+    const handleForgotVerifyOtp = () => {
+        if (!otp || otp.length !== 6) {
+            message.error("Vui lòng nhập mã OTP 6 số");
+            return;
+        }
+        setForgotStep("password");
+    };
+
+    // Forgot Password - Reset Password
+    const handleResetPassword = async () => {
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.valid) {
+            message.error(passwordValidation.message);
+            return;
+        }
+        if (password !== confirmPassword) {
+            message.error("Mật khẩu xác nhận không khớp");
+            return;
+        }
+        try {
+            await dispatch(resetPasswordWithOtp({ phone, otp, newPassword: password })).unwrap();
+            message.success("Đặt lại mật khẩu thành công! Vui lòng đăng nhập.");
+            setView("login");
+            setPassword("");
+            setConfirmPassword("");
+            setOtp("");
+        } catch (error: any) {
+            message.error(error?.message || "Đặt lại mật khẩu thất bại");
+        }
+    };
+
+    // Forgot Password - Resend OTP
+    const handleForgotResendOtp = async () => {
+        if (countdown > 0) return;
+        try {
+            await dispatch(requestForgotPasswordOtp(phone)).unwrap();
+            setCountdown(120);
+            message.success("OTP mới đã được gửi");
+        } catch (error: any) {
+            message.error(error?.message || "Không thể gửi lại OTP");
         }
     };
 
@@ -261,7 +360,9 @@ const AuthModal = ({
                                 alt="Logo"
                                 className="h-16 object-contain mb-2"
                             />
-                            <p className="font-bold text-gray-800 text-lg">Group33</p>
+                            <p className="text-sm font-bold text-red-600">
+                                Real Estate
+                            </p>
                             <p className="text-xs text-gray-500 uppercase tracking-widest">
                                 Real Estate Platform
                             </p>
@@ -279,7 +380,7 @@ const AuthModal = ({
                                 Tìm nhà đất
                             </h3>
                             <p className="text-sm text-gray-600 leading-relaxed">
-                                Group33 dẫn lối - Tìm kiếm bất động sản <br />
+                                Real Estate dẫn lối - Tìm kiếm bất động sản <br />
                                 nhanh chóng và hiệu quả
                             </p>
                         </div>
@@ -289,10 +390,10 @@ const AuthModal = ({
                 {/* RIGHT SIDE - Form */}
                 <div className="flex-1 bg-white p-8 md:p-12 flex flex-col justify-center">
                     <div className="w-full max-w-sm mx-auto">
-                        {/* Back button for register steps */}
-                        {view === "register" && registerStep !== "phone" && (
+                        {/* Back button for register/forgot steps */}
+                        {((view === "register" && registerStep !== "phone") || (view === "forgot")) && (
                             <button
-                                onClick={handleBack}
+                                onClick={view === "forgot" && forgotStep === "phone" ? () => { setView("login"); setPassword(""); } : handleBack}
                                 className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 bg-transparent border-none cursor-pointer"
                             >
                                 <ArrowLeftOutlined />
@@ -306,11 +407,17 @@ const AuthModal = ({
                         <h2 className="text-2xl font-bold text-gray-900 mb-8">
                             {view === "login"
                                 ? "Đăng nhập để tiếp tục"
-                                : registerStep === "phone"
-                                    ? "Đăng ký tài khoản mới"
-                                    : registerStep === "otp"
-                                        ? "Xác thực OTP"
-                                        : "Tạo mật khẩu"}
+                                : view === "forgot"
+                                    ? forgotStep === "phone"
+                                        ? "Quên mật khẩu"
+                                        : forgotStep === "otp"
+                                            ? "Xác thực OTP"
+                                            : "Đặt mật khẩu mới"
+                                    : registerStep === "phone"
+                                        ? "Đăng ký tài khoản mới"
+                                        : registerStep === "otp"
+                                            ? "Xác thực OTP"
+                                            : "Tạo mật khẩu"}
                         </h2>
 
                         <div className="space-y-4" onKeyDown={handleKeyDown}>
@@ -348,11 +455,27 @@ const AuthModal = ({
                                     >
                                         Đăng nhập
                                     </Button>
+                                    
                                     <div className="flex items-center justify-between">
-                                        <Checkbox className="text-gray-600">Nhớ tài khoản</Checkbox>
-                                        <a href="#" className="text-red-500 hover:underline text-sm font-medium">
+                                        <Checkbox
+                                            checked={rememberMe}
+                                            onChange={(e) => setRememberMe(e.target.checked)}
+                                            className="text-gray-600"
+                                        >
+                                            Nhớ tài khoản
+                                        </Checkbox>
+                                        <button
+                                            onClick={() => {
+                                                setView("forgot");
+                                                setForgotStep("phone");
+                                                setPassword("");
+                                                setOtp("");
+                                                dispatch(resetOtpState());
+                                            }}
+                                            className="text-red-500 hover:underline text-sm font-medium bg-transparent border-none cursor-pointer"
+                                        >
                                             Quên mật khẩu?
-                                        </a>
+                                        </button>
                                     </div>
                                 </>
                             )}
@@ -378,15 +501,16 @@ const AuthModal = ({
                                         />
                                         <span className="text-xs text-gray-500 leading-tight">
                                             Tôi đã đọc và đồng ý với{" "}
-                                            <a href="#" className="text-red-600 hover:underline">
+                                            <Link href="/terms" target="_blank" className="text-red-600 hover:underline">
                                                 Điều khoản sử dụng
-                                            </a>
+                                            </Link>
                                             ,{" "}
-                                            <a href="#" className="text-red-600 hover:underline">
+                                            <Link href="/privacy" target="_blank" className="text-red-600 hover:underline">
                                                 Chính sách bảo mật
-                                            </a>
+                                            </Link>
                                         </span>
                                     </div>
+                                    
                                     <Button
                                         type="primary"
                                         size="large"
@@ -520,6 +644,149 @@ const AuthModal = ({
                                     </Button>
                                 </>
                             )}
+                            
+                            {/* ===== FORGOT PASSWORD VIEW ===== */}
+                            {view === "forgot" && forgotStep === "phone" && (
+                                <>
+                                    <p className="text-sm text-gray-600 mb-2">
+                                        Nhập số điện thoại đã đăng ký để nhận mã OTP đặt lại mật khẩu.
+                                    </p>
+                                    <div>
+                                        <Input
+                                            size="large"
+                                            prefix={<PhoneOutlined className="text-gray-400 mr-2" />}
+                                            placeholder="Nhập số điện thoại"
+                                            value={phone}
+                                            onChange={(e) => setPhone(e.target.value)}
+                                            className="h-12 text-base rounded-lg border-gray-300 hover:border-red-500 focus:border-red-500"
+                                        />
+                                    </div>
+                                    
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        block
+                                        loading={loading}
+                                        onClick={handleForgotRequestOtp}
+                                        disabled={!phone || phone.length < 9}
+                                        className="h-12 bg-red-500 hover:bg-red-600 border-none font-semibold text-base rounded-lg shadow-sm mt-2"
+                                    >
+                                        Gửi mã OTP
+                                    </Button>
+                                </>
+                            )}
+
+                            {view === "forgot" && forgotStep === "otp" && (
+                                <>
+                                    <p className="text-sm text-gray-600 mb-4">
+                                        Mã OTP đã được gửi đến số <strong>{phone}</strong>
+                                    </p>
+                                    <div className="flex justify-center gap-2">
+                                        {[0, 1, 2, 3, 4, 5].map((index) => (
+                                            <input
+                                                key={index}
+                                                id={`forgot-otp-input-${index}`}
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={1}
+                                                value={otp[index] || ""}
+                                                onChange={(e) => {
+                                                    const value = e.target.value.replace(/\D/g, "");
+                                                    if (value.length <= 1) {
+                                                        const newOtp = otp.split("");
+                                                        newOtp[index] = value;
+                                                        setOtp(newOtp.join(""));
+                                                        if (value && index < 5) {
+                                                            document.getElementById(`forgot-otp-input-${index + 1}`)?.focus();
+                                                        }
+                                                    }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === "Backspace" && !otp[index] && index > 0) {
+                                                        document.getElementById(`forgot-otp-input-${index - 1}`)?.focus();
+                                                    }
+                                                }}
+                                                onPaste={(e) => {
+                                                    e.preventDefault();
+                                                    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+                                                    setOtp(pastedData);
+                                                    const focusIndex = Math.min(pastedData.length, 5);
+                                                    document.getElementById(`forgot-otp-input-${focusIndex}`)?.focus();
+                                                }}
+                                                onFocus={(e) => e.target.select()}
+                                                className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-100 outline-none transition-all duration-200 bg-gray-50 hover:bg-white"
+                                            />
+                                        ))}
+                                    </div>
+                                    <div className="text-center text-sm text-gray-500 mt-4">
+                                        {countdown > 0 ? (
+                                            <span>Gửi lại OTP sau <span className="text-red-500 font-semibold">{countdown}s</span></span>
+                                        ) : (
+                                            <button
+                                                onClick={handleForgotResendOtp}
+                                                className="text-red-600 hover:underline bg-transparent border-none cursor-pointer font-medium"
+                                            >
+                                                Gửi lại OTP
+                                            </button>
+                                        )}
+                                    </div>
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        block
+                                        loading={loading}
+                                        onClick={handleForgotVerifyOtp}
+                                        disabled={otp.length !== 6}
+                                        className="h-12 bg-red-500 hover:bg-red-600 border-none font-semibold text-base rounded-lg shadow-sm mt-4"
+                                    >
+                                        Xác nhận OTP
+                                    </Button>
+                                </>
+                            )}
+
+                            {view === "forgot" && forgotStep === "password" && (
+                                <>
+                                    <div>
+                                        <Input.Password
+                                            size="large"
+                                            prefix={<LockOutlined className="text-gray-400 mr-2" />}
+                                            placeholder="Mật khẩu mới"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+                                            className="h-12 text-base rounded-lg border-gray-300 hover:border-red-500 focus:border-red-500"
+                                        />
+                                        <ul className="text-xs text-gray-500 mt-2 ml-1 space-y-0.5">
+                                            <li className={password.length >= 8 ? "text-green-600" : ""}>• Ít nhất 8 ký tự</li>
+                                            <li className={/[a-zA-Z]/.test(password) ? "text-green-600" : ""}>• Ít nhất 1 chữ cái (a-z, A-Z)</li>
+                                            <li className={/[0-9]/.test(password) ? "text-green-600" : ""}>• Ít nhất 1 chữ số (0-9)</li>
+                                            <li className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password) ? "text-green-600" : ""}>• Ít nhất 1 ký tự đặc biệt</li>
+                                        </ul>
+                                    </div>
+                                    <div>
+                                        <Input.Password
+                                            size="large"
+                                            prefix={<LockOutlined className="text-gray-400 mr-2" />}
+                                            placeholder="Xác nhận mật khẩu mới"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+                                            className="h-12 text-base rounded-lg border-gray-300 hover:border-red-500 focus:border-red-500"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="primary"
+                                        size="large"
+                                        block
+                                        loading={loading}
+                                        onClick={handleResetPassword}
+                                        disabled={!password || !confirmPassword}
+                                        className="h-12 bg-red-500 hover:bg-red-600 border-none font-semibold text-base rounded-lg shadow-sm mt-2"
+                                    >
+                                        Đặt lại mật khẩu
+                                    </Button>
+                                </>
+                            )}
                         </div>
 
                         {/* Divider - Only show on phone step or login */}
@@ -623,19 +890,22 @@ const AuthModal = ({
                         {/* Toggle View */}
                         <div className="mt-8 text-center text-sm">
                             <span className="text-gray-600">
-                                {view === "login"
+                                {view === "login" || view === "forgot"
                                     ? "Bạn chưa có tài khoản? "
                                     : "Bạn đã có tài khoản? "}
                             </span>
                             <button
                                 onClick={() => {
-                                    setView(view === "login" ? "register" : "login");
+                                    setView(view === "login" || view === "forgot" ? "register" : "login");
                                     setRegisterStep("phone");
+                                    setForgotStep("phone");
+                                    setPassword("");
+                                    setOtp("");
                                     dispatch(resetOtpState());
                                 }}
                                 className="text-red-600 font-semibold hover:underline bg-transparent border-none cursor-pointer"
                             >
-                                {view === "login" ? "Đăng ký" : "Đăng nhập"} tại đây
+                                {view === "login" || view === "forgot" ? "Đăng ký" : "Đăng nhập"} tại đây
                             </button>
                         </div>
                     </div>

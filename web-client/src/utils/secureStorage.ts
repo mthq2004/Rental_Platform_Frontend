@@ -3,6 +3,7 @@ import Cookies from "js-cookie";
 
 const ACCESS_TOKEN_KEY = "accessToken";
 const REFRESH_TOKEN_KEY = "refreshToken";
+const IS_SECURE = process.env.NODE_ENV === 'production';
 
 /**
  * Get the access token from cookies
@@ -16,7 +17,7 @@ export const getAccessToken = (): string | null => {
  */
 export const setAccessToken = (token: string): void => {
     Cookies.set(ACCESS_TOKEN_KEY, token, {
-        secure: true,
+        secure: IS_SECURE,
         sameSite: "strict",
         expires: 7, // 7 days
     });
@@ -41,7 +42,7 @@ export const getRefreshToken = (): string | null => {
  */
 export const setRefreshToken = (token: string): void => {
     Cookies.set(REFRESH_TOKEN_KEY, token, {
-        secure: true,
+        secure: IS_SECURE,
         sameSite: "strict",
         expires: 30, // 30 days
     });

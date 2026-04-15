@@ -7,21 +7,27 @@ import {
   PhoneOutlined,
   SendOutlined,
 } from "@ant-design/icons";
+import Link from "next/link";
 
 const FooterBottom = () => {
   // const router = useRouter();
   const footerSections = [
     {
       title: "Công ty",
-      links: ["Giới thiệu", "Tuyển dụng", "Báo chí", "Đối tác"],
+      links: [
+        { label: "Giới thiệu", href: "#" },
+        { label: "Tuyển dụng", href: "#" },
+        { label: "Báo chí", href: "#" },
+        { label: "Đối tác", href: "#" },
+      ],
     },
     {
       title: "Hỗ trợ",
       links: [
-        "Trung tâm trợ giúp",
-        "Chính sách bảo mật",
-        "Điều khoản sử dụng",
-        "Liên hệ",
+        { label: "Trung tâm trợ giúp", href: "#" },
+        { label: "Chính sách bảo mật", href: "/privacy" },
+        { label: "Điều khoản sử dụng", href: "/terms" },
+        { label: "Liên hệ", href: "#" },
       ],
     },
   ];
@@ -77,13 +83,13 @@ const FooterBottom = () => {
               </h3>
               <ul className="flex flex-col gap-3 text-[13px]">
                 {section.links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
                       className="text-gray-600 hover:text-red-600 transition-colors"
                     >
-                      {link}
-                    </a>
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -120,12 +126,12 @@ const FooterBottom = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-3 text-[12px] text-gray-500">
           <p>© {new Date().getFullYear()} Group33. Bảo lưu mọi quyền.</p>
           <div className="flex gap-5">
-            <a href="#" className="hover:text-red-600">
+            <Link href="/privacy" className="hover:text-red-600">
               Bảo mật
-            </a>
-            <a href="#" className="hover:text-red-600">
+            </Link>
+            <Link href="/terms" className="hover:text-red-600">
               Điều khoản
-            </a>
+            </Link>
             <a href="#" className="hover:text-red-600">
               Sơ đồ site
             </a>

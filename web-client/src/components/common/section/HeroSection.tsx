@@ -466,7 +466,6 @@ const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused)
             onClick={handleSearchNavigate}
             className="h-12 px-8 rounded-lg font-semibold text-white
                       bg-blue-500 hover:bg-blue-600
-                      /* Nếu muốn dùng gradient như code cũ của bạn: */
                       /* bg-gradient-to-r from-blue-500 to-blue-300 hover:from-blue-600 hover:to-purple-600 */
                       transition-all duration-200 active:scale-95
                       shadow-md hover:shadow-lg
