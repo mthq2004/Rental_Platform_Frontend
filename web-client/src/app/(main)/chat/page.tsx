@@ -44,8 +44,9 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAuth) return;
     dispatch(fetchConversations());
-  }, [dispatch]);
+  }, [dispatch, isAuth]);
 
   useEffect(() => {
     if (!initialConversationId) return;

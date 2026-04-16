@@ -36,7 +36,7 @@ export const loginUser = createAsyncThunk("auth/login", async (data: any) => {
 });
 
 export const getProfileUser = createAsyncThunk("auth/getProfile", async () => {
-  const response = await http.get("/auth/profile");
+  const response = await http.get("/estate/auth/profile");
   return response;
 });
 

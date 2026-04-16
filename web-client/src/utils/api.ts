@@ -24,8 +24,7 @@ class HttpClient {
     if (token) {
       // Save to Secure Cookie
       Cookies.set("accessToken", token, {
-        secure: true, // Chỉ gửi cookie qua HTTPS, localhost không hỗ trợ secure cookie, nên chỉ bật secure khi ở production
-        // secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === "production", // Local dev (HTTP) cần secure=false để token persist sau reload
         sameSite: "strict",
         expires: 7 // 7 days
       });
