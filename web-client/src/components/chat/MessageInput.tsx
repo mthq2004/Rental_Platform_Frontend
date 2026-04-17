@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from "react";
 import type { UploadFile } from "antd";
 import { SendMessagePayload } from "@/stores/slices/message.slice";
-import { uploadImage, uploadVideo } from "@/services/upload.service";
+import { getUploadUrl } from "@/utils/url-upload-s3";
 
 interface ReplyInfo {
   id: string;
@@ -88,17 +88,17 @@ export default function MessageInput({
   disabled = false,
 }: MessageInputProps) {
   const [text, setText] = useState("");
-  const [pendingFile, setPendingFile] = useState<UploadFile | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<UploadFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const progressMapRef = useRef<Record<string, number>>({});
 
   const canSend =
-    (text.trim().length > 0 || pendingFile !== null) && !disabled && !loading;
-  const isImage = pendingFile?.type?.startsWith("image/");
+    (text.trim().length > 0 || pendingFiles.length > 0) && !disabled && !loading;
 
   // Auto-resize textarea
   useEffect(() => {
@@ -115,58 +115,108 @@ export default function MessageInput({
     }
   }, [replyTo]);
 
-  const detectMessageType = (): SendMessagePayload["messageType"] => {
-    if (!pendingFile) return "TEXT";
-    if (pendingFile.type?.startsWith("image/")) return "IMAGE";
-    if (pendingFile.type?.startsWith("video/")) return "VIDEO";
+  const detectMessageType = (file?: UploadFile | null): SendMessagePayload["messageType"] => {
+    if (!file) return "TEXT";
+    if (file.type?.startsWith("image/")) return "IMAGE";
+    if (file.type?.startsWith("video/")) return "VIDEO";
     return "FILE";
+  };
+
+  const updateOverallProgress = (fileCount: number) => {
+    if (!fileCount) {
+      setUploadProgress(0);
+      return;
+    }
+
+    const values = Object.values(progressMapRef.current);
+    const total = values.reduce((sum, value) => sum + value, 0);
+    const percent = Math.round(total / fileCount);
+    setUploadProgress(percent);
+  };
+
+  const uploadToS3 = async (file: File, fileId: string, fileCount: number) => {
+    const response = await getUploadUrl(file.name, file.type || "application/octet-stream");
+    const uploadUrl = response?.uploadUrl;
+    const fileUrl = response?.fileUrl;
+
+    if (!uploadUrl || !fileUrl) {
+      throw new Error("Không thể lấy URL upload");
+    }
+
+    await new Promise<void>((resolve, reject) => {
+  const xhr = new XMLHttpRequest();
+
+  xhr.upload.addEventListener("progress", (event) => {
+    if (event.lengthComputable) {
+      const percent = Math.round((event.loaded / event.total) * 100);
+      progressMapRef.current[fileId] = percent;
+      updateOverallProgress(fileCount);
+    }
+  });
+
+  xhr.addEventListener("load", () => {
+    if (xhr.status >= 200 && xhr.status < 300) {
+      resolve();
+    } else {
+      reject(new Error("Upload thất bại"));
+    }
+  });
+
+  xhr.addEventListener("error", () => reject(new Error("Lỗi mạng khi upload")));
+
+  xhr.open("PUT", uploadUrl, true);
+
+  // ❌ KHÔNG set Content-Type nếu signedHeaders không có nó
+
+  xhr.send(file);
+});
+
+    return { fileUrl };
   };
 
   const handleSend = async () => {
     if (!canSend || loading) return;
     try {
       setLoading(true);
-      const msgType = detectMessageType();
+      if (text.trim().length > 0) {
+        onSend?.({
+          conversationId,
+          messageType: "TEXT",
+          replyToId: replyTo?.id ?? null,
+          content: text.trim(),
+        });
+      }
 
-      if (pendingFile && pendingFile.originFileObj) {
+      const filesToSend = [...pendingFiles];
+      const fileCount = filesToSend.length;
+
+      for (const pendingFile of filesToSend) {
+        if (!pendingFile.originFileObj) continue;
         const file = pendingFile.originFileObj as File;
-        let uploaded;
-        if (msgType === "VIDEO") {
-          uploaded = await uploadVideo(file, (p) => setUploadProgress(p.percentage));
-        } else if (msgType === "IMAGE") {
-          uploaded = await uploadImage(file, (p) => setUploadProgress(p.percentage));
-        } else {
-          // FILE type - upload as image endpoint (generic)
-          uploaded = await uploadImage(file, (p) => setUploadProgress(p.percentage));
-        }
+        const msgType = detectMessageType(pendingFile);
+        const uploaded = await uploadToS3(file, pendingFile.uid, fileCount);
 
         const payload: SendMessagePayload = {
           conversationId,
           messageType: msgType,
           replyToId: replyTo?.id ?? null,
-          fileUrl: uploaded.secureUrl || uploaded.url,
+          fileUrl: uploaded.fileUrl,
           fileName: file.name,
-          fileSize: uploaded.bytes ?? file.size,
+          fileSize: file.size,
           mimeType: file.type,
-          width: uploaded.width,
-          height: uploaded.height,
-          duration: uploaded.duration,
-          thumbnailUrl: uploaded.thumbnail,
-        };
-        onSend?.(payload);
-      } else {
-        const payload: SendMessagePayload = {
-          conversationId,
-          messageType: "TEXT",
-          replyToId: replyTo?.id ?? null,
-          content: text.trim(),
         };
         onSend?.(payload);
       }
 
       setText("");
-      setPendingFile(null);
+      pendingFiles.forEach((file) => {
+        if (file.url?.startsWith("blob:")) {
+          URL.revokeObjectURL(file.url);
+        }
+      });
+      setPendingFiles([]);
       setUploadProgress(0);
+      progressMapRef.current = {};
       onCancelReply?.();
       textareaRef.current?.focus();
     } catch (err) {
@@ -193,25 +243,33 @@ export default function MessageInput({
     }
   };
 
-  const handleFileSelect = (file: File) => {
+  const createPendingFile = (file: File): UploadFile => {
     const previewUrl = file.type.startsWith("image/")
       ? URL.createObjectURL(file)
       : undefined;
-    setPendingFile({
+    return {
       uid: `${Date.now()}-${file.name}`,
       name: file.name,
       type: file.type,
       size: file.size,
       url: previewUrl,
       originFileObj: file,
-    } as UploadFile);
+    } as UploadFile;
+  };
+
+  const handleFilesSelect = (files: FileList | File[]) => {
+    const list = Array.from(files);
+    if (!list.length) return;
+
+    setPendingFiles((prev) => [...prev, ...list.map(createPendingFile)]);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
+    if (e.dataTransfer.files.length) {
+      handleFilesSelect(e.dataTransfer.files);
+    }
   };
 
   return (
@@ -264,35 +322,50 @@ export default function MessageInput({
         )}
 
         {/* File / Image preview */}
-        {pendingFile && (
-          <div className="flex items-center gap-3 px-3 py-2 mb-2 bg-gray-50 border border-gray-200 rounded-xl">
-            {isImage && pendingFile.url ? (
-              <img
-                src={pendingFile.url}
-                alt="preview"
-                className="w-11 h-11 rounded-lg object-cover shrink-0"
-              />
-            ) : (
-              <div className="w-11 h-11 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
-                <IconFile />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-gray-800 truncate m-0">
-                {pendingFile.name}
-              </p>
-              {pendingFile.size && (
-                <p className="text-[11px] text-gray-400 mt-0.5 m-0">
-                  {formatFileSize(pendingFile.size)}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => setPendingFile(null)}
-              className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-100 hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent"
-            >
-              <IconX />
-            </button>
+        {pendingFiles.length > 0 && (
+          <div className="space-y-2 mb-2">
+            {pendingFiles.map((pendingFile) => {
+              const isImage = pendingFile.type?.startsWith("image/");
+              return (
+                <div
+                  key={pendingFile.uid}
+                  className="flex items-center gap-3 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl"
+                >
+                  {isImage && pendingFile.url ? (
+                    <img
+                      src={pendingFile.url}
+                      alt="preview"
+                      className="w-11 h-11 rounded-lg object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-11 h-11 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                      <IconFile />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-gray-800 truncate m-0">
+                      {pendingFile.name}
+                    </p>
+                    {pendingFile.size && (
+                      <p className="text-[11px] text-gray-400 mt-0.5 m-0">
+                        {formatFileSize(pendingFile.size)}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (pendingFile.url?.startsWith("blob:")) {
+                        URL.revokeObjectURL(pendingFile.url);
+                      }
+                      setPendingFiles((prev) => prev.filter((item) => item.uid !== pendingFile.uid));
+                    }}
+                    className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:bg-red-100 hover:text-red-500 transition-colors cursor-pointer border-none bg-transparent"
+                  >
+                    <IconX />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -357,10 +430,10 @@ export default function MessageInput({
             ref={imageInputRef}
             type="file"
             accept="image/*,video/*"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFileSelect(f);
+              if (e.target.files?.length) handleFilesSelect(e.target.files);
               e.target.value = "";
             }}
           />
@@ -377,10 +450,10 @@ export default function MessageInput({
           <input
             ref={fileInputRef}
             type="file"
+            multiple
             className="hidden"
             onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFileSelect(f);
+              if (e.target.files?.length) handleFilesSelect(e.target.files);
               e.target.value = "";
             }}
           />

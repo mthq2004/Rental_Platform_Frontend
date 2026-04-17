@@ -46,12 +46,15 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
       try {
         await store.dispatch(getProfileUser()).unwrap();
-      } catch {
-        // Không redirect tự động - chỉ logout state, để route guard hoặc user tự xử lý
-        store.dispatch(logout());
-        //  if (typeof window !== "undefined" && window.location.pathname !== "/") {
-        //   window.location.href = "/";
-        // }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error || "");
+        const isUnauthorized = /401|unauthorized|forbidden/i.test(errorMessage);
+
+        // Chỉ logout khi token thật sự không hợp lệ. Lỗi mạng tạm thời không nên làm mất phiên.
+        if (isUnauthorized) {
+          store.dispatch(logout());
+        }
       } finally {
         isCheckingSession.current = false;
       }

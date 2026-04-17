@@ -51,6 +51,14 @@ const IconFile = () => (
   </svg>
 );
 
+const IconDownload = () => (
+  <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="7 10 12 15 17 10" />
+    <line x1="12" y1="15" x2="12" y2="3" />
+  </svg>
+);
+
 const IconCall = ({ isVideo }: { isVideo: boolean }) => (
   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="#1a73e8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
     {isVideo ? (
@@ -317,26 +325,42 @@ const MessageBubble = ({
               )}
 
               {msg.messageType === "FILE" && (
-                <a
-                  href={msg.fileUrl ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 no-underline group/file"
+                <div
+                  className="flex items-center gap-2.5"
                   style={{ minWidth: 190, maxWidth: 260 }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="w-[42px] h-[42px] rounded-xl bg-blue-50 flex items-center justify-center shrink-0 group-hover/file:bg-blue-100 transition-colors">
-                    <IconFile />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-[13px] text-[#111827] truncate m-0 group-hover/file:text-blue-600 transition-colors">
-                      {msg.fileName ?? "Tệp đính kèm"}
-                    </p>
-                    {msg.fileSize != null && (
-                      <p className="text-[11px] text-zinc-400 mt-0.5 m-0">{formatBytes(msg.fileSize)}</p>
-                    )}
-                  </div>
-                </a>
+                  <a
+                    href={msg.fileUrl ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={msg.fileName ?? "download"}
+                    className="flex items-center gap-2.5 no-underline group/file flex-1 min-w-0"
+                  >
+                    <div className="w-[42px] h-[42px] rounded-xl bg-blue-50 flex items-center justify-center shrink-0 group-hover/file:bg-blue-100 transition-colors">
+                      <IconFile />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-[13px] text-[#111827] truncate m-0 group-hover/file:text-blue-600 transition-colors">
+                        {msg.fileName ?? "Tệp đính kèm"}
+                      </p>
+                      {msg.fileSize != null && (
+                        <p className="text-[11px] text-zinc-400 mt-0.5 m-0">{formatBytes(msg.fileSize)}</p>
+                      )}
+                    </div>
+                  </a>
+                  {msg.fileUrl && (
+                    <a
+                      href={msg.fileUrl}
+                      download={msg.fileName ?? "download"}
+                      className="w-8 h-8 rounded-lg border border-blue-100 text-blue-600 hover:bg-blue-50 flex items-center justify-center shrink-0"
+                      title="Tải xuống"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <IconDownload />
+                    </a>
+                  )}
+                </div>
               )}
               </div>
             </div>

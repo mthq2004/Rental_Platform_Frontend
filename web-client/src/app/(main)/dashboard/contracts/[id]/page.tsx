@@ -20,6 +20,7 @@ import {
   SafetyCertificateOutlined,
   SendOutlined,
   EditOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
@@ -311,6 +312,11 @@ export default function ContractDetailPage() {
   const [smartCAModalOpen, setSmartCAModalOpen] = useState(false);
   const [signingRole, setSigningRole] = useState<"OWNER" | "TENANT" | null>(null);
   const finalizedRef = useRef(false);
+  const verifyInputRef = useRef<HTMLInputElement | null>(null);
+  const [verifyFile, setVerifyFile] = useState<File | null>(null);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyResult, setVerifyResult] = useState<{ ok: boolean; checkedAt: string } | null>(null);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   const hasActiveSigningSession = Boolean(smartca.transactionId) && ["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus);
 
@@ -434,6 +440,57 @@ export default function ContractDetailPage() {
       router.push(`/chat?conversationId=${conversation.id}`);
     } catch (error) {
       message.error("Không thể mở chat");
+    }
+  };
+
+  const handleSelectVerifyFile = () => {
+    verifyInputRef.current?.click();
+  };
+
+  const handleVerifyFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      message.error("Chỉ chấp nhận file PDF");
+      return;
+    }
+
+    if (file.size > 15 * 1024 * 1024) {
+      message.error("Kích thước file tối đa 15MB");
+      return;
+    }
+
+    setVerifyFile(file);
+    setVerifyResult(null);
+    setVerifyError(null);
+
+    if (verifyInputRef.current) {
+      verifyInputRef.current.value = "";
+    }
+  };
+
+  const handleVerifyBlockchain = async () => {
+    if (!contractId || !verifyFile) return;
+    setVerifyLoading(true);
+    setVerifyError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", verifyFile);
+      const payload = await http.post(`/contract/smartca/verify/blockchain/${contractId}`, formData);
+      const result = (payload as any)?.data ?? payload;
+      const ok = result === true || (result && result.verified === true);
+
+      setVerifyResult({ ok, checkedAt: new Date().toISOString() });
+      message.success(ok ? "Hợp đồng khớp dữ liệu blockchain" : "Hợp đồng không khớp dữ liệu blockchain");
+    } catch (error: any) {
+      const errorMessage = error?.message || error || "Xác thực thất bại";
+      setVerifyError(errorMessage);
+      setVerifyResult(null);
+      message.error(errorMessage);
+    } finally {
+      setVerifyLoading(false);
     }
   };
 
@@ -1622,6 +1679,75 @@ export default function ContractDetailPage() {
                   </>
                 ) : (
                   <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có kỳ thanh toán nào" />
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+              <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Xác thực blockchain</Text>
+              <h3 className="mt-2 text-xl font-semibold text-slate-900">Kiểm tra thay đổi hợp đồng</h3>
+              <div className="mt-3 text-sm text-slate-500">
+                Tải lên bản PDF đã ký để đối chiếu với hash đã lưu trên blockchain.
+              </div>
+
+              {!contract.blockchainTxHash && (
+                <Alert
+                  type="info"
+                  showIcon
+                  className="mt-4 rounded-2xl"
+                  message="Hợp đồng chưa được ghi nhận lên blockchain."
+                />
+              )}
+
+              <div className="mt-4 space-y-3">
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-800">
+                        {verifyFile ? verifyFile.name : "Chưa chọn file"}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {verifyFile ? `${(verifyFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF đã ký, tối đa 15MB"}
+                      </div>
+                    </div>
+                    <Button icon={<UploadOutlined />} onClick={handleSelectVerifyFile}>
+                      Chọn file
+                    </Button>
+                  </div>
+                </div>
+
+                <input
+                  ref={verifyInputRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleVerifyFileChange}
+                />
+
+                <Button
+                  type="primary"
+                  block
+                  icon={<SafetyCertificateOutlined />}
+                  onClick={handleVerifyBlockchain}
+                  loading={verifyLoading}
+                  disabled={!verifyFile || !contract.blockchainTxHash}
+                >
+                  Xác thực với blockchain
+                </Button>
+
+                {verifyResult && (
+                  <div className={`rounded-2xl border px-4 py-3 ${verifyResult.ok ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}>
+                    <div className={`text-sm font-semibold ${verifyResult.ok ? "text-emerald-700" : "text-rose-700"}`}>
+                      {verifyResult.ok ? "Hợp đồng trùng khớp" : "Hợp đồng đã bị thay đổi"}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {dayjs(verifyResult.checkedAt).format("HH:mm · DD/MM/YYYY")}
+                    </div>
+                  </div>
+                )}
+
+                {verifyError && (
+                  <Alert type="error" showIcon className="rounded-2xl" message={verifyError} />
                 )}
               </div>
             </div>

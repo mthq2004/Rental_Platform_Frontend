@@ -7,6 +7,7 @@ import { ChatSocketProvider } from "@/contexts/ChatSocketContext";
 import { CallProvider } from "@/contexts/CallContext";
 import AIChatBox from "@/components/chat/AIChatBox";
 import CallOverlay from "@/components/call/CallOverlay";
+import { NotificationSocketProvider } from "@/contexts/NotificationSocketContext"
 
 export default function ClientWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,6 +30,7 @@ export default function ClientWrapper({ children }: { children: React.ReactNode 
   return (
     <ReduxProvider>
       <AuthTokenSync />
+      <NotificationSocketProvider>
       <ChatSocketProvider>
         <CallProvider>
           {children}
@@ -36,6 +38,7 @@ export default function ClientWrapper({ children }: { children: React.ReactNode 
           <CallOverlay />
         </CallProvider>
       </ChatSocketProvider>
+      </NotificationSocketProvider>
     </ReduxProvider>
   );
 }
