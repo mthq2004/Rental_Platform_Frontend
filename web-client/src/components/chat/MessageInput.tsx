@@ -144,32 +144,30 @@ export default function MessageInput({
     }
 
     await new Promise<void>((resolve, reject) => {
-  const xhr = new XMLHttpRequest();
+      const xhr = new XMLHttpRequest();
 
-  xhr.upload.addEventListener("progress", (event) => {
-    if (event.lengthComputable) {
-      const percent = Math.round((event.loaded / event.total) * 100);
-      progressMapRef.current[fileId] = percent;
-      updateOverallProgress(fileCount);
-    }
-  });
+      xhr.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          progressMapRef.current[fileId] = percent;
+          updateOverallProgress(fileCount);
+        }
+      });
 
-  xhr.addEventListener("load", () => {
-    if (xhr.status >= 200 && xhr.status < 300) {
-      resolve();
-    } else {
-      reject(new Error("Upload thất bại"));
-    }
-  });
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error("Upload thất bại"));
+        }
+      });
 
-  xhr.addEventListener("error", () => reject(new Error("Lỗi mạng khi upload")));
+      xhr.addEventListener("error", () => reject(new Error("Lỗi mạng khi upload")));
 
-  xhr.open("PUT", uploadUrl, true);
+      xhr.open("PUT", uploadUrl, true);
 
-  // ❌ KHÔNG set Content-Type nếu signedHeaders không có nó
-
-  xhr.send(file);
-});
+      xhr.send(file);
+    });
 
     return { fileUrl };
   };
@@ -275,25 +273,25 @@ export default function MessageInput({
   return (
     <div className="bg-white border-t border-gray-100 shrink-0">
       {/* Quick reply suggestions */}
-        <div className="px-4 pt-3 pb-1">
-          <div className="flex items-center gap-1.5 mb-2">
-            <IconSuggestion />
-            <span className="text-xs text-gray-500 font-medium">
-              Gợi ý tin nhắn
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {QUICK_REPLIES.map((reply, i) => (
-              <button
-                key={i}
-                onClick={() => handleQuickReply(reply)}
-                className="px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs hover:bg-blue-100 hover:border-blue-300 transition-colors cursor-pointer whitespace-nowrap"
-              >
-                {reply}
-              </button>
-            ))}
-          </div>
+      <div className="px-4 pt-3 pb-1">
+        <div className="flex items-center gap-1.5 mb-2">
+          <IconSuggestion />
+          <span className="text-xs text-gray-500 font-medium">
+            Gợi ý tin nhắn
+          </span>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {QUICK_REPLIES.map((reply, i) => (
+            <button
+              key={i}
+              onClick={() => handleQuickReply(reply)}
+              className="px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs hover:bg-blue-100 hover:border-blue-300 transition-colors cursor-pointer whitespace-nowrap"
+            >
+              {reply}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="px-4 pb-3 pt-2">
         {/* Reply banner */}
@@ -471,40 +469,40 @@ export default function MessageInput({
 
           {/* Send button */}
           {/* Send button */}
-            <button
-              onClick={handleSend}
-              disabled={!canSend}
-              title="Gửi tin nhắn"
-              className={`
+          <button
+            onClick={handleSend}
+            disabled={!canSend}
+            title="Gửi tin nhắn"
+            className={`
                 w-8 h-8 flex items-center justify-center shrink-0 
                 transition-all duration-200 border-none bg-transparent cursor-pointer
                 ${canSend ? "text-blue-500 hover:text-blue-600 active:scale-90" : "text-gray-300"}
               `}
-            >
-              {loading ? (
-                <svg
-                  className="animate-spin w-4 h-4 text-blue-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8z"
-                  />
-                </svg>
-              ) : (
-                <IconSend />
-              )}
-            </button>
+          >
+            {loading ? (
+              <svg
+                className="animate-spin w-4 h-4 text-blue-500"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8z"
+                />
+              </svg>
+            ) : (
+              <IconSend />
+            )}
+          </button>
         </div>
 
         {/* Hint */}
