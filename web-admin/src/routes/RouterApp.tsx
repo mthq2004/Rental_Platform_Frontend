@@ -3,6 +3,7 @@ import App from "../App";
 import LoginPage from "../pages/auth/LoginPage";
 import Sidebar from "../components/layout/Sidebar";
 import DashboardPage from "../pages/dashboard/DashboardPage";
+import AiAnalyticsPage from "../pages/dashboard/AiAnalyticsPage";
 import PropertyDetailPage from "../pages/properties/PropertyDetailPage";
 import ContractTemplatePage from "../pages/contracts/ContractTemplatePage";
 import ContractDetailPage from "../pages/contracts/ContractDetailPage";
@@ -87,6 +88,10 @@ const router = createBrowserRouter([
           {
             path: "statistics",
             element: <StatisticsPage />,
+          },
+          {
+            path: "ai-analytics",
+            element: <AiAnalyticsPage />,
           },
           {
             path: "complaints",

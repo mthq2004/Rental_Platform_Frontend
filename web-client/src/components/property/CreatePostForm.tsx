@@ -407,7 +407,11 @@ export default function CreatePostForm() {
           />
 
           <PriceSection formData={formData} updateFormData={updateFormData} />
-          <DescriptionSection formData={formData} updateFormData={updateFormData} />
+          <DescriptionSection
+            formData={formData}
+            updateFormData={updateFormData}
+            imageUrls={images.filter((i) => i.uploaded && i.uri).map((i) => i.uri!)}
+          />
           <AmenitiesSection
             propertyType={formData.propertyType}
             amenities={formData.amenities}

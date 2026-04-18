@@ -37,6 +37,7 @@ import {
   getNotification,
   addNotification,
   selectUnreadCount,
+  removeNotificationLocally,
 } from "../../stores/slices/notification.slice";
 import ThemeToggle from "../theme/ThemeToggle";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -68,6 +69,17 @@ const Sidebar: React.FC = () => {
     [dispatch],
   );
 
+  const handleRealtimeNotificationRead = useCallback(
+    (payload: any) => {
+      // Khi admin khác đọc, xóa notification khỏi list (backend đã xóa recipient)
+      const notificationId = payload?.notificationId || payload?.notification?.id;
+      if (notificationId) {
+        dispatch(removeNotificationLocally(notificationId));
+      }
+    },
+    [dispatch],
+  );
+
   useEffect(() => {
     if (!isAuth) return;
 
@@ -76,12 +88,14 @@ const Sidebar: React.FC = () => {
 
     notificationSocketService.connect(token);
     notificationSocketService.on("notification", handleRealtimeNotification);
+    notificationSocketService.on("notification:read", handleRealtimeNotificationRead);
 
     return () => {
       notificationSocketService.off("notification", handleRealtimeNotification);
+      notificationSocketService.off("notification:read", handleRealtimeNotificationRead);
       notificationSocketService.disconnect();
     };
-  }, [isAuth, handleRealtimeNotification]);
+  }, [isAuth, handleRealtimeNotification, handleRealtimeNotificationRead]);
 
   const logoutUser = () => {
     dispatch(logout());
@@ -116,6 +130,7 @@ const Sidebar: React.FC = () => {
     if (path.includes("/statistics")) return "statistics";
     if (path.includes("/complaints")) return "complaints";
     if (path === "/dashboard" && queryTab === "ai") return "ai-analytics";
+    if (path.includes("/ai-analytics")) return "ai-analytics";
     if (path.includes("/settings")) return "settings";
     if (path.includes("/profile")) return "profile";
     if (path.includes("/owners")) return "owners";
@@ -161,6 +176,8 @@ const Sidebar: React.FC = () => {
       items.push({ title: "Xử lý khiếu nại" });
     } else if (path === "/dashboard" && queryTab === "ai") {
       items.push({ title: "AI Analytics" });
+    } else if (path.includes("/ai-analytics")) {
+      items.push({ title: "Dự báo & AI Analytics" });
     } else {
       items.push({ title: "Bảng điều khiển" });
     }
@@ -281,7 +298,7 @@ const Sidebar: React.FC = () => {
           key: "ai-analytics",
           icon: <ExperimentOutlined />, // Icon mang tính thử nghiệm/AI cao cấp
           label: "Dự báo & AI",
-          onClick: () => navigate("/dashboard?tab=ai"),
+          onClick: () => navigate("/dashboard/ai-analytics"),
         },
       ],
     },

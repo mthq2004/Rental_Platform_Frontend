@@ -75,6 +75,10 @@ export const notificationSlice = createSlice({
     clearNotifications: (state) => {
       state.notifications = [];
     },
+    removeNotificationLocally: (state, action: PayloadAction<string>) => {
+      // Khi admin khác đọc, xóa notification khỏi list (backend đã xóa recipient)
+      state.notifications = state.notifications.filter((n) => n.id !== action.payload);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -103,7 +107,7 @@ export const notificationSlice = createSlice({
   },
 });
 
-export const { addNotification, clearNotifications } = notificationSlice.actions;
+export const { addNotification, clearNotifications, removeNotificationLocally } = notificationSlice.actions;
 export default notificationSlice.reducer;
 
 export const selectNotifications = (state: { notification: NotificationState }) =>

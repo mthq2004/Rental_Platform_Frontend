@@ -15,28 +15,31 @@ import {
   SearchOutlined,
   EnvironmentOutlined,
   AliwangwangOutlined,
+  DollarOutlined,
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppSelector } from '@/stores/hooks';
+import { useRouter } from 'next/navigation';
 
 const { Text, Title } = Typography;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface AIResponseCard {
+interface AIPropertyCard {
   id: string;
   title: string;
   image: string;
   price: string;
   district: string;
-  link: string;
+  city: string;
+  slug: string;
 }
 
 interface Message {
   id: string;
   sender: 'user' | 'ai';
   text: string;
-  cards?: AIResponseCard[];
+  properties?: AIPropertyCard[];
   quickReplies?: string[];
   timestamp?: string;
 }
@@ -69,7 +72,6 @@ function ParticleCanvas({ trigger }: { trigger: number }) {
       dy: -(40 + Math.random() * 50),
     }));
 
-    // setState in async callbacks to satisfy strict react-hooks lint rules.
     const showTimer = setTimeout(() => setParticles(newParticles), 0);
     const hideTimer = setTimeout(() => setParticles([]), 1200);
 
@@ -194,17 +196,101 @@ function SpinRingAvatar() {
   );
 }
 
+// ─── Property Card Component ──────────────────────────────────────────────────
+
+function PropertyCardItem({ property, onNavigate }: { property: AIPropertyCard; onNavigate: (slug: string) => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card
+        hoverable
+        size="small"
+        cover={
+          property.image ? (
+            <img
+              alt={property.title}
+              src={property.image}
+              style={{ height: 120, objectFit: 'cover' }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = 'https://placehold.co/300x120/e2e8f0/64748b?text=BDS';
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                height: 120,
+                background: 'linear-gradient(135deg, #e0f2fe, #dbeafe)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <HomeOutlined style={{ fontSize: 36, color: '#1d4ed8', opacity: 0.5 }} />
+            </div>
+          )
+        }
+        onClick={() => onNavigate(`/property/${property.slug}`)}
+        styles={{ body: { padding: 10 } }}
+        style={{
+          borderRadius: 14,
+          overflow: 'hidden',
+          background: '#ffffff',
+          border: '1px solid #dbeafe',
+          cursor: 'pointer',
+        }}
+      >
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: '#0f172a', lineHeight: 1.4, marginBottom: 4 }}>
+          <HomeOutlined style={{ marginRight: 4, color: '#1d4ed8', fontSize: 11 }} />
+          {property.title.length > 50 ? property.title.slice(0, 50) + '...' : property.title}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ color: '#0ea5e9', fontWeight: 700, fontSize: 13 }}>
+            <DollarOutlined style={{ marginRight: 3 }} />
+            {property.price}
+          </span>
+          {(property.district || property.city) && (
+            <span style={{ color: '#64748b', fontSize: 10.5 }}>
+              <EnvironmentOutlined style={{ marginRight: 2 }} />
+              {property.district || property.city}
+            </span>
+          )}
+        </div>
+        <Button
+          type="primary"
+          size="small"
+          block
+          style={{
+            marginTop: 8,
+            borderRadius: 8,
+            background: 'linear-gradient(90deg, #1d4ed8, #0ea5e9)',
+            border: 'none',
+            fontWeight: 600,
+            fontSize: 11.5,
+            height: 28,
+          }}
+        >
+          Xem chi tiết
+        </Button>
+      </Card>
+    </motion.div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AIChatBox() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [particleTrigger, setParticleTrigger] = useState(0);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       sender: 'ai',
-      text: 'Xin chào! Tôi là trợ lý ảo từ Digital Curator. Tôi có thể giúp gì cho bạn trong việc tìm kiếm bất động sản mơ ước hôm nay?',
-      quickReplies: ['Tìm phòng trọ', 'Đăng tin cho thuê', 'Cần hỗ trợ kỹ thuật', 'Hỏi về hợp đồng'],
+      text: 'Xin chào! Tôi là trợ lý AI từ Digital Curator. Tôi có thể giúp bạn tìm kiếm bất động sản, tư vấn thuê nhà, hoặc giải đáp thắc mắc. Hãy hỏi tôi bất cứ điều gì!',
+      quickReplies: ['Tìm phòng trọ', 'Tìm căn hộ Hà Nội', 'Hỏi về hợp đồng', 'Cần hỗ trợ kỹ thuật'],
       timestamp: 'Vừa xong',
     },
   ]);
@@ -221,6 +307,10 @@ export default function AIChatBox() {
     const now = new Date();
     return `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
   };
+
+  const handleNavigate = useCallback((path: string) => {
+    router.push(path);
+  }, [router]);
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -239,7 +329,7 @@ export default function AIChatBox() {
 
       try {
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://localhost:8000'}/api/v1/chat`,
+          `${process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://localhost:8000'}/api/ai/api/v1/chat`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -255,57 +345,30 @@ export default function AIChatBox() {
           text: data.answer,
           timestamp: getTimestamp(),
         };
-        if (text.toLowerCase().includes('tìm')) {
-          aiResponse.quickReplies = ['Xem thêm Cầu Giấy', 'Tìm quận khác'];
+
+        // Attach property cards from backend
+        if (data.properties && data.properties.length > 0) {
+          aiResponse.properties = data.properties;
+          aiResponse.quickReplies = ['Tìm thêm khu vực khác', 'Xem tất cả kết quả'];
+        } else {
+          // Add contextual quick replies
+          const lower = text.toLowerCase();
+          if (lower.includes('tìm') || lower.includes('phòng') || lower.includes('căn hộ')) {
+            aiResponse.quickReplies = ['Dưới 5 triệu', 'Quận Cầu Giấy', 'Căn hộ full nội thất'];
+          }
         }
+
         setMessages((prev) => [...prev, aiResponse]);
       } catch {
-        // Fallback mock responses
-        setTimeout(() => {
-          const aiResponse: Message = {
-            id: (Date.now() + 1).toString(),
-            sender: 'ai',
-            text: '',
-            timestamp: getTimestamp(),
-          };
-          const lower = text.toLowerCase();
-
-          if (lower.includes('tìm') && lower.includes('cầu giấy')) {
-            aiResponse.text = 'Tôi đã tìm thấy các phòng phù hợp tại Cầu Giấy! Bạn có muốn xem chi tiết không?';
-            aiResponse.cards = [
-              {
-                id: '1',
-                title: 'Phòng trọ ban công rộng Cầu Giấy',
-                image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=300&h=200&fit=crop',
-                price: '5,000,000 đ',
-                district: 'Cầu Giấy',
-                link: '#',
-              },
-              {
-                id: '2',
-                title: 'Căn hộ mini full đồ Cầu Giấy',
-                image: 'https://images.unsplash.com/photo-1502672260266-1c1c24240f38?w=300&h=200&fit=crop',
-                price: '6,500,000 đ',
-                district: 'Cầu Giấy',
-                link: '#',
-              },
-            ];
-          } else if (lower.includes('đăng tin') || lower.includes('phí')) {
-            aiResponse.text =
-              'Để đăng tin, vào trang Quản lý tin đăng → nhấn "Tạo tin mới". Phí cơ bản miễn phí, có thể boost lên top!';
-          } else if (lower === 'tìm phòng trọ') {
-            aiResponse.text = 'Bạn muốn tìm phòng trọ khu vực nào và ngân sách khoảng bao nhiêu?';
-            aiResponse.quickReplies = ['Quận 1', 'Cầu Giấy', 'Đống Đa', 'Dưới 5 triệu'];
-          } else if (lower === 'hỏi về hợp đồng') {
-            aiResponse.text =
-              'Hợp đồng điện tử có thể ký kết ngay trên nền tảng, hoàn toàn có giá trị pháp lý. Bạn thắc mắc điều gì?';
-          } else {
-            aiResponse.text =
-              'Xin lỗi, AI service chưa kết nối được (lỗi CORS hoặc server chưa chạy). Vui lòng kiểm tra backend trên port 8000!';
-          }
-
-          setMessages((prev) => [...prev, aiResponse]);
-        }, 1000);
+        // Fallback when backend is unreachable
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          sender: 'ai',
+          text: 'Xin lỗi, AI service chưa kết nối được. Vui lòng kiểm tra backend đang chạy trên port đúng!',
+          timestamp: getTimestamp(),
+          quickReplies: ['Thử lại'],
+        };
+        setMessages((prev) => [...prev, aiResponse]);
       } finally {
         setLoading(false);
       }
@@ -315,12 +378,16 @@ export default function AIChatBox() {
 
   const quickReplyIcons: Record<string, React.ReactNode> = {
     'Tìm phòng trọ': <SearchOutlined />,
-    'Đăng tin cho thuê': <FileTextOutlined />,
+    'Tìm căn hộ Hà Nội': <HomeOutlined />,
     'Cần hỗ trợ kỹ thuật': <CustomerServiceOutlined />,
     'Hỏi về hợp đồng': <QuestionCircleOutlined />,
-    'Quận 1': <EnvironmentOutlined />,
-    'Cầu Giấy': <EnvironmentOutlined />,
-    'Đống Đa': <EnvironmentOutlined />,
+    'Dưới 5 triệu': <DollarOutlined />,
+    'Quận Cầu Giấy': <EnvironmentOutlined />,
+    'Căn hộ full nội thất': <HomeOutlined />,
+    'Tìm thêm khu vực khác': <SearchOutlined />,
+    'Xem tất cả kết quả': <SearchOutlined />,
+    'Đăng tin cho thuê': <FileTextOutlined />,
+    'Thử lại': <SendOutlined />,
   };
 
   return (
@@ -337,8 +404,8 @@ export default function AIChatBox() {
               position: 'absolute',
               bottom: 80,
               right: 0,
-              width: 'min(380px, calc(100vw - 24px))',
-              height: 'min(620px, calc(100vh - 110px))',
+              width: 'min(400px, calc(100vw - 24px))',
+              height: 'min(650px, calc(100vh - 110px))',
               borderRadius: 24,
               overflow: 'hidden',
               display: 'flex',
@@ -509,7 +576,7 @@ export default function AIChatBox() {
                     {/* Content */}
                     <div
                       style={{
-                        maxWidth: '76%',
+                        maxWidth: '80%',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: msg.sender === 'user' ? 'flex-end' : 'flex-start',
@@ -525,6 +592,7 @@ export default function AIChatBox() {
                           lineHeight: 1.55,
                           color: '#0f172a',
                           wordBreak: 'break-word',
+                          whiteSpace: 'pre-wrap',
                           ...(msg.sender === 'ai'
                             ? {
                                 background: 'rgba(14,165,233,0.08)',
@@ -549,76 +617,15 @@ export default function AIChatBox() {
                         </Text>
                       )}
 
-                      {/* Cards */}
-                      {msg.cards && msg.cards.length > 0 && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', minWidth: 240 }}>
-                          {msg.cards.map((card, idx) => (
-                            <motion.div
-                              key={card.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: idx * 0.12 }}
-                            >
-                              <Card
-                                hoverable
-                                size="small"
-                                cover={
-                                  <img
-                                    alt={card.title}
-                                    src={card.image}
-                                    style={{ height: 110, objectFit: 'cover' }}
-                                  />
-                                }
-                                onClick={() => (window.location.href = card.link)}
-                                styles={{ body: { padding: 12 } }}
-                                style={{
-                                  borderRadius: 14,
-                                  overflow: 'hidden',
-                                  background: '#ffffff',
-                                  border: '1px solid #dbeafe',
-                                }}
-                              >
-                                <Card.Meta
-                                  title={
-                                    <span
-                                      style={{
-                                        fontSize: 13,
-                                        color: '#0f172a',
-                                        whiteSpace: 'normal',
-                                        lineHeight: 1.4,
-                                      }}
-                                    >
-                                      <HomeOutlined style={{ marginRight: 5, color: '#1d4ed8' }} />
-                                      {card.title}
-                                    </span>
-                                  }
-                                  description={
-                                    <span>
-                                      <span style={{ color: '#38bdf8', fontWeight: 700 }}>{card.price}</span>
-                                      <br />
-                                      <span style={{ color: '#64748b', fontSize: 11 }}>
-                                        <EnvironmentOutlined style={{ marginRight: 3 }} />
-                                        {card.district}
-                                      </span>
-                                    </span>
-                                  }
-                                />
-                                <Button
-                                  type="primary"
-                                  size="small"
-                                  style={{
-                                    marginTop: 10,
-                                    width: '100%',
-                                    borderRadius: 8,
-                                    background: 'linear-gradient(90deg, #1d4ed8, #0ea5e9)',
-                                    border: 'none',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  Xem chi tiết
-                                </Button>
-                              </Card>
-                            </motion.div>
+                      {/* Property Cards */}
+                      {msg.properties && msg.properties.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', minWidth: 240 }}>
+                          {msg.properties.map((property) => (
+                            <PropertyCardItem
+                              key={property.id}
+                              property={property}
+                              onNavigate={handleNavigate}
+                            />
                           ))}
                         </div>
                       )}

@@ -18,6 +18,7 @@ interface MessageInputProps {
   replyTo?: ReplyInfo | null;
   onCancelReply?: () => void;
   disabled?: boolean;
+  onTyping?: (isTyping: boolean) => void;
 }
 
 // ── Quick reply suggestions ──
@@ -80,22 +81,37 @@ function formatFileSize(bytes: number) {
 }
 
 // ── Component ──
+const IconChevronDown = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+const IconChevronUp = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="18 15 12 9 6 15" />
+  </svg>
+);
+
 export default function MessageInput({
   conversationId,
   onSend,
   replyTo,
   onCancelReply,
   disabled = false,
+  onTyping,
 }: MessageInputProps) {
   const [text, setText] = useState("");
   const [pendingFiles, setPendingFiles] = useState<UploadFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressMapRef = useRef<Record<string, number>>({});
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingRef = useRef(false);
 
   const canSend =
     (text.trim().length > 0 || pendingFiles.length > 0) && !disabled && !loading;
@@ -114,6 +130,40 @@ export default function MessageInput({
       textareaRef.current?.focus();
     }
   }, [replyTo]);
+
+  // Typing indicator logic
+  const handleTypingStart = () => {
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      onTyping?.(true);
+    }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      onTyping?.(false);
+    }, 2000);
+  };
+
+  const stopTyping = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    if (isTypingRef.current) {
+      isTypingRef.current = false;
+      onTyping?.(false);
+    }
+  };
+
+  // Cleanup typing timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const detectMessageType = (file?: UploadFile | null): SendMessagePayload["messageType"] => {
     if (!file) return "TEXT";
@@ -207,6 +257,7 @@ export default function MessageInput({
       }
 
       setText("");
+      stopTyping();
       pendingFiles.forEach((file) => {
         if (file.url?.startsWith("blob:")) {
           URL.revokeObjectURL(file.url);
@@ -274,13 +325,23 @@ export default function MessageInput({
     <div className="bg-white border-t border-gray-100 shrink-0">
       {/* Quick reply suggestions */}
       <div className="px-4 pt-3 pb-1">
-        <div className="flex items-center gap-1.5 mb-2">
+        <button
+          onClick={() => setShowSuggestions((prev) => !prev)}
+          className="flex items-center gap-1.5 mb-2 cursor-pointer bg-transparent border-none p-0 group"
+        >
           <IconSuggestion />
-          <span className="text-xs text-gray-500 font-medium">
+          <span className="text-xs text-gray-500 font-medium group-hover:text-blue-500 transition-colors">
             Gợi ý tin nhắn
           </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
+          <span className="text-gray-400 group-hover:text-blue-500 transition-colors">
+            {showSuggestions ? <IconChevronUp /> : <IconChevronDown />}
+          </span>
+        </button>
+        <div
+          className={`flex flex-wrap gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
+            showSuggestions ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
           {QUICK_REPLIES.map((reply, i) => (
             <button
               key={i}
@@ -405,7 +466,11 @@ export default function MessageInput({
           <textarea
             ref={textareaRef}
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(e) => {
+              setText(e.target.value);
+              if (e.target.value.trim()) handleTypingStart();
+              else stopTyping();
+            }}
             onKeyDown={handleKeyDown}
             placeholder={dragOver ? "Thả file vào đây…" : "Nhập tin nhắn…"}
             disabled={disabled || loading}

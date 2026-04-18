@@ -310,7 +310,7 @@ const MessageBubble = ({
                   src={msg.fileUrl}
                   className="rounded-[14px] block"
                   style={{ maxWidth: 255, maxHeight: 290, objectFit: "cover", display: "block" }}
-                  preview={{ mask: <span className="text-xs">Xem ảnh</span> }}
+                  preview={{ cover: <span className="text-xs">Xem ảnh</span> }}
                 />
               )}
 

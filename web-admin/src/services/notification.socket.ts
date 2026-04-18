@@ -5,12 +5,12 @@ class NotificationSocketService {
   private socket: Socket | null = null;
 
   connect(token: string) {
-    if (this.socket?.connected) return;
+    if (this.socket) return; // Socket đã tồn tại (connecting, connected, hoặc reconnecting)
 
     this.socket = io(`${envConfig.API_ENDPOINT}/notification`, {
       path: '/api/notification/socket.io',
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,

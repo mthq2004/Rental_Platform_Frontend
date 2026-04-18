@@ -10,11 +10,13 @@ import {
   ReloadOutlined,
 } from "@ant-design/icons";
 import MessageInput from "@/components/chat/MessageInput";
+import TypingIndicator from "@/components/chat/TypingIndicator";
 import { Message } from "@/types/message.type";
 import MessageBubble from "./MessageBubble";
 import { reactMessage, SendMessagePayload } from "@/stores/slices/message.slice";
 import { useAppDispatch } from "@/stores/hooks";
 import { useCall } from "@/contexts/CallContext";
+import { useSocket } from "@/contexts/ChatSocketContext";
 import ConversationTagModal from "./ConversationTagModal";
 import { formatTime } from "@/utils/format";
 
@@ -58,26 +60,36 @@ export default function ChatWindow({
 }: ChatWindowProps) {
   const dispatch = useAppDispatch();
   const { startCall } = useCall();
+  const { emitTyping, onTypingEvent, offTypingEvent } = useSocket();
   const containerRef = useRef<HTMLDivElement>(null);
   const previousHeightRef = useRef<number>(0);
   const isFetchingRef = useRef(false);
   const isPrependingRef = useRef(false);
   const isFirstLoadRef = useRef(true);
   const [showTagModal, setShowTagModal] = useState(false);
+  const [isParticipantTyping, setIsParticipantTyping] = useState(false);
+  const typingResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hasNewMessage, setHasNewMessage] = useState(false);
+  const isNearBottomRef = useRef(true);
+  const prevMessagesLenRef = useRef(messages.length);
+  const forcScrollBottomRef = useRef(false);
 
 
   const [replyTo, setReplyTo] = useState<{
     id: string;
     content: string | null;
-    messageType: import("@/types/message.type").MessageType;
+    messageType: "TEXT" | "IMAGE" | "VIDEO" | "FILE";
     senderName: string;
   } | null>(null);
 
   const handleReply = (msg: Message) => {
+    const safeType = (["TEXT", "IMAGE", "VIDEO", "FILE"].includes(msg.messageType)
+      ? msg.messageType
+      : "TEXT") as "TEXT" | "IMAGE" | "VIDEO" | "FILE";
     setReplyTo({
       id: msg.id,
       content: msg.content,
-      messageType: msg.messageType,
+      messageType: safeType,
       senderName:
         msg.senderId === currentUserId
           ? "Bạn"
@@ -88,7 +100,35 @@ export default function ChatWindow({
   const handleSend = (payload: SendMessagePayload) => {
     onSend?.(payload);
     setReplyTo(null);
+    forcScrollBottomRef.current = true;
   };
+
+  const handleTyping = (isTyping: boolean) => {
+    if (participantId) emitTyping(conversationId, participantId, isTyping);
+  };
+
+  // Listen for typing events from participant
+  useEffect(() => {
+    onTypingEvent((data) => {
+      if (data.conversationId === conversationId && data.userId === participantId) {
+        setIsParticipantTyping(data.isTyping);
+
+        // Auto-reset after 3s in case we miss the stop event
+        if (typingResetRef.current) clearTimeout(typingResetRef.current);
+        if (data.isTyping) {
+          typingResetRef.current = setTimeout(() => {
+            setIsParticipantTyping(false);
+          }, 3000);
+        }
+      }
+    });
+
+    return () => {
+      offTypingEvent();
+      if (typingResetRef.current) clearTimeout(typingResetRef.current);
+      setIsParticipantTyping(false);
+    };
+  }, [conversationId, participantId, onTypingEvent, offTypingEvent]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -97,6 +137,7 @@ export default function ChatWindow({
     if (isFirstLoadRef.current && messages.length > 0) {
       el.scrollTop = el.scrollHeight;
       isFirstLoadRef.current = false;
+      prevMessagesLenRef.current = messages.length;
       return;
     }
 
@@ -105,18 +146,63 @@ export default function ChatWindow({
       el.scrollTop = newHeight - previousHeightRef.current;
       isFetchingRef.current = false;
       isPrependingRef.current = false;
+      prevMessagesLenRef.current = messages.length;
       return;
     }
 
     const isNearBottom =
       el.scrollHeight - el.scrollTop - el.clientHeight < 50;
-    if (isNearBottom) {
+    isNearBottomRef.current = isNearBottom;
+
+    // Detect new message added (messages prepend to array, so length increases)
+    const isNewMessage = messages.length > prevMessagesLenRef.current;
+    prevMessagesLenRef.current = messages.length;
+
+    if (forcScrollBottomRef.current) {
       el.scrollTop = el.scrollHeight;
+      forcScrollBottomRef.current = false;
+      setHasNewMessage(false);
+    } else if (isNearBottom) {
+      el.scrollTop = el.scrollHeight;
+      setHasNewMessage(false);
+    } else if (isNewMessage) {
+      setHasNewMessage(true);
     }
   }, [messages]);
 
   const handleReact = (messageId: string, emoji: string) => {
     dispatch(reactMessage({ messageId, emoji }));
+  };
+
+  const scrollToBottom = () => {
+    const el = containerRef.current;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
+    setHasNewMessage(false);
+  };
+
+  // Clear new message badge when user scrolls to bottom
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+    isNearBottomRef.current = isNearBottom;
+    if (isNearBottom) {
+      setHasNewMessage(false);
+    }
+
+    // Load more on scroll to top
+    if (
+      el.scrollTop < 5 &&
+      hasNextPage &&
+      !isFetchingRef.current &&
+      onLoadMore
+    ) {
+      isFetchingRef.current = true;
+      isPrependingRef.current = true;
+      previousHeightRef.current = el.scrollHeight;
+      onLoadMore();
+    }
   };
 
 
@@ -208,24 +294,12 @@ export default function ChatWindow({
       </div>
 
       {/* Messages */}
-      <div
-        ref={containerRef}
-        onScroll={(e) => {
-          const el = e.currentTarget;
-          if (
-            el.scrollTop < 5 &&
-            hasNextPage &&
-            !isFetchingRef.current &&
-            onLoadMore
-          ) {
-            isFetchingRef.current = true;
-            isPrependingRef.current = true;
-            previousHeightRef.current = el.scrollHeight;
-            onLoadMore();
-          }
-        }}
-        className="flex-1 overflow-y-auto px-4 md:px-6 py-4 flex flex-col gap-2"
-      >
+      <div className="relative flex-1 min-h-0">
+        <div
+          ref={containerRef}
+          onScroll={handleScroll}
+          className="h-full overflow-y-auto px-4 md:px-6 py-4 flex flex-col gap-2"
+        >
         {hasNextPage && (
           <div className="text-center pb-2">
             <Button
@@ -279,6 +353,28 @@ export default function ChatWindow({
             </React.Fragment>
           );
         })}
+
+        {/* Typing indicator */}
+        {isParticipantTyping && (
+          <TypingIndicator
+            participantName={participantName}
+            participantAvatar={participantAvatar}
+          />
+        )}
+      </div>
+
+        {/* New message notification */}
+        {hasNewMessage && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-4 py-2 bg-white border border-gray-200 rounded-full shadow-lg text-sm text-blue-600 font-medium hover:bg-blue-50 hover:border-blue-300 transition-all cursor-pointer animate-fade-in"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="7 13 12 18 17 13" /><polyline points="7 6 12 11 17 6" />
+            </svg>
+            Có tin nhắn mới
+          </button>
+        )}
       </div>
 
       {/* Input */}
@@ -287,6 +383,7 @@ export default function ChatWindow({
         onSend={handleSend}
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
+        onTyping={handleTyping}
       />
 
       {/* Tag Modal */}

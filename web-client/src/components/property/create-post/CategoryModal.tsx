@@ -32,7 +32,7 @@ export default function CategoryModal({
             width={520}
             centered
             closable={false}
-            maskClosable={!isFirstTime} // Cannot click outside to close if first time
+            mask={{ closable: !isFirstTime }}
             keyboard={!isFirstTime} // Cannot press ESC to close if first time
             className="category-modal"
         >

@@ -262,12 +262,12 @@ export const authSlice = createSlice({
         state.user = action.payload.data;
 
       })
-      // .addCase(getProfileUser.rejected, (state) => {
-      //   state.loading = false;
-      //   state.isAuth = false;
-      //   state.user = null;
-      //   http.setAccessToken(null);
-      // });
+      .addCase(getProfileUser.rejected, (state) => {
+        state.loading = false;
+        state.isAuth = false;
+        state.user = null;
+        http.setAccessToken(null);
+      });
 
     // Google Login
     builder

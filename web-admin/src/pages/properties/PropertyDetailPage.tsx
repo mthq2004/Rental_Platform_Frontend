@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -7,7 +7,9 @@ import {
   Divider,
   Empty,
   Image,
+  Input,
   List,
+  Modal,
   Row,
   Space,
   Spin,
@@ -15,10 +17,10 @@ import {
   Typography,
   message,
 } from "antd";
-import { ArrowLeftOutlined, EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, CheckOutlined, CloseOutlined, EyeInvisibleOutlined, EyeOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../stores/hooks";
-import { getPropertyDetailForAdmin, updatePropertyVisibilityForAdmin } from "../../stores/slices/property.slice";
+import { approveProperty, getPropertyDetailForAdmin, updatePropertyVisibilityForAdmin } from "../../stores/slices/property.slice";
 
 const PropertyDetailPage = () => {
   const dispatch = useAppDispatch();
@@ -26,6 +28,8 @@ const PropertyDetailPage = () => {
   const { id } = useParams();
   const [messageApi, contextHolder] = message.useMessage();
   const { loading, propertyDetail } = useAppSelector((state) => state.property);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
     if (!id) {
@@ -40,6 +44,36 @@ const PropertyDetailPage = () => {
     }
     return propertyDetail.approvalStatus === "approved";
   }, [propertyDetail]);
+
+  const isPending = propertyDetail?.approvalStatus === "pending";
+
+  const handleApprove = async () => {
+    if (!propertyDetail?.id) return;
+    try {
+      await dispatch(approveProperty({ propertyId: propertyDetail.id, data: { approve: true } })).unwrap();
+      messageApi.success("Đã duyệt bất động sản thành công");
+      dispatch(getPropertyDetailForAdmin(propertyDetail.id));
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "Không thể duyệt bất động sản");
+    }
+  };
+
+  const handleReject = async () => {
+    if (!propertyDetail?.id) return;
+    if (!rejectReason.trim()) {
+      messageApi.warning("Vui lòng nhập lý do từ chối");
+      return;
+    }
+    try {
+      await dispatch(approveProperty({ propertyId: propertyDetail.id, data: { approve: false, reason: rejectReason } })).unwrap();
+      messageApi.success("Đã từ chối bất động sản");
+      setRejectModalOpen(false);
+      setRejectReason("");
+      dispatch(getPropertyDetailForAdmin(propertyDetail.id));
+    } catch (error) {
+      messageApi.error(error instanceof Error ? error.message : "Không thể từ chối bất động sản");
+    }
+  };
 
   const handleToggleVisibility = async () => {
     if (!propertyDetail?.id) {
@@ -73,16 +107,38 @@ const PropertyDetailPage = () => {
             <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
               Quay lại
             </Button>
-            {canToggleVisibility && (
-              <Button
-                type={propertyDetail.status === "active" ? "default" : "primary"}
-                danger={propertyDetail.status === "active"}
-                icon={propertyDetail.status === "active" ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-                onClick={handleToggleVisibility}
-              >
-                {propertyDetail.status === "active" ? "Ẩn tin" : "Hiện tin"}
-              </Button>
-            )}
+            <Space>
+              {isPending && (
+                <>
+                  <Button
+                    type="primary"
+                    icon={<CheckOutlined />}
+                    onClick={handleApprove}
+                    loading={loading}
+                  >
+                    Duyệt
+                  </Button>
+                  <Button
+                    danger
+                    icon={<CloseOutlined />}
+                    onClick={() => setRejectModalOpen(true)}
+                    loading={loading}
+                  >
+                    Từ chối
+                  </Button>
+                </>
+              )}
+              {canToggleVisibility && (
+                <Button
+                  type={propertyDetail.status === "active" ? "default" : "primary"}
+                  danger={propertyDetail.status === "active"}
+                  icon={propertyDetail.status === "active" ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+                  onClick={handleToggleVisibility}
+                >
+                  {propertyDetail.status === "active" ? "Ẩn tin" : "Hiện tin"}
+                </Button>
+              )}
+            </Space>
           </Space>
 
           <Typography.Title level={3} style={{ marginBottom: 0 }}>
@@ -180,6 +236,26 @@ const PropertyDetailPage = () => {
           </Card>
         </Col>
       </Row>
+
+      <Modal
+        title="Từ chối bất động sản"
+        open={rejectModalOpen}
+        onOk={handleReject}
+        onCancel={() => { setRejectModalOpen(false); setRejectReason(""); }}
+        okText="Xác nhận từ chối"
+        cancelText="Hủy"
+        okButtonProps={{ danger: true, loading }}
+      >
+        <Typography.Paragraph>
+          Vui lòng nhập lý do từ chối để thông báo cho chủ tin:
+        </Typography.Paragraph>
+        <Input.TextArea
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
+          placeholder="Ví dụ: Hình ảnh không rõ ràng, thông tin không đầy đủ..."
+          rows={4}
+        />
+      </Modal>
     </div>
   );
 };

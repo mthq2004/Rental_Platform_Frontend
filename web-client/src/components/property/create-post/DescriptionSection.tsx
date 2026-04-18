@@ -10,14 +10,14 @@ import {
     CopyOutlined,
     SyncOutlined,
 } from "@ant-design/icons";
-import { PropertyFormData, PropertyType } from "@/types/property.type";
-import { PROPERTY_META } from "@/constants/property.constant";
+import { PropertyFormData } from "@/types/property.type";
 import { Editor } from "@tinymce/tinymce-react";
 const { TextArea } = Input;
 
 interface DescriptionSectionProps {
     formData: PropertyFormData;
     updateFormData: (field: keyof PropertyFormData, value: any) => void;
+    imageUrls?: string[];
 }
 
 const AI_TONES = [
@@ -30,6 +30,7 @@ const AI_TONES = [
 export default function DescriptionSection({
     formData,
     updateFormData,
+    imageUrls = [],
 }: DescriptionSectionProps) {
     const { message } = App.useApp();
     const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -48,24 +49,43 @@ export default function DescriptionSection({
 
         setIsGeneratingAI(true);
 
-        // Simulate AI generation (replace with actual API call)
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+            const apiEndpoint = process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:8000";
+            const res = await fetch(`${apiEndpoint}/api/ai/api/v1/vision/generate-description`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: formData.title,
+                    propertyType: formData.propertyType,
+                    areaSqm: formData.areaSqm,
+                    bedrooms: formData.bedrooms,
+                    bathrooms: formData.bathrooms,
+                    address: formData.address,
+                    district: formData.district,
+                    city: formData.city,
+                    pricePerMonth: formData.pricePerMonth,
+                    depositAmount: formData.depositAmount,
+                    furnitureStatus: formData.furnitureStatus,
+                    amenities: formData.amenities,
+                    tone: aiTone,
+                    length: aiLength,
+                    includeEmoji,
+                    imageUrls: imageUrls.slice(0, 3),
+                }),
+            });
 
-        const propertyTypeLabel = PROPERTY_META[formData.propertyType].label;
-        const emoji = includeEmoji ? "🏠 " : "";
+            if (!res.ok) {
+                throw new Error("API error");
+            }
 
-        // Mock AI-generated description
-        const mockDescriptions: Record<string, string> = {
-            professional: `${emoji}Cho thuê ${propertyTypeLabel.toLowerCase()} ${formData.areaSqm}m² tại ${formData.address || "vị trí đắc địa"}. Căn hộ được thiết kế hiện đại với không gian thoáng đãng, đầy đủ tiện nghi cao cấp. Vị trí thuận tiện di chuyển, gần các trung tâm thương mại, trường học và bệnh viện. Phù hợp cho gia đình hoặc chuyên gia nước ngoài. Liên hệ ngay để được tư vấn và xem nhà!`,
-            friendly: `${emoji}Chào bạn! Mình đang cho thuê ${propertyTypeLabel.toLowerCase()} siêu xinh ${formData.areaSqm}m² nè! 🌟 Nhà mình ở ${formData.address || "khu vực trung tâm"}, đi đâu cũng tiện. Nội thất đầy đủ, dọn vào ở ngay luôn nhé. Bạn nào quan tâm inbox mình để xem nhà ha!`,
-            luxury: `${emoji}✨ Trải nghiệm không gian sống đẳng cấp với ${propertyTypeLabel.toLowerCase()} ${formData.areaSqm}m² tại ${formData.address || "vị trí vàng"}. Thiết kế nội thất tinh tế, vật liệu cao cấp, view panorama tuyệt đẹp. Tiện ích 5 sao: hồ bơi, gym, spa, sky lounge. Dành cho quý khách hàng thượng lưu đề cao chất lượng cuộc sống.`,
-            simple: `${emoji}Cho thuê ${propertyTypeLabel.toLowerCase()} ${formData.areaSqm}m², ${formData.address || "trung tâm thành phố"}. Đầy đủ nội thất. Giá ${formData.pricePerMonth?.toLocaleString() || "thương lượng"} VNĐ/tháng. Liên hệ xem nhà.`
-        };
-
-        const generated = mockDescriptions[aiTone] || mockDescriptions.professional;
-        setGeneratedDescription(generated);
-        setShowAIPreview(true);
-        setIsGeneratingAI(false);
+            const data = await res.json();
+            setGeneratedDescription(data.description);
+            setShowAIPreview(true);
+        } catch {
+            message.error("Không thể tạo mô tả AI. Vui lòng thử lại sau.");
+        } finally {
+            setIsGeneratingAI(false);
+        }
     };
 
     const handleApplyAIDescription = () => {

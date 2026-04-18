@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import socketService from '@/services/chat.socket';
 import { addConversation, setUserOffline, setUserOnline, setOnlineUsersSnapshot, updateConversationOnNewMessage } from '@/stores/slices/conversation.slice';
 import { addRealtimeMessage, updateMessageReaction } from '@/stores/slices/message.slice';
@@ -9,10 +9,16 @@ import { store } from '@/stores/store';
 
 interface SocketContextType {
   isConnected: boolean;
+  emitTyping: (conversationId: string, recipientId: string, isTyping: boolean) => void;
+  onTypingEvent: (callback: (data: { conversationId: string; userId: string; isTyping: boolean }) => void) => void;
+  offTypingEvent: () => void;
 }
 
 const SocketContext = createContext<SocketContextType>({
   isConnected: false,
+  emitTyping: () => {},
+  onTypingEvent: () => {},
+  offTypingEvent: () => {},
 });
 
 export const useSocket = () => useContext(SocketContext);
@@ -108,8 +114,21 @@ export const ChatSocketProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [isAuth]);
 
+  const emitTyping = useCallback((conversationId: string, recipientId: string, isTyping: boolean) => {
+    socketService.emit('typing', { conversationId, recipientId, isTyping });
+  }, []);
+
+  const onTypingEvent = useCallback((callback: (data: { conversationId: string; userId: string; isTyping: boolean }) => void) => {
+    socketService.off('user_typing');
+    socketService.on('user_typing', callback);
+  }, []);
+
+  const offTypingEvent = useCallback(() => {
+    socketService.off('user_typing');
+  }, []);
+
   return (
-    <SocketContext.Provider value={{ isConnected }}>
+    <SocketContext.Provider value={{ isConnected, emitTyping, onTypingEvent, offTypingEvent }}>
       {children}
     </SocketContext.Provider>
   );
