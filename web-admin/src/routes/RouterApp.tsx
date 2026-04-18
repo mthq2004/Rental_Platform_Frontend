@@ -20,6 +20,8 @@ import AdminListPage from "../pages/admins/AdminListPage";
 import AdminDetailPage from "../pages/admins/AdminDetailPage";
 import SettingsPage from "../pages/settings/SettingsPage";
 import ProfilePage from "../pages/profile/ProfilePage";
+import NewsListPage from "../pages/news/NewsListPage";
+import NewsEditorPage from "../pages/news/NewsEditorPage";
 
 const router = createBrowserRouter([
   {
@@ -96,6 +98,18 @@ const router = createBrowserRouter([
           {
             path: "complaints",
             element: <ComplaintPage />,
+          },
+          {
+            path: "news",
+            element: <NewsListPage />,
+          },
+          {
+            path: "news/create",
+            element: <NewsEditorPage />,
+          },
+          {
+            path: "news/:id",
+            element: <NewsEditorPage />,
           },
           {
             path: "settings",

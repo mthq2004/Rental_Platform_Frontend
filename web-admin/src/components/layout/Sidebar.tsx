@@ -129,6 +129,7 @@ const Sidebar: React.FC = () => {
     if (path === "/dashboard" && queryTab === "yeu-cau") return "rental-requests";
     if (path.includes("/statistics")) return "statistics";
     if (path.includes("/complaints")) return "complaints";
+    if (path.includes("/news")) return "news";
     if (path === "/dashboard" && queryTab === "ai") return "ai-analytics";
     if (path.includes("/ai-analytics")) return "ai-analytics";
     if (path.includes("/settings")) return "settings";
@@ -174,6 +175,8 @@ const Sidebar: React.FC = () => {
       items.push({ title: "Thống kê & Phân tích" });
     } else if (path.includes("/complaints")) {
       items.push({ title: "Xử lý khiếu nại" });
+    } else if (path.includes("/news")) {
+      items.push({ title: "Quản lý tin tức" });
     } else if (path === "/dashboard" && queryTab === "ai") {
       items.push({ title: "AI Analytics" });
     } else if (path.includes("/ai-analytics")) {
@@ -278,6 +281,12 @@ const Sidebar: React.FC = () => {
           icon: <AlertOutlined />, // Icon cảnh báo/khiếu nại
           label: "Xử lý khiếu nại",
           onClick: () => navigate("/dashboard/complaints"),
+        },
+        {
+          key: "news",
+          icon: <BankOutlined />,
+          label: "Quản lý tin tức",
+          onClick: () => navigate("/dashboard/news"),
         },
         // Có thể thêm "Báo cáo vi phạm", "Hỗ trợ khách hàng" vào đây
       ],
