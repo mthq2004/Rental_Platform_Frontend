@@ -165,10 +165,10 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
   const unreadCount = conversations?.filter((c) => c.unreadCount > 0).length;
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50 dark:bg-background-dark">
       <ChatHeader title="Liên hệ" onSearch={setSearchText} />
 
-      <View className="flex-row bg-white border-b border-gray-200">
+      <View className="flex-row bg-white dark:bg-secondary-dark border-b border-gray-200 dark:border-gray-700">
         <TouchableOpacity
           className={`flex-1 py-3 ${activeTab === 'all' ? 'border-b-2 border-blue-500' : ''}`}
           onPress={() => setActiveTab('all')}
@@ -225,7 +225,7 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-gray-500">Không có hội thoại nào</Text>
+            <Text className="text-gray-500 dark:text-gray-400">Không có hội thoại nào</Text>
           </View>
         }
       />

@@ -26,14 +26,14 @@ const HeaderPost = ({ formData, showToast }: StepProps) => {
     }
 
     return (
-        <View className="bg-white border-b border-gray-200 px-4 py-3">
+        <View className="bg-white dark:bg-secondary-dark border-b border-gray-200 dark:border-gray-700 px-4 py-3">
             <View className="flex-row items-center justify-between">
                 <TouchableOpacity onPress={handleClose} className="p-2">
-                    <Ionicons name="close" size={24} color="#000" />
+                    <Ionicons name="close" size={24} color="#9CA3AF" />
                 </TouchableOpacity>
-                <Text className="text-lg font-bold text-gray-900">Đăng bất động sản</Text>
-                <TouchableOpacity className="px-4 py-2 bg-gray-100 rounded-lg" onPress={handleSaveDraft}>
-                    <Text className="text-sm font-semibold text-gray-700">Lưu nháp</Text>
+                <Text className="text-lg font-bold text-gray-900 dark:text-foreground-dark">Đăng bất động sản</Text>
+                <TouchableOpacity className="px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg" onPress={handleSaveDraft}>
+                    <Text className="text-sm font-semibold text-gray-700 dark:text-gray-200">Lưu nháp</Text>
                 </TouchableOpacity>
             </View>
         </View>

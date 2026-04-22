@@ -35,17 +35,17 @@ const CustomInput = ({
 
   return (
     <View className="mb-5">
-      <Text className="text-sm font-semibold text-gray-800 mb-2">
+      <Text className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">
         {label} <Text className="text-red-500">*</Text>
       </Text>
       <View
         className={`flex-row items-center border rounded-xl px-4 ${error
-            ? 'border-red-500 bg-red-50'
+            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
             : isFocused
-              ? 'border-blue-500 bg-blue-50'
+              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
               : value
-                ? 'border-green-500 bg-green-50'
-                : 'border-gray-300 bg-gray-50'
+                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                : 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800'
           }`}
       >
         {icon && (
@@ -65,13 +65,13 @@ const CustomInput = ({
           />
         )}
         <TextInput
-          className="flex-1 py-4 text-base text-gray-900"
+          className="flex-1 py-4 text-base text-gray-900 dark:text-gray-100"
           placeholder={placeholder}
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
-          placeholderTextColor="#9CA3AF"
+          placeholderTextColor={isFocused ? '#9CA3AF' : '#9CA3AF'}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           maxLength={maxLength}

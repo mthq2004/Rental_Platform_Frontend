@@ -80,7 +80,7 @@ const SearchFilter = () => {
   };
 
   return (
-    <View className="bg-white mx-4 -mt-28 rounded-2xl p-4 shadow-lg">
+    <View className="bg-white dark:bg-secondary-dark mx-4 -mt-28 rounded-2xl p-4 shadow-lg">
       <View className="flex-row items-center mb-4">
         <View className="w-9 h-9 rounded-full items-center justify-center mr-3">
           <Ionicons
@@ -89,7 +89,7 @@ const SearchFilter = () => {
             color="#0040d1"
           />
         </View>
-        <Text className="text-sm text-gray-700 flex-1">Khu vực:</Text>
+        <Text className="text-sm text-gray-700 dark:text-gray-300 flex-1">Khu vực:</Text>
         <TouchableOpacity
           onPress={handleAreaSelect}
           className="flex-row items-center gap-2"
@@ -112,18 +112,18 @@ const SearchFilter = () => {
             color="#0040d1"
           />
         </View>
-        <Text className="text-sm text-gray-700 flex-1">Loại hình BDS:</Text>
+        <Text className="text-sm text-gray-700 dark:text-gray-300 flex-1">Loại hình BDS:</Text>
         <TouchableOpacity
           onPress={handleTypeSelect}
           className="flex-row items-center gap-2"
         >
-          <Text className="text-gray-900 font-medium">
+          <Text className="text-gray-900 dark:text-foreground-dark font-medium">
             {selectedType ? getPropertyLabel(selectedType) : "Tất cả loại hình"}
           </Text>
           <Text className="text-xs text-gray-500">▼</Text>
         </TouchableOpacity>
       </View>
-      <View className="flex-row items-center bg-gray-50 rounded-lg px-3 py-2">
+      <View className="flex-row items-center bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2">
         <Ionicons
           name="search"
           size={24}
@@ -135,7 +135,7 @@ const SearchFilter = () => {
           onChangeText={setSearchText}
           placeholder="Tìm bất động sản..."
           placeholderTextColor="#999"
-          className="flex-1 text-gray-700 py-1"
+          className="flex-1 text-gray-700 dark:text-gray-200 py-1"
         />
         <TouchableOpacity
           onPress={handleSearch}

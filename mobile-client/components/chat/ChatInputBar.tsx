@@ -27,7 +27,7 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   };
 
   return (
-    <View className="bg-white px-4 py-3 border-t border-gray-200">
+    <View className="bg-white dark:bg-secondary-dark px-4 py-3 border-t border-gray-200 dark:border-gray-700">
       <View className="flex-row items-center">
         <TouchableOpacity
           className="p-2 mr-1"
@@ -50,9 +50,9 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
           <Ionicons name="location-outline" size={24} color="#2196F3" />
         </TouchableOpacity>
 
-        <View className="flex-1 bg-gray-100 rounded-full px-4 py-2 mr-2">
+        <View className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2 mr-2">
           <TextInput
-            className="text-base text-gray-800"
+            className="text-base text-gray-800 dark:text-gray-100"
             placeholder="Nhập tin nhắn..."
             placeholderTextColor="#999"
             value={message}

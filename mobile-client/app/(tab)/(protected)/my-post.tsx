@@ -53,8 +53,13 @@ const MyPost = () => {
 
   const dispatch = useAppDispatch()
   const { statusCount, properties, loadingPropertyStatus } = useAppSelector(state => state.property)
+  const user = useAppSelector(state => state.auth.user)
 
   const tabs = Array.isArray(statusCount) ? statusCount : []
+  const userName = user?.fullName || user?.name || 'Người dùng';
+  const userAvatar = user?.avatarUrl
+    ? { uri: user.avatarUrl }
+    : require('@/assets/images/avatar.png');
 
   useFocusEffect(
     useCallback(() => {
@@ -134,11 +139,11 @@ const MyPost = () => {
         <View className="flex-row items-center justify-between px-4 py-4 border-b-8 border-gray-100 dark:border-gray-700">
           <View className="flex-row items-center gap-3">
             <Image
-              source={{ uri: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop' }}
+              source={userAvatar}
               className="w-12 h-12 rounded-full"
             />
             <View>
-              <Text className="text-base font-semibold text-foreground dark:text-foreground-dark">Xuân Mạch</Text>
+              <Text className="text-base font-semibold text-foreground dark:text-foreground-dark">{userName}</Text>
             </View>
           </View>
         </View>

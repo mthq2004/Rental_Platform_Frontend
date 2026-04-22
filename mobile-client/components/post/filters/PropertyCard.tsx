@@ -33,7 +33,7 @@ const PropertyCard: React.FC<{
     return (
         <TouchableOpacity
             onPress={() => onPress(property.id)}
-            className="bg-white rounded-2xl overflow-hidden mb-4 border border-gray-100 mx-4"
+            className="bg-white dark:bg-secondary-dark rounded-2xl overflow-hidden mb-4 border border-gray-100 dark:border-gray-700 mx-4"
             activeOpacity={0.7}
         >
             {/* Main content row */}
@@ -69,14 +69,14 @@ const PropertyCard: React.FC<{
                 <View className="flex-1 px-4 py-3 relative">
                     {/* Title */}
                     <Text
-                        className="text-base font-bold text-gray-900 mb-1 line-clamp-2"
+                        className="text-base font-bold text-gray-900 dark:text-foreground-dark mb-1 line-clamp-2"
                         numberOfLines={2}
                     >
                         {property.title}
                     </Text>
 
                     {/* Property type and bedrooms */}
-                    <Text className="text-xs text-gray-500 mb-2">
+                    <Text className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                         {property.bedrooms > 0 ? `${property.bedrooms} PN · ` : ''}
                         {property.propertyType}
                         {property.bathrooms > 0 ? ` · ${property.bathrooms} WC` : ''}
@@ -88,7 +88,7 @@ const PropertyCard: React.FC<{
                     </Text>
 
                     {/* Area */}
-                    <Text className="text-sm font-semibold text-gray-900 mb-2">
+                    <Text className="text-sm font-semibold text-gray-900 dark:text-gray-200 mb-2">
                         {property.areaSqm} m²
                     </Text>
 
@@ -96,7 +96,7 @@ const PropertyCard: React.FC<{
                     <View className="flex-row items-center gap-1">
                         <MapPin size={14} color="#9CA3AF" />
                         <Text
-                            className="text-xs text-gray-500 flex-1"
+                            className="text-xs text-gray-500 dark:text-gray-400 flex-1"
                             numberOfLines={1}
                         >
                             {addressText}
@@ -119,7 +119,7 @@ const PropertyCard: React.FC<{
             </View>
 
             {/* Owner section */}
-            <View className="border-t border-gray-100 px-4 py-3 flex-row items-center justify-between">
+            <View className="border-t border-gray-100 dark:border-gray-700 px-4 py-3 flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3">
                     {/* Avatar */}
                     <View className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 items-center justify-center">
@@ -137,10 +137,10 @@ const PropertyCard: React.FC<{
 
                     {/* Owner info */}
                     <View>
-                        <Text className="text-sm font-semibold text-gray-900">
+                        <Text className="text-sm font-semibold text-gray-900 dark:text-foreground-dark">
                             {property.user.fullName}
                         </Text>
-                        <Text className="text-xs text-gray-500">
+                        <Text className="text-xs text-gray-500 dark:text-gray-400">
                             {property.viewCount} lượt xem
                         </Text>
                     </View>

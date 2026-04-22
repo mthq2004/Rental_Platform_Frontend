@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Alert, Platform, KeyboardAvoidingView, ActivityIndicator } from 'react-native'
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Alert, ActivityIndicator } from 'react-native'
 import React, { useState, useEffect } from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { useColorScheme } from 'react-native'
@@ -15,6 +15,7 @@ import { validateBookingForm, formatDate } from '@/utils/bookingValidation'
 import { useAppDispatch, useAppSelector } from '@/store/hook'
 import { clearMessage, createBooking, getAvailableSlots } from '@/store/slices/booking.slice'
 import { Toast } from '@/components/Notification'
+import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper'
 
 const BookSchedule = () => {
   const colorScheme = useColorScheme()
@@ -183,10 +184,7 @@ const BookSchedule = () => {
 
   return (
     <AuthGuard>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-white dark:bg-gray-950 pt-10"
-      >
+      <KeyboardSafeWrapper scrollable={false} className="bg-white dark:bg-gray-950 pt-10">
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
         <View className="flex-row items-center p-4 border-b border-gray-200 dark:border-gray-800">
@@ -270,7 +268,7 @@ const BookSchedule = () => {
           onHide={hideToast}
         />
 
-      </KeyboardAvoidingView>
+      </KeyboardSafeWrapper>
     </AuthGuard>
   )
 }

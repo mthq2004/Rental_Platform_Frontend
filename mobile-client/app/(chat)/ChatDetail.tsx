@@ -42,6 +42,7 @@ const ChatDetail = () => {
   const { user } = useAppSelector(state => state.auth)
   const [replyingMessage, setReplyingMessage] = useState<Message | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
 
   const isOnline =
     params.participantId
@@ -194,12 +195,12 @@ const ChatDetail = () => {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <View className="bg-white px-4 py-3 border-b border-gray-200 pt-16">
+    <View className="flex-1 bg-gray-50 dark:bg-background-dark">
+      <View className="bg-white dark:bg-secondary-dark px-4 py-3 border-b border-gray-200 dark:border-gray-700 pt-16">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center flex-1">
             <TouchableOpacity onPress={() => router.back()} className="mr-3">
-              <Ionicons name="arrow-back" size={24} color="#333" />
+              <Ionicons name="arrow-back" size={24} color="#6B7280" />
             </TouchableOpacity>
 
             <View className="relative mr-3">
@@ -208,12 +209,12 @@ const ChatDetail = () => {
                 className="w-10 h-10 rounded-full"
               />
               {isOnline && (
-                <View className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+                <View className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-secondary-dark" />
               )}
             </View>
 
             <View>
-              <Text className="text-base font-semibold text-gray-800">
+              <Text className="text-base font-semibold text-gray-800 dark:text-foreground-dark">
                 {params.name}
               </Text>
               {
@@ -238,7 +239,8 @@ const ChatDetail = () => {
 
       <KeyboardAvoidingView
         className="flex-1"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 8 : 0}
       >
         <View className="flex-1">
 
@@ -247,6 +249,7 @@ const ChatDetail = () => {
             ref={flatListRef}
             data={messages}
             inverted
+            contentContainerStyle={{ paddingTop: 8 }}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <ChatMessage
@@ -258,6 +261,7 @@ const ChatDetail = () => {
               />
             )}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             onEndReachedThreshold={0.2}
             onEndReached={() => {
               if (hasNextPage && !loading) {
@@ -277,13 +281,13 @@ const ChatDetail = () => {
           />
 
           {replyingMessage && (
-            <View className="mx-4 mb-2 p-3 bg-gray-100 rounded-lg border-l-4 border-blue-500">
+            <View className="mx-4 mb-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg border-l-4 border-blue-500">
               <View className="flex-row justify-between items-center">
                 <View className="flex-1">
-                  <Text className="text-xs text-gray-500">
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">
                     Đang trả lời
                   </Text>
-                  <Text numberOfLines={1} className="text-sm text-gray-800">
+                  <Text numberOfLines={1} className="text-sm text-gray-800 dark:text-gray-200">
                     {replyingMessage.content}
                   </Text>
                 </View>
@@ -307,13 +311,15 @@ const ChatDetail = () => {
             </View>
           )}
 
-          <ChatInputBar
-            onSendMessage={handleSendMessage}
-            onSendImage={handleSendImage}
-            onSendLocation={handleSendLocation}
-            onShowAttachments={handleShowAttachments}
-            canSend={!!selectedImage}
-          />
+          <View style={{ paddingBottom: Platform.OS === 'ios' ? insets.bottom : 6 }}>
+            <ChatInputBar
+              onSendMessage={handleSendMessage}
+              onSendImage={handleSendImage}
+              onSendLocation={handleSendLocation}
+              onShowAttachments={handleShowAttachments}
+              canSend={!!selectedImage}
+            />
+          </View>
 
         </View>
       </KeyboardAvoidingView>

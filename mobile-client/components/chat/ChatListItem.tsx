@@ -78,7 +78,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
   return (
     <Pressable
       onPress={() => onPress(conversation)}
-      className="flex-row px-4 py-3 bg-white border-b border-gray-100 active:bg-gray-50"
+      className="flex-row px-4 py-3 bg-white dark:bg-secondary-dark border-b border-gray-100 dark:border-gray-700 active:bg-gray-50 dark:active:bg-gray-700"
     >
       <View className="mr-3">
         <View
@@ -128,7 +128,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
         )}
 
         <View className="flex-row justify-between items-center">
-          <Text className="text-base font-semibold text-gray-900">
+          <Text className="text-base font-semibold text-gray-900 dark:text-foreground-dark">
             {conversation.participant.fullName}
           </Text>
 
@@ -136,7 +136,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
             {conversation.isPinned && (
               <Text className="text-xs text-gray-400">📌</Text>
             )}
-            <Text className="text-xs text-gray-500">{timeDisplay}</Text>
+            <Text className="text-xs text-gray-500 dark:text-gray-400">{timeDisplay}</Text>
           </View>
         </View>
 
@@ -144,8 +144,8 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
           <Text
             numberOfLines={1}
             className={`flex-1 text-sm ${conversation.unreadCount > 0
-                ? 'text-gray-900 font-semibold'
-                : 'text-gray-600'
+                ? 'text-gray-900 dark:text-foreground-dark font-semibold'
+                : 'text-gray-600 dark:text-gray-300'
               }`}
           >
             {isMe && 'Bạn: '}{lastMessage}

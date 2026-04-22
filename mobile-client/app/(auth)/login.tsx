@@ -2,32 +2,37 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   StatusBar,
   Keyboard,
-  TouchableWithoutFeedback
+  Image,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons, AntDesign, FontAwesome } from '@expo/vector-icons';
+import { Ionicons, AntDesign, FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import CustomInput from '@/components/CustomInput';
 import SocialLoginButton from '@/components/SocialLoginButton';
 import BackButton from '@/components/BackButton';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import PrimaryButton from '@/components/PrimaryButton';
 import Header from '@/components/auth/Header';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { login, resetMessage } from '@/store/slices/auth.slice';
+import { googleExchange, login, resetMessage } from '@/store/slices/auth.slice';
 import { Toast } from '@/components/Notification';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { useColorScheme } from 'nativewind';
+import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
+  const { code } = useLocalSearchParams<{ code?: string }>();
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errors, setErrors] = useState<{ phone?: string; password?: string }>({});
+  const [handledOAuthCode, setHandledOAuthCode] = useState<string>('');
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const dispatch = useAppDispatch();
   const { error, isAuth, loading, user, message } = useAppSelector((state) => state.auth);
@@ -41,17 +46,17 @@ const LoginScreen = () => {
       newErrors.phone = 'Số điện thoại phải có ít nhất 10 số';
     }
 
-    if (!password) {
-      newErrors.password = 'Vui lòng nhập mật khẩu';
-    } else if (password.length < 8) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
-    } else if (!/[a-zA-Z]/.test(password)) {
-      newErrors.password = 'Mật khẩu phải chứa ít nhất 1 chữ cái';
-    } else if (!/\d/.test(password)) {
-      newErrors.password = 'Mật khẩu phải chứa ít nhất 1 chữ số';
-    } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      newErrors.password = 'Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt';
-    }
+    // if (!password) {
+    //   newErrors.password = 'Vui lòng nhập mật khẩu';
+    // } else if (password.length < 8) {
+    //   newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
+    // } else if (!/[a-zA-Z]/.test(password)) {
+    //   newErrors.password = 'Mật khẩu phải chứa ít nhất 1 chữ cái';
+    // } else if (!/\d/.test(password)) {
+    //   newErrors.password = 'Mật khẩu phải chứa ít nhất 1 chữ số';
+    // } else if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    //   newErrors.password = 'Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt';
+    // }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -76,9 +81,46 @@ const LoginScreen = () => {
     dispatch(login({ phone: phoneNumber, password }))
   };
 
-  const handleSocialLogin = (platform: string): void => {
-    console.log('Đăng nhập bằng:', platform);
-    // Xử lý đăng nhập mạng xã hội
+  const getApiBaseUrl = (): string => {
+    const raw = process.env.EXPO_PUBLIC_API_URL?.trim();
+    if (!raw) {
+      return '';
+    }
+
+    return raw.replace(/\/+$/, '');
+  };
+
+  const handleSocialLogin = async (platform: string): Promise<void> => {
+    if (platform !== 'Google') {
+      showToast('Chức năng này đang được phát triển', 'error');
+      return;
+    }
+
+    const apiBaseUrl = getApiBaseUrl();
+    if (!apiBaseUrl) {
+      showToast('Thiếu EXPO_PUBLIC_API_URL để đăng nhập Google', 'error');
+      return;
+    }
+
+    try {
+      const authUrl = `${apiBaseUrl}/estate/auth/google`;
+      const redirectUri = Linking.createURL('/(auth)/login');
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      if (result.type !== 'success') {
+        return;
+      }
+
+      const callbackCode = new URL(result.url).searchParams.get('code');
+      if (!callbackCode) {
+        showToast('Không nhận được mã xác thực từ Google', 'error');
+        return;
+      }
+
+      dispatch(googleExchange(callbackCode));
+    } catch (error) {
+      showToast('Đăng nhập Google thất bại, vui lòng thử lại', 'error');
+    }
   };
 
   const handleForgotPassword = (): void => {
@@ -124,27 +166,31 @@ const LoginScreen = () => {
       router.replace('/(tab)');
     }, 500);
 
-  } else if (message.type === "eerror_loginr") {
+  } else if (message.type === "error_login") {
     showToast(message.message, 'error');
   }
 
   dispatch(resetMessage());
 }, [message, dispatch]);
 
+  useEffect(() => {
+    if (!code || typeof code !== 'string') {
+      return;
+    }
+
+    if (handledOAuthCode === code) {
+      return;
+    }
+
+    setHandledOAuthCode(code);
+    dispatch(googleExchange(code));
+  }, [code, dispatch, handledOAuthCode]);
+
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-white"
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            className="flex-1"
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#19191a' : '#FFFFFF'} />
+      <KeyboardSafeWrapper className="bg-white dark:bg-background-dark" contentContainerStyle={{ paddingBottom: 24 }}>
             <View className="flex-1 px-6">
               <View className="mt-12 mb-2">
                 <BackButton onPress={handleBack} />
@@ -178,7 +224,7 @@ const LoginScreen = () => {
                       setErrors({ ...errors, password: undefined });
                     }
                   }}
-                  secureTextEntry={showPassword ? false : true}
+                  // secureTextEntry={showPassword ? false : true}
                   icon="lock-closed-outline"
                   error={errors.password}
                   showPasswordToggle={true}
@@ -214,15 +260,22 @@ const LoginScreen = () => {
 
               <View className="mb-8">
                 <SocialLoginButton
-                  iconName="google"
-                  iconLibrary="AntDesign"
-                  title="Tiếp tục với Google"
-                  bgColor="bg-white"
-                  textColor="text-gray-700"
-                  iconColor="#DB4437"
-                  borderColor={true}
-                  onPress={() => handleSocialLogin('Google')}
-                />
+                    title="Tiếp tục với Google"
+                    bgColor="bg-white"
+                    textColor="text-gray-700"
+                    borderColor={true}
+                    iconName="google"
+                    iconLibrary="FontAwesome"
+                    iconColor="#EA4335"
+                    onPress={() => handleSocialLogin('Google')}
+                    customIcon={
+                      <Image
+                        source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+                        style={{ width: 20, height: 20 }}
+                        resizeMode="contain"
+                      />
+                    }
+                  />
 
                 <SocialLoginButton
                   iconName="facebook-square"
@@ -234,25 +287,7 @@ const LoginScreen = () => {
                   onPress={() => handleSocialLogin('Facebook')}
                 />
 
-                <SocialLoginButton
-                  iconName="apple"
-                  iconLibrary="AntDesign"
-                  title="Tiếp tục với Apple"
-                  bgColor="bg-black"
-                  textColor="text-white"
-                  iconColor="#FFFFFF"
-                  onPress={() => handleSocialLogin('Apple')}
-                />
-
-                <SocialLoginButton
-                  iconName="wechat"
-                  iconLibrary="AntDesign"
-                  title="Tiếp tục với Zalo"
-                  bgColor="bg-blue-500"
-                  textColor="text-white"
-                  iconColor="#FFFFFF"
-                  onPress={() => handleSocialLogin('Zalo')}
-                />
+                
 
               </View>
 
@@ -271,8 +306,7 @@ const LoginScreen = () => {
               </View>
 
             </View>
-          </ScrollView>
-        </TouchableWithoutFeedback>
+
         <Toast
           visible={toast.visible}
           message={toast.message}
@@ -280,7 +314,7 @@ const LoginScreen = () => {
           duration={3000}
           onHide={hideToast}
         />
-      </KeyboardAvoidingView>
+      </KeyboardSafeWrapper>
     </>
   );
 };

@@ -10,6 +10,7 @@ import {
   Platform,
   PanResponder,
   LayoutChangeEvent,
+  Animated,
 } from "react-native";
 import { X } from "lucide-react-native";
 
@@ -22,7 +23,7 @@ interface PriceRangeModalProps {
 }
 
 const MAX_PRICE = 100000000;
-const STEP = 100000;
+const STEP = 50000;
 const THUMB = 24;
 
 const clamp = (v: number, min: number, max: number) =>
@@ -41,6 +42,8 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
 
   const startMinX = useRef(0);
   const startMaxX = useRef(0);
+  const minScale = useRef(new Animated.Value(1)).current;
+  const maxScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (visible) {
@@ -50,8 +53,7 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
   }, [visible]);
 
   const priceToX = (price: number) => (price / MAX_PRICE) * width;
-  const xToPrice = (x: number) =>
-    Math.round((x / width) * MAX_PRICE / STEP) * STEP;
+  const xToPrice = (x: number) => (x / width) * MAX_PRICE;
 
   const minX = priceToX(min);
   const maxX = priceToX(max);
@@ -59,9 +61,15 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
   const minResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
 
       onPanResponderGrant: () => {
         startMinX.current = priceToX(min);
+        Animated.timing(minScale, {
+          toValue: 1.15,
+          duration: 120,
+          useNativeDriver: true,
+        }).start();
       },
 
       onPanResponderMove: (_, g) => {
@@ -71,7 +79,24 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
 
         const price = xToPrice(newX);
 
-        if (price <= max) setMin(price);
+        if (price <= max) setMin(clamp(Math.round(price), 0, max));
+      },
+
+      onPanResponderRelease: () => {
+        setMin((prev) => Math.round(prev / STEP) * STEP);
+        Animated.timing(minScale, {
+          toValue: 1,
+          duration: 120,
+          useNativeDriver: true,
+        }).start();
+      },
+
+      onPanResponderTerminate: () => {
+        Animated.timing(minScale, {
+          toValue: 1,
+          duration: 120,
+          useNativeDriver: true,
+        }).start();
       },
     })
   ).current;
@@ -79,9 +104,15 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
   const maxResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
 
       onPanResponderGrant: () => {
         startMaxX.current = priceToX(max);
+        Animated.timing(maxScale, {
+          toValue: 1.15,
+          duration: 120,
+          useNativeDriver: true,
+        }).start();
       },
 
       onPanResponderMove: (_, g) => {
@@ -91,13 +122,44 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
 
         const price = xToPrice(newX);
 
-        if (price >= min) setMax(price);
+        if (price >= min) setMax(clamp(Math.round(price), min, MAX_PRICE));
+      },
+
+      onPanResponderRelease: () => {
+        setMax((prev) => Math.round(prev / STEP) * STEP);
+        Animated.timing(maxScale, {
+          toValue: 1,
+          duration: 120,
+          useNativeDriver: true,
+        }).start();
+      },
+
+      onPanResponderTerminate: () => {
+        Animated.timing(maxScale, {
+          toValue: 1,
+          duration: 120,
+          useNativeDriver: true,
+        }).start();
       },
     })
   ).current;
 
   const onLayout = (e: LayoutChangeEvent) => {
     setWidth(e.nativeEvent.layout.width);
+  };
+
+  const handleTrackPress = (x: number) => {
+    if (width <= 0) return;
+
+    const clampedX = clamp(x, 0, width);
+    const price = clamp(Math.round(xToPrice(clampedX)), 0, MAX_PRICE);
+
+    if (Math.abs(clampedX - minX) <= Math.abs(clampedX - maxX)) {
+      setMin(clamp(price, 0, max));
+      return;
+    }
+
+    setMax(clamp(price, min, MAX_PRICE));
   };
 
   const handleApply = () => {
@@ -122,11 +184,11 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1 justify-end"
         >
-          <Pressable className="bg-white rounded-t-3xl p-6">
+          <Pressable className="bg-white dark:bg-secondary-dark rounded-t-3xl p-6">
 
             {/* HEADER */}
             <View className="flex-row justify-between items-center mb-6">
-              <Text className="text-xl font-bold">Chọn khoảng giá</Text>
+              <Text className="text-xl font-bold text-gray-900 dark:text-foreground-dark">Chọn khoảng giá</Text>
 
               <TouchableOpacity onPress={onClose}>
                 <X size={26} />
@@ -136,11 +198,15 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
             {/* SLIDER */}
             <View className="flex-row items-center gap-3 mb-8">
 
-              <Text className="text-xs w-14">0đ</Text>
+              <Text className="text-xs w-14 text-gray-700 dark:text-gray-300">0đ</Text>
 
-              <View className="flex-1 h-10 justify-center" onLayout={onLayout}>
+              <Pressable
+                className="flex-1 h-10 justify-center"
+                onLayout={onLayout}
+                onPress={(event) => handleTrackPress(event.nativeEvent.locationX)}
+              >
 
-                <View className="absolute h-2 bg-gray-200 w-full rounded-full" />
+                <View className="absolute h-2 bg-gray-200 dark:bg-gray-700 w-full rounded-full" />
 
                 <View
                   className="absolute h-2 bg-amber-500 rounded-full"
@@ -151,11 +217,12 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
                 />
 
                 {/* MIN THUMB */}
-                <View
+                <Animated.View
                   {...minResponder.panHandlers}
                   style={{
                     position: "absolute",
                     left: minX - THUMB / 2,
+                    transform: [{ scale: minScale }],
                   }}
                 >
                   <View
@@ -169,14 +236,15 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
                       elevation: 4,
                     }}
                   />
-                </View>
+                </Animated.View>
 
                 {/* MAX THUMB */}
-                <View
+                <Animated.View
                   {...maxResponder.panHandlers}
                   style={{
                     position: "absolute",
                     left: maxX - THUMB / 2,
+                    transform: [{ scale: maxScale }],
                   }}
                 >
                   <View
@@ -190,10 +258,10 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
                       elevation: 4,
                     }}
                   />
-                </View>
-              </View>
+                </Animated.View>
+              </Pressable>
 
-              <Text className="text-xs w-16 text-right">
+              <Text className="text-xs w-16 text-right text-gray-700 dark:text-gray-300">
                 {format(MAX_PRICE)}
               </Text>
             </View>
@@ -202,7 +270,7 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
             <View className="flex-row gap-3 mb-6">
 
               <View className="flex-1">
-                <Text className="text-gray-500 mb-1">Tối thiểu</Text>
+                <Text className="text-gray-500 dark:text-gray-400 mb-1">Tối thiểu</Text>
 
                 <TextInput
                   value={min.toString()}
@@ -211,12 +279,12 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
                     const v = Number(t) || 0;
                     setMin(clamp(v, 0, max));
                   }}
-                  className="border rounded-xl px-4 py-3"
+                  className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-gray-900 dark:text-gray-100"
                 />
               </View>
 
               <View className="flex-1">
-                <Text className="text-gray-500 mb-1">Tối đa</Text>
+                <Text className="text-gray-500 dark:text-gray-400 mb-1">Tối đa</Text>
 
                 <TextInput
                   value={max.toString()}
@@ -225,7 +293,7 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
                     const v = Number(t) || 0;
                     setMax(clamp(v, min, MAX_PRICE));
                   }}
-                  className="border rounded-xl px-4 py-3"
+                  className="border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 text-gray-900 dark:text-gray-100"
                 />
               </View>
             </View>
@@ -235,9 +303,9 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
 
               <TouchableOpacity
                 onPress={handleReset}
-                className="flex-1 border border-gray-300 py-3 rounded-xl items-center"
+                className="flex-1 border border-gray-300 dark:border-gray-600 py-3 rounded-xl items-center"
               >
-                <Text>Xóa lọc</Text>
+                <Text className="text-gray-700 dark:text-gray-200">Xóa lọc</Text>
               </TouchableOpacity>
 
               <TouchableOpacity

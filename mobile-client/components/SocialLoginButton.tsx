@@ -10,6 +10,7 @@ interface SocialLoginButtonProps {
   iconColor: string;
   borderColor?: boolean;
   onPress: () => void;
+  customIcon?: React.ReactNode;
 }
 
 const SocialLoginButton = ({
@@ -21,6 +22,7 @@ const SocialLoginButton = ({
   iconColor,
   borderColor,
   onPress,
+  customIcon,
 }: SocialLoginButtonProps) => {
   const renderIcon = () => {
     const iconProps = { name: iconName as any, size: 22, color: iconColor };
@@ -53,7 +55,7 @@ const SocialLoginButton = ({
       }}
     >
       <View className="w-6 h-6 items-center justify-center mr-3">
-        {renderIcon()}
+        {customIcon ? customIcon : renderIcon()}
       </View>
       <Text className={`text-base font-semibold ${textColor}`}>{title}</Text>
     </TouchableOpacity>

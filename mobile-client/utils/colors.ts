@@ -1,5 +1,5 @@
 // utils/colors.js
-import { useColorScheme } from 'react-native';
+import { useColorScheme } from 'nativewind';
 
 export const COLORS = {
   primary: '#0040d1',
@@ -26,7 +26,9 @@ export const COLORS = {
 
 // Hook để lấy colors theo theme hiện tại
 export const useThemeColors = () => {
-  const colorScheme = useColorScheme();
+  const schemeState = useColorScheme();
+  const colorScheme =
+    typeof schemeState === 'string' ? schemeState : schemeState.colorScheme;
   const isDark = colorScheme === 'dark';
   
   return {

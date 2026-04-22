@@ -17,7 +17,7 @@ const ProgressBar = ({ step, progressAnim }: { step: number, progressAnim: Anima
     });
 
     return (
-        <View className="bg-white px-4 py-4">
+        <View className="bg-white dark:bg-secondary-dark px-4 py-4">
             <View className="flex-row items-center justify-between mb-3">
                 {STEP_INFO.map((info, idx) => {
                     const stepNum = idx + 1;
@@ -31,7 +31,7 @@ const ProgressBar = ({ step, progressAnim }: { step: number, progressAnim: Anima
                                         ? 'bg-green-500'
                                         : isActive
                                             ? 'bg-blue-500'
-                                            : 'bg-gray-200'
+                                            : 'bg-gray-200 dark:bg-gray-700'
                                     }`}
                             >
                                 {isCompleted ? (
@@ -45,7 +45,7 @@ const ProgressBar = ({ step, progressAnim }: { step: number, progressAnim: Anima
                                 )}
                             </View>
                             <Text
-                                className={`text-xs font-medium ${isActive ? 'text-blue-500' : 'text-gray-400'
+                                className={`text-xs font-medium ${isActive ? 'text-blue-500' : 'text-gray-400 dark:text-gray-500'
                                     }`}
                             >
                                 {info.label}
@@ -54,7 +54,7 @@ const ProgressBar = ({ step, progressAnim }: { step: number, progressAnim: Anima
                     );
                 })}
             </View>
-            <View className="h-1 bg-gray-200 rounded-full overflow-hidden">
+            <View className="h-1 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                 <Animated.View
                     className="h-full bg-blue-500 rounded-full"
                     style={{ width: progressWidth }}

@@ -16,7 +16,7 @@ const QuickMessageBar: React.FC<QuickMessageBarProps> = ({
   if (!visible) return null;
 
   return (
-    <View className="bg-white border-t border-gray-200 py-2">
+    <View className="bg-white dark:bg-secondary-dark border-t border-gray-200 dark:border-gray-700 py-2">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

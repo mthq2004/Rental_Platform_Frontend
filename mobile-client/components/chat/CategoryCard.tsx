@@ -48,7 +48,7 @@ function CategoryCard({
         >
             <Pressable onPressIn={onPressIn} onPressOut={onPressOut}>
                 <View
-                    className="bg-white rounded-2xl overflow-hidden"
+                    className="bg-white dark:bg-secondary-dark rounded-2xl overflow-hidden"
                     style={{
                         shadowColor: '#000',
                         shadowOffset: { width: 0, height: 4 },
@@ -76,7 +76,7 @@ function CategoryCard({
                                         />
                                     </View>
                                     <Text
-                                        className="text-sm font-bold text-gray-900 flex-1"
+                                        className="text-sm font-bold text-gray-900 dark:text-foreground-dark flex-1"
                                         numberOfLines={1}
                                     >
                                         {item.name}
@@ -101,7 +101,7 @@ function CategoryCard({
                                 </View>
                             </View>
 
-                            <Text className="text-xs text-gray-400 mt-2 leading-5 ml-12">
+                            <Text className="text-xs text-gray-400 dark:text-gray-500 mt-2 leading-5 ml-12">
                                 {item.description}
                             </Text>
 

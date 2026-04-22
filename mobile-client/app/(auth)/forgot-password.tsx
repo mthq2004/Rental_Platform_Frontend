@@ -8,30 +8,40 @@ import PrimaryButton from "@/components/PrimaryButton";
 import { router } from "expo-router";
 import CustomInput from "@/components/CustomInput";
 import BackButton from "@/components/BackButton";
+import { useAppDispatch, useAppSelector } from "@/store/hook";
+import { requestForgotPasswordOtp } from "@/store/slices/auth.slice";
+import KeyboardSafeWrapper from "@/components/KeyboardSafeWrapper";
 
 const ForgotPasswordScreen = () => {
 
     const [phone, setPhone] = useState("");
     const [error, setError] = useState("");
+    const dispatch = useAppDispatch();
+    const { loading } = useAppSelector((state) => state.auth);
 
-    const handleSendOTP = () => {
+    const handleSendOTP = async () => {
+        const cleanPhone = phone.trim();
 
-        if (!phone) {
+        if (!cleanPhone) {
             setError("Vui lòng nhập số điện thoại");
             return;
         }
 
-        if (phone.length < 10) {
+        if (cleanPhone.length < 10) {
             setError("Số điện thoại không hợp lệ");
             return;
         }
 
-        // gọi API gửi OTP
-        // await dispatch(sendOTP(phone))
+        try {
+            await dispatch(requestForgotPasswordOtp(cleanPhone)).unwrap();
+        } catch (err: any) {
+            setError(typeof err === "string" ? err : "Không thể gửi mã OTP");
+            return;
+        }
 
         router.push({
             pathname: "/(auth)/verify-otp",
-            params: { phone }
+            params: { phone: cleanPhone }
         });
 
     };
@@ -45,14 +55,18 @@ const ForgotPasswordScreen = () => {
     };
 
     return (
-        <View className="flex-1 bg-white px-6 pt-20">
+        <KeyboardSafeWrapper
+            className="bg-white dark:bg-background-dark"
+            contentContainerStyle={{ paddingBottom: 24 }}
+        >
+            <View className="px-6 pt-16">
 
             <BackButton onPress={handleBack} />
-            <Text className="text-2xl font-bold mb-4">
+            <Text className="text-2xl font-bold text-gray-900 dark:text-foreground-dark mb-4 mt-4">
                 Quên mật khẩu
             </Text>
 
-            <Text className="text-gray-500 mb-6">
+            <Text className="text-gray-500 dark:text-gray-300 mb-6">
                 Nhập số điện thoại để nhận mã xác nhận
             </Text>
 
@@ -71,9 +85,11 @@ const ForgotPasswordScreen = () => {
             <PrimaryButton
                 title="Gửi mã OTP"
                 onPress={handleSendOTP}
+                loading={loading}
             />
 
-        </View>
+            </View>
+        </KeyboardSafeWrapper>
     );
 };
 

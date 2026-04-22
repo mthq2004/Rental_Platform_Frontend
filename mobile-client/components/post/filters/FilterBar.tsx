@@ -37,15 +37,15 @@ const FilterBar: React.FC<FilterBarProps> = ({
     onClearType,
     onClearPrice
 }) => (
-    <View className="bg-white border-b border-gray-100">
+    <View className="bg-white dark:bg-secondary-dark border-b border-gray-100 dark:border-gray-700">
         <View className="flex-row items-center px-4 py-2">
             <TouchableOpacity
                 onPress={onFilterPress}
-                className="px-4 h-10 border border-gray-200 rounded-full flex-row items-center gap-2 bg-white"
+                className="px-4 h-10 border border-gray-200 dark:border-gray-600 rounded-full flex-row items-center gap-2 bg-white dark:bg-gray-700"
                 activeOpacity={0.7}
             >
                 <Filter size={16} color="#1F2937" />
-                <Text className="font-semibold text-sm text-gray-900">Lọc</Text>
+                <Text className="font-semibold text-sm text-gray-900 dark:text-gray-200">Lọc</Text>
             </TouchableOpacity>
 
             <ScrollView
@@ -94,13 +94,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
                             className={`px-4 py-2 border rounded-full flex-row items-center gap-1 
             ${isActive
                                     ? "border-blue-500 bg-blue-50"
-                                    : "border-gray-200 bg-white"
+                                    : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700"
                                 }`}
                             activeOpacity={0.7}
                         >
                             <Text
                                 className={`font-semibold text-sm 
-                ${isActive ? "text-blue-600" : "text-gray-900"}`}
+                ${isActive ? "text-blue-600" : "text-gray-900 dark:text-gray-200"}`}
                             >
                                 {label}
                             </Text>

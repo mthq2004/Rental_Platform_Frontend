@@ -12,8 +12,8 @@ interface ChatMessageProps {
 }
 
 const DeletedBubble = () => (
-  <View className="max-w-[75%] rounded-2xl px-4 py-2.5 bg-gray-100 border border-gray-200 flex-row items-center gap-2">
-    <Text className="text-sm text-gray-400 italic">Tin nhắn đã bị xóa</Text>
+  <View className="max-w-[75%] rounded-2xl px-4 py-2.5 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex-row items-center gap-2">
+    <Text className="text-sm text-gray-400 dark:text-gray-500 italic">Tin nhắn đã bị xóa</Text>
   </View>
 );
 
@@ -66,7 +66,7 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
   switch (message.messageType) {
     case 'TEXT':
       return (
-        <Text className={`text-[15px] leading-5 ${isMe ? 'text-white' : 'text-gray-900'}`}>
+        <Text className={`text-[15px] leading-5 ${isMe ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>
           {message.content}
         </Text>
       );
@@ -129,11 +129,11 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
     case 'FILE':
       return (
         <View
-          className={`flex-row items-center rounded-xl px-3 py-2.5 gap-3 ${isMe ? 'bg-blue-400/25' : 'bg-gray-100'
+          className={`flex-row items-center rounded-xl px-3 py-2.5 gap-3 ${isMe ? 'bg-blue-400/25' : 'bg-gray-100 dark:bg-gray-700'
             }`}
         >
           <View
-            className={`w-9 h-9 rounded-lg items-center justify-center ${isMe ? 'bg-blue-400/30' : 'bg-white'
+            className={`w-9 h-9 rounded-lg items-center justify-center ${isMe ? 'bg-blue-400/30' : 'bg-white dark:bg-gray-600'
               }`}
           >
             <Text className="text-lg">📄</Text>
@@ -142,7 +142,7 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
           <View className="flex-1">
             <Text
               numberOfLines={1}
-              className={`text-sm font-semibold ${isMe ? 'text-white' : 'text-gray-800'}`}
+              className={`text-sm font-semibold ${isMe ? 'text-white' : 'text-gray-800 dark:text-gray-100'}`}
             >
               {message.fileName ?? 'Tệp đính kèm'}
             </Text>
@@ -261,7 +261,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMe }) => {
     <View style={{ position: 'relative', marginBottom: hasReactions ? 10 : 0 }}>
       <View
         className={`max-w-[75%] rounded-2xl overflow-hidden ${isMediaOnly ? '' : 'px-3.5 py-2.5'
-          } ${isMe ? 'bg-blue-500' : 'bg-white border border-gray-200'}`}
+          } ${isMe ? 'bg-blue-500' : 'bg-white dark:bg-secondary-dark border border-gray-200 dark:border-gray-600'}`}
       >
         {!isMediaOnly && message.replyTo && (
           <ReplyPreview
@@ -307,8 +307,8 @@ const Avatar: React.FC<AvatarProps> = ({ avatarUrl, name }) => {
   }
 
   return (
-    <View className="w-8 h-8 rounded-full bg-gray-200 items-center justify-center">
-      <Text className="text-sm font-semibold text-gray-500">
+    <View className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 items-center justify-center">
+      <Text className="text-sm font-semibold text-gray-500 dark:text-gray-300">
         {(name ?? '?')[0].toUpperCase()}
       </Text>
     </View>
@@ -323,6 +323,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   onAction,
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
+  const otherUserName = 'Người dùng';
 
   const handleLongPress = () => setMenuVisible(true);
   const handleReaction = (key: string) => onReaction?.(message.id, key);
@@ -337,7 +338,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         >
           {!isMe && (
             <View className="mb-4">
-              <Avatar avatarUrl="https://img.tripi.vn/cdn-cgi/image/width=700,height=700/https://thuthuatphanmem.vn/uploads/2018/05/21/khi-co-tin-nhan-bong-bong-chat-zalo-se-xuat-hien-tren-man-hi_0zOcH_095053182.png" name="Mạch Ngọc Xuân" />
+              <Avatar name={otherUserName} />
             </View>
           )}
 
@@ -351,7 +352,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 
             {!isMe && (
               <Text className="text-xs text-gray-400 font-medium mb-1 ml-1">
-                Mạch Ngọc Đạt
+                {otherUserName}
               </Text>
             )}
 

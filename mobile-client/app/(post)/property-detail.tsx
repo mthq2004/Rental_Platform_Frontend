@@ -1,4 +1,4 @@
-import { View, ScrollView, StatusBar, Alert, RefreshControl, Text, Linking } from 'react-native'
+import { View, StatusBar, Alert, Text, Linking } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useColorScheme } from 'react-native'
 import { useThemeColors } from '@/utils/colors'
@@ -26,6 +26,7 @@ import Toast from 'react-native-toast-message'
 import { createConversation } from '@/store/slices/conversation.slice'
 import { fetchSimilarPropertiesThunk, getPropertyDetailThunk } from '@/store/slices/estate.slice'
 import { PropertyDetailApiData } from '@/types/property.type'
+import GooeyRefreshScrollView from '@/components/common/GooeyRefreshScrollView'
 
 const PropertyDetail = () => {
   const colorScheme = useColorScheme()
@@ -402,11 +403,10 @@ const PropertyDetail = () => {
       <View className="flex-1 bg-white dark:bg-gray-950">
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-        <ScrollView
+        <GooeyRefreshScrollView
+          refreshing={refreshing}
+          onRefresh={onRefresh}
           className="flex-1"
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
         >
           <MediaGallery
             media={mediaGallery}
@@ -464,7 +464,7 @@ const PropertyDetail = () => {
               onDeleteVideo={handleDeleteVideo}
             />
           )}
-        </ScrollView>
+        </GooeyRefreshScrollView>
 
         <PropertyActions
           isOwner={isOwner}

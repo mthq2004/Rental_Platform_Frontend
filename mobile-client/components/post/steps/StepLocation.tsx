@@ -93,9 +93,9 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
             onRequestClose={onClose}
         >
             <View className="flex-1 justify-end bg-black/50">
-                <View className="bg-white rounded-t-3xl max-h-[70%]">
-                    <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
-                        <Text className="text-lg font-bold text-gray-800">{title}</Text>
+                <View className="bg-white dark:bg-secondary-dark rounded-t-3xl max-h-[70%]">
+                    <View className="flex-row justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                        <Text className="text-lg font-bold text-gray-800 dark:text-foreground-dark">{title}</Text>
                         <TouchableOpacity onPress={onClose}>
                             <Ionicons name="close" size={24} color="#6B7280" />
                         </TouchableOpacity>
@@ -106,9 +106,9 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                         renderItem={({ item }) => (
                             <TouchableOpacity
                                 onPress={() => onSelect(item)}
-                                className="px-4 py-4 border-b border-gray-100"
+                                className="px-4 py-4 border-b border-gray-100 dark:border-gray-700"
                             >
-                                <Text className="text-gray-800 text-base">{item.name}</Text>
+                                <Text className="text-gray-800 dark:text-gray-200 text-base">{item.name}</Text>
                             </TouchableOpacity>
                         )}
                     />
@@ -119,14 +119,14 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
 
     return (
         <View className="p-4 space-y-4">
-            <View className="bg-white rounded-2xl p-4 shadow-sm mb-3">
-                <Text className="text-base font-bold text-gray-800 mb-4">
+            <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 shadow-sm mb-3">
+                <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-4">
                     <Ionicons name="location" size={20} color="#3B82F6" /> Vị trí bất động sản
                 </Text>
 
                 <View className="space-y-4">
                     <View className="mb-2">
-                        <Text className="text-sm font-semibold text-gray-700 mb-2">
+                        <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Tỉnh/Thành phố <Text className="text-red-500">*</Text>
                         </Text>
                         <TouchableOpacity
@@ -134,7 +134,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                             className={`px-4 py-3 border rounded-xl flex-row justify-between items-center ${errors.city ? 'border-red-500' : 'border-gray-300'
                                 }`}
                         >
-                            <Text className={formData.city ? "text-gray-900" : "text-gray-400"}>
+                            <Text className={formData.city ? "text-gray-900 dark:text-gray-100" : "text-gray-400"}>
                                 {formData.city || "Chọn tỉnh/thành phố"}
                             </Text>
                             <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
@@ -145,7 +145,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                     </View>
 
                     <View className="mb-2">
-                        <Text className="text-sm font-semibold text-gray-700 mb-2">
+                        <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Quận/Huyện <Text className="text-red-500">*</Text>
                         </Text>
                         <TouchableOpacity
@@ -154,7 +154,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                             className={`px-4 py-3 border rounded-xl flex-row justify-between items-center ${!formData.city ? 'bg-gray-100' : ''
                                 } ${errors.district ? 'border-red-500' : 'border-gray-300'}`}
                         >
-                            <Text className={formData.district ? "text-gray-900" : "text-gray-400"}>
+                            <Text className={formData.district ? "text-gray-900 dark:text-gray-100" : "text-gray-400"}>
                                 {formData.district || "Chọn quận/huyện"}
                             </Text>
                             <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
@@ -165,7 +165,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                     </View>
 
                     <View className="mb-2">
-                        <Text className="text-sm font-semibold text-gray-700 mb-2">
+                        <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Phường/Xã <Text className="text-red-500">*</Text>
                         </Text>
                         <TouchableOpacity
@@ -174,7 +174,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                             className={`px-4 py-3 border rounded-xl flex-row justify-between items-center ${!formData.district ? 'bg-gray-100' : ''
                                 } ${errors.ward ? 'border-red-500' : 'border-gray-300'}`}
                         >
-                            <Text className={formData.ward ? "text-gray-900" : "text-gray-400"}>
+                            <Text className={formData.ward ? "text-gray-900 dark:text-gray-100" : "text-gray-400"}>
                                 {formData.ward || "Chọn phường/xã"}
                             </Text>
                             <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
@@ -185,7 +185,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                     </View>
 
                     <View className="mb-2">
-                        <Text className="text-sm font-semibold text-gray-700 mb-2">
+                        <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Địa chỉ cụ thể <Text className="text-red-500">*</Text>
                         </Text>
                         <TextInput
@@ -193,7 +193,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                             onChangeText={(text) => updateFormData({ address: text })}
                             placeholder="VD: 123 Nguyễn Văn Linh"
                             placeholderTextColor="#9CA3AF"
-                            className={`px-4 py-3 border rounded-xl text-gray-900 ${errors.address ? 'border-red-500' : 'border-gray-300'
+                            className={`px-4 py-3 border rounded-xl text-gray-900 dark:text-gray-100 ${errors.address ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                         />
                         {errors.address && (
@@ -202,7 +202,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                     </View>
 
                     <View className="mb-2">
-                        <Text className="text-sm font-semibold text-gray-700 mb-2">
+                        <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Ngày có thể bắt đầu thuê <Text className="text-red-500">*</Text>
                         </Text>
                         <TouchableOpacity
@@ -212,7 +212,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                         >
                             <View className="flex-row items-center">
                                 <Ionicons name="calendar-outline" size={20} color="#6B7280" />
-                                <Text className={`ml-2 ${formData.availableFrom ? "text-gray-900" : "text-gray-400"}`}>
+                                <Text className={`ml-2 ${formData.availableFrom ? "text-gray-900 dark:text-gray-100" : "text-gray-400"}`}>
                                     {formData.availableFrom ? formatDate(formData.availableFrom) : "Chọn ngày"}
                                 </Text>
                             </View>
@@ -225,9 +225,9 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                 </View>
             </View>
 
-            <View className="bg-blue-50 rounded-xl p-4 flex-row items-start">
+            <View className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4 flex-row items-start">
                 <Ionicons name="information-circle" size={20} color="#3B82F6" />
-                <Text className="flex-1 ml-2 text-sm text-blue-700">
+                <Text className="flex-1 ml-2 text-sm text-blue-700 dark:text-blue-200">
                     Địa chỉ chính xác và ngày bắt đầu thuê giúp người thuê/mua dễ dàng tìm thấy và lên kế hoạch phù hợp
                 </Text>
             </View>
@@ -240,9 +240,9 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                     onRequestClose={() => setShowDatePicker(false)}
                 >
                     <View className="flex-1 justify-center items-center bg-black/50">
-                        <View className="bg-white rounded-2xl p-4 w-11/12 max-w-md">
+                        <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 w-11/12 max-w-md">
                             <View className="flex-row justify-between items-center mb-4">
-                                <Text className="text-lg font-bold text-gray-800">Chọn ngày</Text>
+                                <Text className="text-lg font-bold text-gray-800 dark:text-foreground-dark">Chọn ngày</Text>
                                 <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                                     <Ionicons name="close" size={24} color="#6B7280" />
                                 </TouchableOpacity>
@@ -263,7 +263,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                                         onPress={() => setShowDatePicker(false)}
                                         className="px-4 py-2 mr-2"
                                     >
-                                        <Text className="text-gray-600 font-semibold">Hủy</Text>
+                                        <Text className="text-gray-600 dark:text-gray-300 font-semibold">Hủy</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={handleDateConfirm}

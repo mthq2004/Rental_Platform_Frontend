@@ -157,7 +157,7 @@ const ChatDetail = () => {
         <View className="flex-1">
 
           {/* HEADER */}
-          <View className="bg-white px-4 py-3 border-b border-gray-200">
+          <View className="bg-white dark:bg-secondary-dark px-4 py-3 border-b border-gray-200 dark:border-gray-700">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">
                 <TouchableOpacity onPress={() => router.back()} className="mr-3">
@@ -175,7 +175,7 @@ const ChatDetail = () => {
                 </View>
 
                 <View>
-                  <Text className="text-base font-semibold text-gray-800">
+                  <Text className="text-base font-semibold text-gray-800 dark:text-foreground-dark">
                     {params.name}
                   </Text>
                   <Text className={`text-xs ${statusStyle.color}`}>

@@ -8,6 +8,8 @@ import { selectUnreadCount } from "@/store/slices/notification.slice";
 
 const HeaderBanner: React.FC = () => {
     const unreadCount = useAppSelector(selectUnreadCount);
+    const user = useAppSelector((state) => state.auth.user);
+    const userName = user?.fullName || user?.name || "Bạn";
     const handleFavorite = () => {
         console.log('Danh sách yêu thích');
     };
@@ -27,7 +29,7 @@ const HeaderBanner: React.FC = () => {
                         Mua thì hời, bán thì lời
                     </Text>
                     <Text className="text-lg text-white opacity-90 mb-4">
-                        Xin chào, <Text className="font-semibold">Mạch Ngọc Xuân</Text>
+                        Xin chào, <Text className="font-semibold">{userName}</Text>
                     </Text>
                 </View>
                 <View className="w-32 items-end justify-end">

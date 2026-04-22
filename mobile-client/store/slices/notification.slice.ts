@@ -1,8 +1,5 @@
-import { PropertyData } from "@/app/(tab)/(protected)/my-post";
-import { PropertyFormData } from "@/types/property.type";
 import apiClient from "@/utils/api";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios from 'axios';
 
 export const getNotification = createAsyncThunk(
     "notification/getNotification",
@@ -14,9 +11,17 @@ export const getNotification = createAsyncThunk(
 
 export const markAsRead = createAsyncThunk(
     "notification/markAsRead",
-    async (id: String) => {
+    async (id: string) => {
         const res = await apiClient.patch(`/notification/notification/${id}/read`)
         return res.data;
+    }
+)
+
+export const deleteReadNotifications = createAsyncThunk(
+    "notification/deleteRead",
+    async () => {
+        await apiClient.delete("/notification/notification/read");
+        return true;
     }
 )
 
@@ -40,6 +45,12 @@ export const notificatinSlice = createSlice({
             );
             if (found) found.isRead = true;
         },
+        deleteReadNotificationsLocal: (state) => {
+            state.notifications = state.notifications.filter((n: any) => !n.isRead);
+        },
+        optimisticMarkAllRead: (state) => {
+            state.notifications.forEach((n: any) => { n.isRead = true; });
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -56,11 +67,19 @@ export const notificatinSlice = createSlice({
             })
 
         builder
-            .addCase(markAsRead.fulfilled, () => { })
+            .addCase(markAsRead.fulfilled, (state, action) => {
+                const found = state.notifications.find((n: any) => n.id === action.meta.arg);
+                if (found) found.isRead = true;
+            })
+
+        builder
+            .addCase(deleteReadNotifications.fulfilled, (state) => {
+                state.notifications = state.notifications.filter((n: any) => !n.isRead);
+            })
     },
 });
 
-export const { notificationReadRealtime } = notificatinSlice.actions
+export const { notificationReadRealtime, deleteReadNotificationsLocal, optimisticMarkAllRead } = notificatinSlice.actions
 export default notificatinSlice.reducer;
 
 export const selectUnreadCount = (state: any) =>

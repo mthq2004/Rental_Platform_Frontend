@@ -1,8 +1,8 @@
-import { CheckCircle, Edit } from "lucide-react-native";
+import { CheckCircle, Edit, User } from "lucide-react-native";
 import { Image, TouchableOpacity, View } from "react-native";
 
 interface ProfileAvatarProps {
-  imageUrl: string;
+  imageUrl?: string | null;
   onEdit: () => void;
   isVerified: boolean;
 }
@@ -10,11 +10,17 @@ interface ProfileAvatarProps {
 const ProfileAvatar = ({ imageUrl, onEdit, isVerified }: ProfileAvatarProps) => (
   <View className="items-center mb-6">
     <View className="relative">
-      <Image
-        source={{ uri: imageUrl }}
-        className="w-28 h-28 rounded-full border-4 border-white dark:border-gray-500"
-        style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}
-      />
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          className="w-28 h-28 rounded-full border-4 border-white dark:border-gray-600"
+          style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}
+        />
+      ) : (
+        <View className="w-28 h-28 rounded-full border-4 border-white dark:border-gray-600 bg-gray-200 dark:bg-gray-700 items-center justify-center">
+          <User size={48} color="#9CA3AF" />
+        </View>
+      )}
       {isVerified && (
         <View className="absolute top-0 right-0 bg-blue-500 rounded-full p-1">
           <CheckCircle size={20} color="white" />

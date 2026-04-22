@@ -3,14 +3,9 @@ import {
   View,
   Text,
   ScrollView,
-  TextInput,
   TouchableOpacity,
-  Image,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   Animated,
-  FlatList,
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,6 +24,7 @@ import { createProperty, getPropertyById, resetMessage, updateProperty } from '@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Toast } from '@/components/Notification';
 import { PROPERTY_META } from '@/constants/property.constant';
+import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
 
 interface PropertyImage {
   id: string;
@@ -244,11 +240,11 @@ const CreatePost = () => {
       onRequestClose={() => setShowAmenityModal(false)}
     >
       <View className="flex-1 bg-black/50 justify-end">
-        <View className="bg-white rounded-t-3xl p-6 max-h-[80%]">
+        <View className="bg-white dark:bg-secondary-dark rounded-t-3xl p-6 max-h-[80%]">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-bold text-gray-900">Chọn tiện ích</Text>
+            <Text className="text-lg font-bold text-gray-900 dark:text-foreground-dark">Chọn tiện ích</Text>
             <TouchableOpacity onPress={() => setShowAmenityModal(false)}>
-              <Ionicons name="close" size={24} color="#000" />
+              <Ionicons name="close" size={24} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
 
@@ -260,13 +256,13 @@ const CreatePost = () => {
                   onPress={() => toggleAmenity(amenity)}
                   className={`m-1 px-4 py-2 rounded-xl ${formData.amenities.includes(amenity)
                     ? 'bg-blue-500'
-                    : 'bg-gray-100'
+                    : 'bg-gray-100 dark:bg-gray-700'
                     }`}
                 >
                   <Text
                     className={`text-sm font-medium ${formData.amenities.includes(amenity)
                       ? 'text-white'
-                      : 'text-gray-700'
+                      : 'text-gray-700 dark:text-gray-200'
                       }`}
                   >
                     {amenity}
@@ -288,14 +284,14 @@ const CreatePost = () => {
   );
 
   const renderNavigationButtons = () => (
-    <View className="bg-white border-t border-gray-200 px-4 py-3">
+    <View className="bg-white dark:bg-secondary-dark border-t border-gray-200 dark:border-gray-700 px-4 py-3">
       <View className="flex-row space-x-3 gap-3">
         {step > 1 && (
           <TouchableOpacity
             onPress={handlePrevious}
-            className="flex-1 bg-gray-100 rounded-xl py-4 items-center"
+            className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-xl py-4 items-center"
           >
-            <Text className="font-semibold text-gray-700">Quay lại</Text>
+            <Text className="font-semibold text-gray-700 dark:text-gray-200">Quay lại</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity
@@ -340,11 +336,8 @@ const CreatePost = () => {
 
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
-      >
+    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-background-dark">
+      <KeyboardSafeWrapper scrollable={false}>
         <HeaderPost formData={formData} showToast={showToast} />
         <ProgressBar step={step} progressAnim={progressAnim} />
 
@@ -372,7 +365,7 @@ const CreatePost = () => {
         />
 
 
-      </KeyboardAvoidingView>
+      </KeyboardSafeWrapper>
     </SafeAreaView>
   );
 };

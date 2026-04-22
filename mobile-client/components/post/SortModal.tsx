@@ -47,11 +47,11 @@ const SortModal: React.FC<SortModalProps> = ({
         className="flex-1 bg-black/40 justify-end"
         onPress={onClose}
       >
-        <Pressable className="bg-white rounded-t-3xl p-6">
+        <Pressable className="bg-white dark:bg-secondary-dark rounded-t-3xl p-6">
 
           {/* HEADER */}
           <View className="flex-row justify-between items-center mb-6">
-            <Text className="text-xl font-bold">
+            <Text className="text-xl font-bold text-gray-900 dark:text-foreground-dark">
               Sắp xếp
             </Text>
 
@@ -68,7 +68,7 @@ const SortModal: React.FC<SortModalProps> = ({
                 onPress={() => setSelected(item.value)}
                 className="flex-row justify-between items-center py-3 border-b border-gray-100"
               >
-                <Text className="text-base">
+                <Text className="text-base text-gray-900 dark:text-gray-200">
                   {item.label}
                 </Text>
 

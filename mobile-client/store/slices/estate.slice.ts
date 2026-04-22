@@ -37,7 +37,6 @@ export const searchPropertiesThunk = createAsyncThunk(
       const qs = buildSearchQuery(params);
       
       const res = await apiClient.get(`/estate/properties/search${qs}`);
-      console.log("rklml: ", res.data)
       
       return res.data.data as SearchPropertyResponse;
     } catch (error: any) {

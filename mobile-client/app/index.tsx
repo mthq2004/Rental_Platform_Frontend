@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from 'nativewind';
 
 const { width, height } = Dimensions.get('window');
 
@@ -56,6 +57,8 @@ export default function OnboardingScreen() {
   const [activeSlide, setActiveSlide] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
@@ -78,8 +81,8 @@ export default function OnboardingScreen() {
   const currentSlide = SLIDES[activeSlide];
 
   return (
-    <View className="flex-1 bg-slate-50">
-      <StatusBar barStyle="dark-content" />
+    <View className="flex-1 bg-slate-50 dark:bg-background-dark">
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#19191a' : '#f8fafc'} />
       
       <View className="pt-14 px-6 pb-3 flex-row justify-end">
         <TouchableOpacity 
@@ -98,7 +101,7 @@ export default function OnboardingScreen() {
           <View className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-lg" 
                 style={{ transform: [{ rotate: '-6deg' }] }} />
         </View>
-        <Text className="text-3xl font-black text-slate-900">Bất động sản</Text>
+        <Text className="text-3xl font-black text-slate-900 dark:text-foreground-dark">Bất động sản</Text>
       </View>
 
       <ScrollView
@@ -112,7 +115,7 @@ export default function OnboardingScreen() {
       >
         {SLIDES.map((slide) => (
           <View key={slide.id} className="items-center px-5" style={{ width }}>
-            <View className="bg-white rounded-3xl overflow-hidden shadow-2xl" 
+            <View className="bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-2xl" 
                   style={{ 
                     width: width - 40, 
                     height: height * 0.45,
@@ -186,13 +189,13 @@ export default function OnboardingScreen() {
       </View>
 
       <View className="items-center px-6 mb-6">
-        <Text className="text-4xl font-black text-slate-900 text-center leading-tight mb-1">
+        <Text className="text-4xl font-black text-slate-900 dark:text-foreground-dark text-center leading-tight mb-1">
           {currentSlide.title}
         </Text>
         <Text className="text-4xl font-black text-primary text-center leading-tight mb-3">
           {currentSlide.highlight}
         </Text>
-        <Text className="text-slate-600 text-base text-center leading-6 font-medium">
+        <Text className="text-slate-600 dark:text-gray-300 text-base text-center leading-6 font-medium">
           {currentSlide.subtitle}
         </Text>
       </View>
@@ -216,7 +219,7 @@ export default function OnboardingScreen() {
         </TouchableOpacity>
 
         <View className="flex-row items-center justify-center">
-          <Text className="text-slate-600 text-sm font-medium">Đã có tài khoản? </Text>
+          <Text className="text-slate-600 dark:text-gray-300 text-sm font-medium">Đã có tài khoản? </Text>
           <TouchableOpacity onPress={handleLogin} activeOpacity={0.7}>
             <Text className="text-blue-600 text-sm font-bold">Đăng Nhập</Text>
           </TouchableOpacity>

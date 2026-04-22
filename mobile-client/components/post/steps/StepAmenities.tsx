@@ -47,8 +47,8 @@ const StepAmenities = ({ formData, updateFormData, errors, setShowAmenityModal }
     };
     return (
         <ScrollView className="p-4">
-            <View className="bg-white rounded-2xl p-4 shadow-sm mb-4">
-                <Text className="text-base font-bold text-gray-800 mb-4">
+            <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 shadow-sm mb-4">
+                <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-4">
                     <Ionicons name="star" size={20} color="#3B82F6" /> Tiện ích
                 </Text>
 
@@ -85,8 +85,8 @@ const StepAmenities = ({ formData, updateFormData, errors, setShowAmenityModal }
                 )}
             </View>
 
-            <View className="bg-white rounded-2xl p-4 shadow-sm">
-                <Text className="text-base font-bold text-gray-800 mb-4">
+            <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 shadow-sm">
+                <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-4">
                     <Ionicons name="document-text" size={20} color="#3B82F6" /> Nội quy
                 </Text>
 
@@ -103,12 +103,12 @@ const StepAmenities = ({ formData, updateFormData, errors, setShowAmenityModal }
                 {formData.rules.map((rule, idx) => (
                     <View
                         key={idx}
-                        className="flex-row items-start bg-gray-50 rounded-xl p-3 mb-2"
+                        className="flex-row items-start bg-gray-50 dark:bg-gray-700 rounded-xl p-3 mb-2"
                     >
-                        <Text className="text-sm font-medium text-gray-700 mr-2">
+                        <Text className="text-sm font-medium text-gray-700 dark:text-gray-200 mr-2">
                             {idx + 1}.
                         </Text>
-                        <Text className="flex-1 text-sm text-gray-700">{rule.text}</Text>
+                        <Text className="flex-1 text-sm text-gray-700 dark:text-gray-200">{rule.text}</Text>
                         <TouchableOpacity onPress={() => removeRule(idx)} className="ml-2">
                             <Ionicons name="trash-outline" size={18} color="#EF4444" />
                         </TouchableOpacity>

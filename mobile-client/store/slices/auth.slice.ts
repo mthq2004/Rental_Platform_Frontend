@@ -3,6 +3,14 @@ import apiClient from "@/utils/api";
 import { clearAuthStorage, saveAccessToken, saveRefreshToken } from "@/utils/secureStorage";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
+const getErrorMessage = (error: any, fallback: string): string => {
+    return (
+        error?.response?.data?.message ||
+        error?.message ||
+        fallback
+    );
+};
+
 export const login = createAsyncThunk(
     "auth/login",
     async (credentials: LoginUser, { rejectWithValue }) => {
@@ -14,9 +22,23 @@ export const login = createAsyncThunk(
 
             return res.data.data;
         } catch (err: any) {
-            return rejectWithValue(
-                err.response?.data?.message || "Đăng nhập thất bại"
+            return rejectWithValue(getErrorMessage(err, "Sai tài khoản hoặc mật khẩu"));
+        }
+    }
+);
+
+export const googleExchange = createAsyncThunk(
+    "auth/googleExchange",
+    async (code: string, { rejectWithValue }) => {
+        try {
+            const res = await apiClient.post(
+                "/estate/auth/google/exchange",
+                { code }
             );
+
+            return res.data.data;
+        } catch (err: any) {
+            return rejectWithValue(getErrorMessage(err, "Đăng nhập Google thất bại"));
         }
     }
 );
@@ -26,7 +48,6 @@ export const getProfile = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const res = await apiClient.get("/estate/auth/user/profile");
-            console.log("Mach Ngoc xuan: ", res.data.data)
 
             return res.data.data;
         } catch (err: any) {
@@ -45,9 +66,7 @@ export const register = createAsyncThunk(
             );
             return res.data.data;
         } catch (err: any) {
-            return rejectWithValue(
-                err.response?.data?.message || "Đăng ký thất bại"
-            );
+            return rejectWithValue(getErrorMessage(err, "Đăng ký thất bại"));
         }
     }
 );
@@ -64,9 +83,7 @@ export const otpVerified = createAsyncThunk(
             return res.data.data;
         }
         catch (err: any) {
-            return rejectWithValue(
-                err.response?.data?.message || "Xác thực OTP thất bại"
-            );
+            return rejectWithValue(getErrorMessage(err, "Xác thực OTP thất bại"));
         }
     }
 );
@@ -80,9 +97,6 @@ export const updateAvatar = createAsyncThunk(
 
             formData.append("file", file as any);
 
-            console.log("hinh anh 1: ", formData);
-            
-
             const response = await apiClient.put(
                 "/estate/auth/avatar",
                 formData,
@@ -93,22 +107,29 @@ export const updateAvatar = createAsyncThunk(
                 }
             );
 
-            console.log("hinh anh: ", response.data);
-            
-
             return response.data.data;
 
         } catch (error: any) {
-            return rejectWithValue(
-                error?.response?.data?.message || "Cập nhật avatar thất bại"
-            );
+            return rejectWithValue(getErrorMessage(error, "Cập nhật avatar thất bại"));
+        }
+    }
+);
+
+export const updateProfile = createAsyncThunk(
+    "auth/updateProfile",
+    async (data: Partial<User>, { rejectWithValue }) => {
+        try {
+            const response = await apiClient.put("/estate/auth/profile", data);
+            return response.data.data;
+        } catch (error: any) {
+            return rejectWithValue(getErrorMessage(error, "Cập nhật thông tin thất bại"));
         }
     }
 );
 
 export const requestOtp = createAsyncThunk(
     "auth/requestOtp",
-    async (phone: String, { rejectWithValue }) => {
+    async (phone: string, { rejectWithValue }) => {
         try {
             const res = await apiClient.post(
                 "/estate/auth/phone/request-otp",
@@ -116,9 +137,40 @@ export const requestOtp = createAsyncThunk(
             );
             return res.data.data;
         } catch (err: any) {
-            return rejectWithValue(
-                err.response?.data?.message || "Yêu cầu OTP thất bại"
+            return rejectWithValue(getErrorMessage(err, "Yêu cầu OTP thất bại"));
+        }
+    }
+);
+
+export const requestForgotPasswordOtp = createAsyncThunk(
+    "auth/requestForgotPasswordOtp",
+    async (phone: string, { rejectWithValue }) => {
+        try {
+            const res = await apiClient.post(
+                "/estate/auth/forgot-password/request-otp",
+                { phone }
             );
+            return res.data.data;
+        } catch (error: any) {
+            return rejectWithValue(getErrorMessage(error, "Không thể gửi OTP"));
+        }
+    }
+);
+
+export const resetPasswordWithOtp = createAsyncThunk(
+    "auth/resetPasswordWithOtp",
+    async (
+        data: { phone: string; otp: string; newPassword: string },
+        { rejectWithValue }
+    ) => {
+        try {
+            const response = await apiClient.post(
+                "/estate/auth/forgot-password/reset",
+                data
+            );
+            return response.data.data;
+        } catch (error: any) {
+            return rejectWithValue(getErrorMessage(error, "Đặt lại mật khẩu thất bại"));
         }
     }
 );
@@ -181,8 +233,35 @@ export const authSlice = createSlice({
                 state.loading = false;
                 state.message = {
                     type: "error_login",
-                    message: "Đăng nhập thất bại!",
+                    message: (action.payload as string) || "Sai tài khoản hoặc mật khẩu",
                 }
+                clearAuthStorage();
+            })
+        builder
+            .addCase(googleExchange.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(googleExchange.fulfilled, (state, action) => {
+                const { accessToken, refreshToken, user } = action.payload;
+
+                state.loading = false;
+                state.isAuth = true;
+                state.user = user;
+                state.message = {
+                    type: "success_login",
+                    message: "Đăng nhập Google thành công!",
+                };
+
+                saveAccessToken(accessToken);
+                saveRefreshToken(refreshToken);
+            })
+            .addCase(googleExchange.rejected, (state) => {
+                state.loading = false;
+                state.message = {
+                    type: "error_login",
+                    message: "Đăng nhập Google thất bại!",
+                };
                 clearAuthStorage();
             })
         builder
@@ -196,10 +275,13 @@ export const authSlice = createSlice({
                 state.user = action.payload;
             })
             .addCase(getProfile.rejected, (state) => {
+                // Do NOT call clearAuthStorage here.
+                // The API interceptor already clears storage on 401.
+                // Clearing storage on network errors would log the user
+                // out even when the server is only temporarily unreachable.
                 state.loading = false;
                 state.isAuth = false;
                 state.user = null;
-                clearAuthStorage();
             });
 
         builder
@@ -267,6 +349,46 @@ export const authSlice = createSlice({
             });
 
         builder
+            .addCase(requestForgotPasswordOtp.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(requestForgotPasswordOtp.fulfilled, (state) => {
+                state.loading = false;
+                state.message = {
+                    type: "success",
+                    message: "Mã OTP đã được gửi",
+                };
+            })
+            .addCase(requestForgotPasswordOtp.rejected, (state, action) => {
+                state.loading = false;
+                state.message = {
+                    type: "error",
+                    message: (action.payload as string) || "Không thể gửi OTP",
+                };
+            });
+
+        builder
+            .addCase(resetPasswordWithOtp.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(resetPasswordWithOtp.fulfilled, (state) => {
+                state.loading = false;
+                state.message = {
+                    type: "success",
+                    message: "Đặt lại mật khẩu thành công",
+                };
+            })
+            .addCase(resetPasswordWithOtp.rejected, (state, action) => {
+                state.loading = false;
+                state.message = {
+                    type: "error",
+                    message: (action.payload as string) || "Đặt lại mật khẩu thất bại",
+                };
+            });
+
+        builder
             .addCase(updateAvatar.pending, (state) => {
                 state.loading = true;
             })
@@ -279,6 +401,28 @@ export const authSlice = createSlice({
             })
             .addCase(updateAvatar.rejected, (state) => {
                 state.loading = false;
+            });
+
+        builder
+            .addCase(updateProfile.pending, (state) => {
+                state.loading = true;
+            })
+            .addCase(updateProfile.fulfilled, (state, action) => {
+                state.loading = false;
+                if (state.user) {
+                    state.user = { ...state.user, ...action.payload };
+                }
+                state.message = {
+                    type: "success",
+                    message: "Cập nhật thông tin thành công",
+                };
+            })
+            .addCase(updateProfile.rejected, (state, action) => {
+                state.loading = false;
+                state.message = {
+                    type: "error",
+                    message: (action.payload as string) || "Cập nhật thông tin thất bại",
+                };
             });
     },
 });

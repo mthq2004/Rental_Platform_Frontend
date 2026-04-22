@@ -15,20 +15,20 @@ const SearchHeader: React.FC<{
     onLocationPress,
     onClearFilter,
 }) => (
-        <View className="bg-white border-b border-gray-100 px-4 pt-16 pb-3">
+        <View className="bg-white dark:bg-secondary-dark border-b border-gray-100 dark:border-gray-700 px-4 pt-16 pb-3">
             <View className="flex-row items-center gap-3 mb-3">
                 <TouchableOpacity onPress={() => router.back()} className="p-1">
-                    <ChevronLeft size={24} color="#1F2937" strokeWidth={2.5} />
+                    <ChevronLeft size={24} color="#9CA3AF" strokeWidth={2.5} />
                 </TouchableOpacity>
 
-                <View className="flex-1 flex-row items-center bg-gray-100 rounded-full px-4 py-2">
+                <View className="flex-1 flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2">
                     <Search size={18} color="#9CA3AF" strokeWidth={2} />
                     <TextInput
                         placeholder="Tìm kiếm bất động sản"
                         placeholderTextColor="#D1D5DB"
                         value={searchText}
                         onChangeText={onSearchChange}
-                        className="flex-1 ml-2 text-sm text-gray-900 font-medium"
+                        className="flex-1 ml-2 text-sm text-gray-900 dark:text-foreground-dark font-medium"
                     />
                 </View>
 
@@ -45,10 +45,10 @@ const SearchHeader: React.FC<{
                     onPress={onLocationPress}
                     className="flex-row items-center gap-2 flex-1"
                 >
-                    <Text className="text-xs text-gray-600">Khu vực:</Text>
+                    <Text className="text-xs text-gray-600 dark:text-gray-400">Khu vực:</Text>
                     <Text
                         numberOfLines={1}
-                        className="text-sm font-bold text-gray-900 flex-1"
+                        className="text-sm font-bold text-gray-900 dark:text-foreground-dark flex-1"
                     >
                         {locationText}
                     </Text>

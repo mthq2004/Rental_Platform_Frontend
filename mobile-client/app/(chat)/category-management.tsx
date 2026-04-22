@@ -47,9 +47,9 @@ function StatsBar({ categories }: { categories: CustomerCategory[] }) {
     return (
         <View className="flex-row mb-5" style={{ gap: 10 }}>
             {[{ label: 'Phân loại', value: categories.length }, { label: 'Hội thoại', value: total }].map(stat => (
-                <View key={stat.label} className="flex-1 bg-white rounded-2xl p-4" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 }}>
-                    <Text className="text-2xl font-black text-gray-900">{stat.value}</Text>
-                    <Text className="text-xs text-gray-400 mt-0.5 font-medium">{stat.label}</Text>
+                <View key={stat.label} className="flex-1 bg-white dark:bg-secondary-dark rounded-2xl p-4" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3 }}>
+                    <Text className="text-2xl font-black text-gray-900 dark:text-foreground-dark">{stat.value}</Text>
+                    <Text className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">{stat.label}</Text>
                 </View>
             ))}
         </View>
@@ -121,16 +121,16 @@ function CreateCategoryModal({ visible, onClose, onCreate, loading }: {
                                 maxHeight: '90%',
                                 marginTop: 40,
                             }}
-                            className="bg-white rounded-t-3xl overflow-hidden"
+                            className="bg-white dark:bg-secondary-dark rounded-t-3xl overflow-hidden"
                         >
-                            <View className="w-10 h-1 bg-gray-200 rounded-full self-center mt-3 mb-1" />
+                            <View className="w-10 h-1 bg-gray-200 dark:bg-gray-600 rounded-full self-center mt-3 mb-1" />
 
-                            <View className="px-5 pt-3 pb-4 flex-row items-center justify-between border-b border-gray-100">
+                            <View className="px-5 pt-3 pb-4 flex-row items-center justify-between border-b border-gray-100 dark:border-gray-700">
                                 <View>
-                                    <Text className="text-base font-bold text-gray-900">Tạo phân loại mới</Text>
-                                    <Text className="text-xs text-gray-400 mt-0.5">Điền thông tin bên dưới</Text>
+                                    <Text className="text-base font-bold text-gray-900 dark:text-foreground-dark">Tạo phân loại mới</Text>
+                                    <Text className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Điền thông tin bên dưới</Text>
                                 </View>
-                                <TouchableOpacity onPress={onClose} className="w-8 h-8 rounded-xl bg-gray-100 items-center justify-center">
+                                <TouchableOpacity onPress={onClose} className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-700 items-center justify-center">
                                     <Ionicons name="close" size={17} color="#6B7280" />
                                 </TouchableOpacity>
                             </View>
@@ -143,7 +143,7 @@ function CreateCategoryModal({ visible, onClose, onCreate, loading }: {
                             >
                                 <Text className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-widest">Tên phân loại *</Text>
                                 <View
-                                    className="flex-row items-center bg-gray-50 rounded-2xl px-4 mb-5"
+                                    className="flex-row items-center bg-gray-50 dark:bg-gray-700 rounded-2xl px-4 mb-5"
                                     style={{ borderWidth: 1.5, borderColor: name.length > 0 ? selectedColor : '#E5E7EB' }}
                                 >
                                     <View className="w-2 h-2 rounded-full mr-3" style={{ backgroundColor: selectedColor }} />
@@ -153,7 +153,7 @@ function CreateCategoryModal({ visible, onClose, onCreate, loading }: {
                                         onChangeText={setName}
                                         placeholder="Ví dụ: Khách hàng VIP..."
                                         placeholderTextColor="#9CA3AF"
-                                        className="flex-1 py-3.5 text-sm text-gray-900"
+                                        className="flex-1 py-3.5 text-sm text-gray-900 dark:text-gray-100"
                                         returnKeyType="next"
                                         maxLength={50}
                                     />
@@ -162,7 +162,7 @@ function CreateCategoryModal({ visible, onClose, onCreate, loading }: {
 
                                 <Text className="text-xs font-semibold text-gray-400 mb-2 uppercase tracking-widest">Mô tả</Text>
                                 <View
-                                    className="bg-gray-50 rounded-2xl px-4 pt-3 mb-5"
+                                    className="bg-gray-50 dark:bg-gray-700 rounded-2xl px-4 pt-3 mb-5"
                                     style={{ borderWidth: 1.5, borderColor: description.length > 0 ? selectedColor : '#E5E7EB' }}
                                 >
                                     <TextInput
@@ -170,7 +170,7 @@ function CreateCategoryModal({ visible, onClose, onCreate, loading }: {
                                         onChangeText={setDescription}
                                         placeholder="Mô tả ngắn về phân loại này..."
                                         placeholderTextColor="#9CA3AF"
-                                        className="text-sm text-gray-900 leading-5"
+                                        className="text-sm text-gray-900 dark:text-gray-100 leading-5"
                                         multiline
                                         numberOfLines={3}
                                         textAlignVertical="top"
@@ -288,18 +288,18 @@ export default function CategoryManagement({ navigation }: Props) {
     }, [])
 
     return (
-        <View className="flex-1 bg-gray-50">
+        <View className="flex-1 bg-gray-50 dark:bg-background-dark">
             <StatusBar barStyle="dark-content" backgroundColor="#F9FAFB" />
 
-            <View className="bg-white px-5 pb-4 pt-16 flex-row items-center justify-between" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 }}>
-                <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 rounded-xl bg-gray-100 items-center justify-center">
+            <View className="bg-white dark:bg-secondary-dark px-5 pb-4 pt-16 flex-row items-center justify-between" style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 }}>
+                <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 items-center justify-center">
                     <Ionicons name="arrow-back" size={20} color="#111827" />
                 </TouchableOpacity>
                 <View className="items-center">
-                    <Text className="text-base font-bold text-gray-900">Quản lý phân loại</Text>
-                    <Text className="text-xs text-gray-400 mt-0.5">{categories.length} danh mục</Text>
+                    <Text className="text-base font-bold text-gray-900 dark:text-foreground-dark">Quản lý phân loại</Text>
+                    <Text className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{categories.length} danh mục</Text>
                 </View>
-                <TouchableOpacity className="w-10 h-10 rounded-xl bg-gray-100 items-center justify-center">
+                <TouchableOpacity className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 items-center justify-center">
                     <Ionicons name="search-outline" size={20} color="#111827" />
                 </TouchableOpacity>
             </View>
@@ -322,7 +322,7 @@ export default function CategoryManagement({ navigation }: Props) {
                     className="bg-gray-900 py-4 rounded-2xl flex-row justify-center items-center"
                     style={{ shadowColor: '#111827', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 10 }}
                 >
-                    <View className="w-6 h-6 rounded-full bg-white items-center justify-center mr-2.5">
+                    <View className="w-6 h-6 rounded-full bg-white dark:bg-gray-200 items-center justify-center mr-2.5">
                         <Ionicons name="add" size={16} color="#111827" />
                     </View>
                     <Text className="text-white text-sm font-bold tracking-wide">Tạo phân loại mới</Text>

@@ -4,8 +4,8 @@ import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-nativ
 
 const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
     <View className="p-4 space-y-4">
-        <View className="bg-white rounded-2xl p-4 shadow-sm mb-2">
-            <Text className="text-base font-bold text-gray-800 mb-3">
+        <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 shadow-sm mb-2">
+            <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-3">
                 Loại bất động sản <Text className="text-red-500">*</Text>
             </Text>
             <ScrollView
@@ -19,11 +19,11 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                         onPress={() => updateFormData({ propertyType: key as PropertyType })}
                         className={`px-4 py-3 rounded-xl mr-2 ${formData.propertyType === key
                                 ? 'bg-blue-500'
-                                : 'bg-gray-100'
+                                : 'bg-gray-100 dark:bg-gray-700'
                             }`}
                     >
                         <Text
-                            className={`text-sm font-semibold ${formData.propertyType === key ? 'text-white' : 'text-gray-700'
+                            className={`text-sm font-semibold ${formData.propertyType === key ? 'text-white' : 'text-gray-700 dark:text-gray-200'
                                 }`}
                         >
                             {meta.label}
@@ -65,8 +65,8 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
             </View>
         </View> */}
 
-        <View className="bg-white rounded-2xl p-4 shadow-sm mb-2">
-            <Text className="text-base font-bold text-gray-800 mb-3">
+        <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 shadow-sm mb-2">
+            <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-3">
                 Tiêu đề <Text className="text-red-500">*</Text>
             </Text>
             <TextInput
@@ -74,7 +74,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                 onChangeText={(text) => updateFormData({ title: text })}
                 placeholder="VD: Căn hộ 2PN view sông Saigon, full nội thất"
                 placeholderTextColor="#9CA3AF"
-                className={`px-4 py-3 border rounded-xl text-gray-900 ${errors.title ? 'border-red-500' : 'border-gray-300'
+                className={`px-4 py-3 border rounded-xl text-gray-900 dark:text-gray-100 ${errors.title ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     }`}
                 multiline
             />
@@ -83,8 +83,8 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
             )}
         </View>
 
-        <View className="bg-white rounded-2xl p-4 shadow-sm mb-2">
-            <Text className="text-base font-bold text-gray-800 mb-3">
+        <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 shadow-sm mb-2">
+            <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-3">
                 Mô tả chi tiết <Text className="text-red-500">*</Text>
             </Text>
             <TextInput
@@ -92,7 +92,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                 onChangeText={(text) => updateFormData({ description: text })}
                 placeholder="Mô tả chi tiết về bất động sản..."
                 placeholderTextColor="#9CA3AF"
-                className={`px-4 py-3 border rounded-xl text-gray-900 min-h-[120px] ${errors.description ? 'border-red-500' : 'border-gray-300'
+                className={`px-4 py-3 border rounded-xl text-gray-900 dark:text-gray-100 min-h-[120px] ${errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     }`}
                 multiline
                 textAlignVertical="top"
@@ -102,11 +102,11 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
             )}
         </View>
         
-        <View className="bg-white rounded-2xl p-4 shadow-sm">
-            <Text className="text-base font-bold text-gray-800 mb-3">Giá bán/thuê</Text>
+        <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 shadow-sm">
+            <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-3">Giá bán/thuê</Text>
             <View className="flex-row space-x-3 gap-3">
                 <View className="flex-1">
-                    <Text className="text-sm font-semibold text-gray-700 mb-2">
+                    <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         Giá ({formData.listingType === 'rent' ? 'triệu/tháng' : 'tỷ'}) <Text className="text-red-500">*</Text>
                     </Text>
                     <TextInput
@@ -115,7 +115,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                         placeholder="0"
                         placeholderTextColor="#9CA3AF"
                         keyboardType="numeric"
-                        className={`px-4 py-3 border rounded-xl text-gray-900 ${errors.pricePerMonth ? 'border-red-500' : 'border-gray-300'
+                        className={`px-4 py-3 border rounded-xl text-gray-900 dark:text-gray-100 ${errors.pricePerMonth ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                             }`}
                     />
                     {errors.pricePerMonth && (
@@ -124,7 +124,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                 </View>
                 {formData.listingType === 'rent' && (
                     <View className="flex-1">
-                        <Text className="text-sm font-semibold text-gray-700 mb-2">
+                        <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Đặt cọc (triệu)
                         </Text>
                         <TextInput
@@ -133,7 +133,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                             placeholder="0"
                             placeholderTextColor="#9CA3AF"
                             keyboardType="numeric"
-                            className="px-4 py-3 border border-gray-300 rounded-xl text-gray-900"
+                            className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100"
                         />
                     </View>
                 )}

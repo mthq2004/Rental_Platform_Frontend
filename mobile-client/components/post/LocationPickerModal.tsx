@@ -96,13 +96,13 @@ const LocationPickerModal: React.FC<Props> = ({
         onPress={onClose}
       >
         <Pressable
-          className="h-[85%] bg-white rounded-t-3xl"
+          className="h-[85%] bg-white dark:bg-secondary-dark rounded-t-3xl"
           onPress={() => {}}
         >
           {/* Header */}
-          <View className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <View className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
             <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-xl font-bold text-gray-900">
+              <Text className="text-xl font-bold text-gray-900 dark:text-foreground-dark">
                 {title}
               </Text>
 
@@ -112,14 +112,14 @@ const LocationPickerModal: React.FC<Props> = ({
             </View>
 
             {/* Search */}
-            <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3">
+            <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
               <Search size={18} color="#9CA3AF" />
 
               <TextInput
                 placeholder="Tìm kiếm..."
                 value={search}
                 onChangeText={setSearch}
-                className="flex-1 ml-3 text-base text-gray-900"
+                className="flex-1 ml-3 text-base text-gray-900 dark:text-gray-100"
               />
 
               {search !== "" && (
@@ -132,7 +132,7 @@ const LocationPickerModal: React.FC<Props> = ({
 
           {/* Select all */}
           {multiple && (
-            <View className="px-6 py-3 border-b border-gray-100">
+            <View className="px-6 py-3 border-b border-gray-100 dark:border-gray-700">
               <TouchableOpacity
                 onPress={selectAll}
                 className="flex-row justify-between"
@@ -141,7 +141,7 @@ const LocationPickerModal: React.FC<Props> = ({
                   Chọn tất cả
                 </Text>
 
-                <Text className="text-gray-400">
+                <Text className="text-gray-400 dark:text-gray-500">
                   {selected.length}/{data.length}
                 </Text>
               </TouchableOpacity>
@@ -166,7 +166,7 @@ const LocationPickerModal: React.FC<Props> = ({
                     className={`flex-row items-center px-4 py-4 rounded-xl mb-2 border ${
                       active
                         ? "bg-blue-50 border-blue-500"
-                        : "border-gray-200"
+                        : "border-gray-200 dark:border-gray-600"
                     }`}
                   >
                     {/* Checkbox */}
@@ -174,7 +174,7 @@ const LocationPickerModal: React.FC<Props> = ({
                       className={`w-6 h-6 rounded-lg border items-center justify-center ${
                         active
                           ? "bg-blue-600 border-blue-600"
-                          : "border-gray-300"
+                          : "border-gray-300 dark:border-gray-600"
                       }`}
                     >
                       {active && (
@@ -187,7 +187,7 @@ const LocationPickerModal: React.FC<Props> = ({
                       className={`flex-1 ml-3 text-base ${
                         active
                           ? "text-blue-900"
-                          : "text-gray-700"
+                          : "text-gray-700 dark:text-gray-200"
                       }`}
                     >
                       {item.name}
@@ -200,19 +200,19 @@ const LocationPickerModal: React.FC<Props> = ({
             <View className="flex-1 items-center justify-center">
               <Search size={40} color="#D1D5DB" />
 
-              <Text className="text-gray-500 mt-4">
+              <Text className="text-gray-500 dark:text-gray-400 mt-4">
                 Không tìm thấy kết quả
               </Text>
             </View>
           )}
 
           {/* Footer */}
-          <View className="flex-row gap-3 px-6 py-5 border-t border-gray-100">
+          <View className="flex-row gap-3 px-6 py-5 border-t border-gray-100 dark:border-gray-700">
             <TouchableOpacity
               onPress={onClose}
-              className="flex-1 py-3 border border-gray-300 rounded-xl items-center"
+              className="flex-1 py-3 border border-gray-300 dark:border-gray-600 rounded-xl items-center"
             >
-              <Text className="font-semibold text-gray-700">
+              <Text className="font-semibold text-gray-700 dark:text-gray-200">
                 Hủy
               </Text>
             </TouchableOpacity>

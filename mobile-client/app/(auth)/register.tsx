@@ -5,12 +5,9 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  KeyboardAvoidingView,
-  Platform,
   Animated,
   StatusBar,
   Keyboard,
-  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons, AntDesign, FontAwesome } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -25,6 +22,8 @@ import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { otpVerified, register, requestOtp, resetMessage } from '@/store/slices/auth.slice';
 import { Toast } from '@/components/Notification';
 import { router } from 'expo-router';
+import { useColorScheme } from 'nativewind';
+import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
 
 type Step = 'phone' | 'otp' | 'profile';
 
@@ -133,11 +132,31 @@ const RegisterFlow: React.FC = () => {
   };
 
   const handleOtpChange = (text: string, index: number): void => {
+    const cleanText = text.replace(/\D/g, '');
     const newOtp = [...otp];
-    newOtp[index] = text;
+
+    if (!cleanText) {
+      newOtp[index] = '';
+      setOtp(newOtp);
+      return;
+    }
+
+    if (cleanText.length > 1) {
+      const chars = cleanText.slice(0, otp.length - index).split('');
+      chars.forEach((char, offset) => {
+        newOtp[index + offset] = char;
+      });
+      setOtp(newOtp);
+
+      const nextIndex = Math.min(index + chars.length, otp.length - 1);
+      otpInputs.current[nextIndex]?.focus();
+      return;
+    }
+
+    newOtp[index] = cleanText;
     setOtp(newOtp);
 
-    if (text && index < 5) {
+    if (index < otp.length - 1) {
       otpInputs.current[index + 1]?.focus();
     }
   };
@@ -265,6 +284,9 @@ const RegisterFlow: React.FC = () => {
   const hideToast = () => {
     setToast({ ...toast, visible: false });
   };
+
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const renderPhoneStep = () => (
     <Animated.View style={{ opacity: fadeAnim }} className="flex-1">
@@ -493,22 +515,12 @@ const RegisterFlow: React.FC = () => {
 
   return (
     <>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-white"
-      >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            className="flex-1"
-          >
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#19191a' : '#FFFFFF'} />
+      <KeyboardSafeWrapper className="bg-white dark:bg-background-dark" contentContainerStyle={{ paddingBottom: 24 }}>
             {currentStep === 'phone' && renderPhoneStep()}
             {currentStep === 'otp' && renderOTPStep()}
             {currentStep === 'profile' && renderProfileStep()}
-          </ScrollView>
-        </TouchableWithoutFeedback>
+
         <Toast
           visible={toast.visible}
           message={toast.message}
@@ -516,7 +528,7 @@ const RegisterFlow: React.FC = () => {
           duration={3000}
           onHide={hideToast}
         />
-      </KeyboardAvoidingView>
+      </KeyboardSafeWrapper>
     </>
   );
 };

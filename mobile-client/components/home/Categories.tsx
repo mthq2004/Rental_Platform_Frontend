@@ -10,44 +10,52 @@ const Categories: React.FC = () => {
     <View className="px-4 py-6">
       <View className="flex-row gap-3 mb-6">
         <CategoryItem
-          icon="🏠"
+          iconName="home-outline"
+          iconColor="#0040d1"
           label="Mua bán"
           onPress={() => handleCategoryPress('buy')}
         />
         <CategoryItem
-          icon="🛏️"
+          iconName="bed-outline"
+          iconColor="#7c3aed"
           label="Cho Thuê"
           onPress={() => handleCategoryPress('rent')}
         />
         <CategoryItem
-          icon="🏢"
+          iconName="business-outline"
+          iconColor="#0891b2"
           label="Dự án"
           onPress={() => handleCategoryPress('project')}
         />
         <CategoryItem
-          icon="👩‍💼"
+          iconName="person-outline"
+          iconColor="#059669"
           label="Môi giới"
           onPress={() => handleCategoryPress('agent')}
         />
       </View>
       <View className="flex-row gap-3">
         <CategoryItem
-          icon="📊"
+          iconName="bar-chart-outline"
+          iconColor="#d97706"
           label="Biểu đồ giá"
           onPress={() => handleCategoryPress('chart')}
         />
         <CategoryItem
-          icon="🤝"
+          iconName="cash-outline"
+          iconColor="#dc2626"
           label="Vay mua nhà"
           onPress={() => handleCategoryPress('loan')}
         />
         <CategoryItem
-          icon="📖"
+          iconName="book-outline"
+          iconColor="#2563eb"
           label="Kinh nghiệm"
           onPress={() => handleCategoryPress('experience')}
         />
         <CategoryItem
-          icon="🏆"
+          iconName="trophy-outline"
+          iconColor="#ea580c"
           label="Gói Hội Viên"
           onPress={() => handleCategoryPress('membership')}
         />

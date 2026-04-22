@@ -98,11 +98,11 @@ const LocationFilterModal: React.FC<LocationFilterModalProps> = ({
           onPress={onClose}
         />
 
-        <SafeAreaView className="bg-white rounded-t-3xl">
+        <SafeAreaView className="bg-white dark:bg-secondary-dark rounded-t-3xl">
 
           {/* Header */}
-          <View className="flex-row items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
-            <Text className="text-xl font-bold text-gray-900">
+          <View className="flex-row items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+            <Text className="text-xl font-bold text-gray-900 dark:text-foreground-dark">
               Lọc khu vực
             </Text>
 
@@ -124,7 +124,7 @@ const LocationFilterModal: React.FC<LocationFilterModalProps> = ({
                     Tỉnh / Thành phố
                   </Text>
 
-                  <Text className="text-base text-gray-900">
+                  <Text className="text-base text-gray-900 dark:text-gray-200">
                     {getProvinceLabel()}
                   </Text>
                 </View>
@@ -140,7 +140,7 @@ const LocationFilterModal: React.FC<LocationFilterModalProps> = ({
                 onPress={() => setDistrictModal(true)}
                 className={`flex-row items-center justify-between px-4 py-4 rounded-2xl border ${
                   districtDisabled
-                    ? "bg-gray-50 border-gray-200"
+                    ? "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
                     : "bg-emerald-50 border-emerald-100"
                 }`}
               >
@@ -159,7 +159,7 @@ const LocationFilterModal: React.FC<LocationFilterModalProps> = ({
                     className={`text-base ${
                       districtDisabled
                         ? "text-gray-400"
-                        : "text-gray-900"
+                        : "text-gray-900 dark:text-gray-200"
                     }`}
                   >
                     {getDistrictLabel()}
@@ -186,7 +186,7 @@ const LocationFilterModal: React.FC<LocationFilterModalProps> = ({
                 onPress={() => setWardModal(true)}
                 className={`flex-row items-center justify-between px-4 py-4 rounded-2xl border ${
                   wardDisabled
-                    ? "bg-gray-50 border-gray-200"
+                    ? "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600"
                     : "bg-purple-50 border-purple-100"
                 }`}
               >
@@ -205,7 +205,7 @@ const LocationFilterModal: React.FC<LocationFilterModalProps> = ({
                     className={`text-base ${
                       wardDisabled
                         ? "text-gray-400"
-                        : "text-gray-900"
+                        : "text-gray-900 dark:text-gray-200"
                     }`}
                   >
                     {getWardLabel()}
@@ -228,13 +228,13 @@ const LocationFilterModal: React.FC<LocationFilterModalProps> = ({
           </ScrollView>
 
           {/* Footer */}
-          <View className="flex-row gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
+          <View className="flex-row gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
 
             <TouchableOpacity
               onPress={reset}
-              className="flex-1 items-center justify-center py-3 border border-gray-300 rounded-xl"
+              className="flex-1 items-center justify-center py-3 border border-gray-300 dark:border-gray-600 rounded-xl"
             >
-              <Text className="text-gray-700 font-semibold">
+              <Text className="text-gray-700 dark:text-gray-200 font-semibold">
                 Xóa lọc
               </Text>
             </TouchableOpacity>

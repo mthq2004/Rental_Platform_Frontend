@@ -1,5 +1,6 @@
 import Categories from '@/components/home/Categories';
 import CategoryItem from '@/components/home/CategoryItem';
+import GooeyRefreshScrollView from '@/components/common/GooeyRefreshScrollView';
 import HeaderBanner from '@/components/home/Header';
 import SearchFilter from '@/components/home/SearchFilter';
 import PropertyCard from '@/components/PropertyCard';
@@ -14,16 +15,14 @@ import {
   View,
   Text,
   Image,
-  TextInput,
   TouchableOpacity,
   ScrollView,
   Dimensions,
   SafeAreaView,
   StatusBar,
   Alert,
-  RefreshControl,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import { useColorScheme } from 'nativewind';
 
 const Home = () => {
   const [refreshing, setRefreshing] = useState(false)
@@ -36,6 +35,8 @@ const Home = () => {
   const { propertyCountByCity } = useAppSelector(state => state.property)
   const { isAuth } = useAppSelector(state => state.auth)
   const dispatch = useAppDispatch()
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const isInitialLoading = loading && !refreshing
 
   const properties = data
@@ -92,6 +93,8 @@ const Home = () => {
   }, [dispatch, selectedPropertyTypeId]);
 
   const onRefresh = async () => {
+    if (refreshing) return;
+
     setRefreshing(true);
 
     try {
@@ -125,20 +128,20 @@ const Home = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 relative">
-      <ScrollView
+    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-background-dark relative">
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#19191a' : '#f9fafb'} />
+      <GooeyRefreshScrollView
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         showsVerticalScrollIndicator={false}
         className="flex-1 absolute top-0 left-0 right-0 bottom-0"
         contentContainerStyle={{ paddingBottom: 20 }}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
       >
         <HeaderBanner />
         <SearchFilter />
         <Categories />
         <View className="mb-6">
-          <Text className="text-xl font-bold text-gray-900 mb-4 px-4">
+          <Text className="text-xl font-bold text-gray-900 dark:text-foreground-dark mb-4 px-4">
             Nhà cho thuê mới nhất
           </Text>
 
@@ -158,13 +161,13 @@ const Home = () => {
           </ScrollView>
           {
             hasMore && (
-              <TouchableOpacity className='mt-2 border-2 border-gray-200 pt-4 pb-4 px-4 rounded-3xl mx-4 justify-center items-center' onPress={() => handleLoadMore()}>
-                <Text className="text-center text-gray-700 font-bold">Xem thêm {total - properties.length} bất động sản khác</Text>
+              <TouchableOpacity className='mt-2 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pt-4 pb-4 px-4 rounded-3xl mx-4 justify-center items-center' onPress={() => handleLoadMore()}>
+                <Text className="text-center text-gray-700 dark:text-gray-200 font-bold">Xem thêm {total - properties.length} bất động sản khác</Text>
               </TouchableOpacity>
             )
           }
 
-          <Text className="text-xl font-bold text-gray-900 mt-4 mb-3 px-4">
+          <Text className="text-xl font-bold text-gray-900 dark:text-foreground-dark mt-4 mb-3 px-4">
             Bất động sản theo khu vực
           </Text>
 
@@ -182,11 +185,11 @@ const Home = () => {
                   activeOpacity={0.85}
                   className={`mr-3 px-4 py-2 rounded-full border ${isActive
                     ? "border-blue-600 bg-blue-600"
-                    : "border-gray-200 bg-white"
+                    : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
                     }`}
                 >
                   <Text
-                    className={`text-sm font-semibold ${isActive ? "text-white" : "text-gray-900"
+                    className={`text-sm font-semibold ${isActive ? "text-white" : "text-gray-900 dark:text-gray-200"
                       }`}
                   >
                     {item.label}
@@ -231,7 +234,7 @@ const Home = () => {
               ))
             ) : (
               <View className="justify-center">
-                <Text className="text-gray-500 text-center py-4">
+                <Text className="text-gray-500 dark:text-gray-300 text-center py-4">
                   Chưa có dữ liệu
                 </Text>
               </View>
@@ -260,7 +263,7 @@ const Home = () => {
             )): <Text>Khong ton tại</Text>}
           </MapView> */}
         </View>
-      </ScrollView>
+      </GooeyRefreshScrollView>
     </SafeAreaView>
   );
 };

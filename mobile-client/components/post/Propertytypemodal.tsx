@@ -133,7 +133,7 @@ const PropertyTypeModal: React.FC<PropertyTypeModalProps> = ({
         className={`flex-row items-center px-4 py-4 rounded-2xl mb-3 border-2 transition ${
           active
             ? "bg-blue-50 border-blue-500"
-            : "bg-white border-gray-200"
+            : "bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600"
         }`}
       >
         {/* Checkbox */}
@@ -141,7 +141,7 @@ const PropertyTypeModal: React.FC<PropertyTypeModalProps> = ({
           className={`w-6 h-6 rounded-lg border-2 items-center justify-center flex-shrink-0 ${
             active
               ? "bg-blue-600 border-blue-600"
-              : "border-gray-300 bg-white"
+              : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
           }`}
         >
           {active && (
@@ -154,7 +154,7 @@ const PropertyTypeModal: React.FC<PropertyTypeModalProps> = ({
         </View>
 
         {/* Icon */}
-        <View className="ml-4 w-10 h-10 rounded-lg bg-gray-100 items-center justify-center flex-shrink-0">
+        <View className="ml-4 w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-600 items-center justify-center flex-shrink-0">
           <IconComponent
             size={20}
             color={active ? "#3B82F6" : "#6B7280"}
@@ -166,7 +166,7 @@ const PropertyTypeModal: React.FC<PropertyTypeModalProps> = ({
         <View className="flex-1 ml-3">
           <Text
             className={`text-base font-semibold ${
-              active ? "text-blue-900" : "text-gray-900"
+              active ? "text-blue-900" : "text-gray-900 dark:text-gray-100"
             }`}
             numberOfLines={1}
           >
@@ -196,14 +196,14 @@ const PropertyTypeModal: React.FC<PropertyTypeModalProps> = ({
         onPress={onClose}
       >
         <Pressable
-          className="h-[85%] bg-white rounded-t-3xl shadow-2xl"
+          className="h-[85%] bg-white dark:bg-secondary-dark rounded-t-3xl shadow-2xl"
           onPress={() => {}}
         >
           {/* Header */}
-          <View className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <View className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
             <View className="flex-row items-center justify-between mb-4">
               <View>
-                <Text className="text-2xl font-bold text-gray-900">
+                <Text className="text-2xl font-bold text-gray-900 dark:text-foreground-dark">
                   {title}
                 </Text>
               </View>
@@ -217,14 +217,14 @@ const PropertyTypeModal: React.FC<PropertyTypeModalProps> = ({
             </View>
 
             {/* Search Input */}
-            <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3">
+            <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-3">
               <Search size={18} color="#9CA3AF" strokeWidth={2} />
               <TextInput
                 placeholder="Tìm kiếm loại bất động sản..."
                 placeholderTextColor="#9CA3AF"
                 value={search}
                 onChangeText={setSearch}
-                className="flex-1 ml-3 text-base font-medium text-gray-900"
+                className="flex-1 ml-3 text-base font-medium text-gray-900 dark:text-gray-100"
               />
               {search !== "" && (
                 <TouchableOpacity
@@ -267,23 +267,23 @@ const PropertyTypeModal: React.FC<PropertyTypeModalProps> = ({
           ) : (
             <View className="flex-1 items-center justify-center">
               <Search size={40} color="#D1D5DB" strokeWidth={1.5} />
-              <Text className="text-gray-500 font-semibold mt-4 text-center px-6">
+              <Text className="text-gray-500 dark:text-gray-400 font-semibold mt-4 text-center px-6">
                 Không tìm thấy loại bất động sản
               </Text>
-              <Text className="text-gray-400 text-sm mt-2">
+              <Text className="text-gray-400 dark:text-gray-500 text-sm mt-2">
                 Thử tìm kiếm với từ khóa khác
               </Text>
             </View>
           )}
 
           {/* Footer Actions */}
-          <View className="flex-row gap-3 px-6 py-5 border-t border-gray-100 bg-gray-50">
+          <View className="flex-row gap-3 px-6 py-5 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
             <TouchableOpacity
               onPress={onClose}
               activeOpacity={0.7}
-              className="flex-1 items-center justify-center py-3 border-2 border-gray-300 rounded-xl"
+              className="flex-1 items-center justify-center py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl"
             >
-              <Text className="text-base font-semibold text-gray-700">
+              <Text className="text-base font-semibold text-gray-700 dark:text-gray-200">
                 Hủy
               </Text>
             </TouchableOpacity>

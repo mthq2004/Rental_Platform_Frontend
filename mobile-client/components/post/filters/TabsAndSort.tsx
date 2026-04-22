@@ -16,7 +16,7 @@ const TabsAndSort: React.FC<{
     sortBy: string;
     onOpenSort: () => void;
 }> = ({ activeTab, onTabChange, sortBy, onOpenSort }) => (
-    <View className="bg-white border-b border-gray-100 px-4 py-3">
+    <View className="bg-white dark:bg-secondary-dark border-b border-gray-100 dark:border-gray-700 px-4 py-3">
         <View className="flex-row items-center justify-between">
             {/* Tabs */}
             <View className="flex-row gap-6">
@@ -31,7 +31,7 @@ const TabsAndSort: React.FC<{
                                 }`}
                         >
                             <Text
-                                className={`text-sm font-semibold ${activeTab === tabKey ? 'text-blue-600' : 'text-gray-600'
+                                className={`text-sm font-semibold ${activeTab === tabKey ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'
                                     }`}
                             >
                                 {tabLabel}
@@ -42,7 +42,7 @@ const TabsAndSort: React.FC<{
             </View>
 
             <TouchableOpacity className="flex-row items-center gap-1" activeOpacity={0.7} onPress={onOpenSort}>
-                <Text className="text-xs font-semibold text-gray-900">
+                <Text className="text-xs font-semibold text-gray-900 dark:text-gray-200">
                     {SORT_OPTIONS.find((opt) => opt.value === sortBy)?.label ||
                         'Tin mới trước'}
                 </Text>

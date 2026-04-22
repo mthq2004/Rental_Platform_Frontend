@@ -1,10 +1,11 @@
 import { router, Tabs } from 'expo-router';
-import { View, StyleSheet, Platform, useColorScheme } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { COLORS, useThemeColors } from '@/utils/colors';
+import { useColorScheme } from 'nativewind';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const colors = useThemeColors();
   const isDark = colorScheme === 'dark';
 
@@ -26,6 +27,9 @@ export default function TabLayout() {
           shadowOffset: { width: 0, height: -1 },
           shadowOpacity: isDark ? 0.3 : 0.05,
           shadowRadius: 3,
+        },
+        sceneStyle: {
+          backgroundColor: colors.current.background,
         },
         tabBarLabelStyle: {
           fontSize: 11,

@@ -63,10 +63,10 @@ const ChoosePropertyType = () => {
 
   return (
     <AuthGuard>
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView className="flex-1 bg-white dark:bg-background-dark">
         <View className="p-6">
-          <Text className="text-2xl font-bold text-gray-800">Bạn muốn đăng tin gì?</Text>
-          <Text className="text-gray-500 mt-1">Chọn loại hình bất động sản để tiếp tục</Text>
+          <Text className="text-2xl font-bold text-gray-800 dark:text-foreground-dark">Bạn muốn đăng tin gì?</Text>
+          <Text className="text-gray-500 dark:text-gray-300 mt-1">Chọn loại hình bất động sản để tiếp tục</Text>
         </View>
 
         <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}>
@@ -82,16 +82,16 @@ const ChoosePropertyType = () => {
                   activeOpacity={0.7}
                   className={`w-[48%] mb-4 p-5 rounded-2xl border-2 items-center justify-center ${isSelected
                     ? 'border-blue-600 bg-blue-50'
-                    : 'border-gray-100 bg-gray-50'
+                    : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900'
                     }`}
                 >
-                  <View className={`p-3 rounded-full mb-3 ${isSelected ? 'bg-blue-600' : 'bg-white'}`}>
+                  <View className={`p-3 rounded-full mb-3 ${isSelected ? 'bg-blue-600' : 'bg-white dark:bg-gray-800'}`}>
                     <IconComponent
                       size={28}
                       color={isSelected ? 'white' : '#4b5563'}
                     />
                   </View>
-                  <Text className={`font-semibold ${isSelected ? 'text-blue-600' : 'text-gray-700'}`}>
+                  <Text className={`font-semibold ${isSelected ? 'text-blue-600' : 'text-gray-700 dark:text-gray-200'}`}>
                     {item.label}
                   </Text>
                 </TouchableOpacity>

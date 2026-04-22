@@ -37,7 +37,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.85}
-      className="bg-white rounded-2xl overflow-hidden shadow-sm mb-4 mr-4"
+      className="bg-white dark:bg-secondary-dark rounded-2xl overflow-hidden shadow-sm mb-4 mr-4"
     >
       {/* Image */}
       <View className="relative h-40 bg-gray-200">
@@ -79,7 +79,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         {/* Title */}
         <Text
           numberOfLines={2}
-          className="text-base font-semibold text-gray-900 mb-1"
+          className="text-base font-semibold text-gray-900 dark:text-foreground-dark mb-1"
         >
           {title || "Cho thuê bất động sản"}
         </Text>
@@ -87,7 +87,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         {/* Location */}
         <View className="flex-row items-center mb-2">
           <Ionicons name="location-outline" size={14} color="#6B7280" />
-          <Text className="text-xs text-gray-600 ml-1">
+          <Text className="text-xs text-gray-600 dark:text-gray-300 ml-1">
             {district}, {city}
           </Text>
         </View>
@@ -96,17 +96,17 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center">
             <MaterialCommunityIcons name="ruler-square" size={16} color="#3B82F6" />
-            <Text className="text-xs text-gray-700 ml-1">{areaSqm} m²</Text>
+            <Text className="text-xs text-gray-700 dark:text-gray-300 ml-1">{areaSqm} m²</Text>
           </View>
 
           <View className="flex-row items-center">
             <MaterialCommunityIcons name="bed" size={16} color="#10B981" />
-            <Text className="text-xs text-gray-700 ml-1">{bedrooms}</Text>
+            <Text className="text-xs text-gray-700 dark:text-gray-300 ml-1">{bedrooms}</Text>
           </View>
 
           <View className="flex-row items-center">
             <MaterialCommunityIcons name="shower" size={16} color="#F59E0B" />
-            <Text className="text-xs text-gray-700 ml-1">{bathrooms}</Text>
+            <Text className="text-xs text-gray-700 dark:text-gray-300 ml-1">{bathrooms}</Text>
           </View>
         </View>
       </View>

@@ -3,31 +3,65 @@ import React, { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import CustomInput from "@/components/CustomInput";
 import PrimaryButton from "@/components/PrimaryButton";
+import BackButton from "@/components/BackButton";
+import { useAppDispatch, useAppSelector } from "@/store/hook";
+import { resetPasswordWithOtp } from "@/store/slices/auth.slice";
+import KeyboardSafeWrapper from "@/components/KeyboardSafeWrapper";
 
 const ResetPasswordScreen = () => {
 
-  const { phone } = useLocalSearchParams();
+  const { phone, otp } = useLocalSearchParams<{ phone?: string; otp?: string }>();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string>("");
+  const dispatch = useAppDispatch();
+  const { loading } = useAppSelector((state) => state.auth);
 
   const handleResetPassword = async () => {
+    setError("");
 
-    if (password !== confirmPassword) {
-      alert("Mật khẩu không khớp");
+    if (!phone || !otp) {
+      setError("Thiếu thông tin xác thực OTP. Vui lòng thực hiện lại.");
       return;
     }
 
-    // call API reset password
+    if (password.length < 8) {
+      setError("Mật khẩu phải có ít nhất 8 ký tự");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Mật khẩu nhập lại không khớp");
+      return;
+    }
+
+    try {
+      await dispatch(
+        resetPasswordWithOtp({
+          phone,
+          otp,
+          newPassword: password,
+        })
+      ).unwrap();
+    } catch (err: any) {
+      setError(typeof err === "string" ? err : "Đặt lại mật khẩu thất bại");
+      return;
+    }
 
     router.replace("/(auth)/login");
 
   };
 
   return (
-    <View className="flex-1 bg-white px-6 pt-20">
+    <KeyboardSafeWrapper
+      className="bg-white dark:bg-background-dark"
+      contentContainerStyle={{ paddingBottom: 24 }}
+    >
+      <View className="px-6 pt-16">
+        <BackButton onPress={() => router.back()} />
 
-      <Text className="text-2xl font-bold mb-6">
+      <Text className="text-2xl font-bold text-gray-900 dark:text-foreground-dark mb-6 mt-4">
         Đặt mật khẩu mới
       </Text>
 
@@ -47,12 +81,17 @@ const ResetPasswordScreen = () => {
         secureTextEntry
       />
 
+      {error ? <Text className="text-red-500 text-sm mb-4">{error}</Text> : null}
+
       <PrimaryButton
         title="Đổi mật khẩu"
         onPress={handleResetPassword}
+        loading={loading}
+        disabled={!password || !confirmPassword}
       />
 
-    </View>
+      </View>
+    </KeyboardSafeWrapper>
   );
 };
 

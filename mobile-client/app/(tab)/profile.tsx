@@ -27,58 +27,24 @@ import SectionHeader from '@/components/SectionHeader';
 import VerificationCard from '@/components/profile/VerificationCard';
 import MenuItem from '@/components/profile/MenuItem';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { logout, updateAvatar } from '@/store/slices/auth.slice';
-import { uploadToCloudinary } from '@/utils/uploadToCloudinary';
-import * as ImagePicker from "expo-image-picker";
+import { logout } from '@/store/slices/auth.slice';
 import { router } from 'expo-router';
 
 const ProfileScreen = () => {
   const [verificationStatus, setVerificationStatus] = useState<'verified' | 'pending' | 'unverified'>('verified');
-  const [isDark, setIsDark] = useState(false);
   const { alert, showAlert, hideAlert } = useCustomAlert();
-  const { error, isAuth, loading, user } = useAppSelector(state => state.auth)
+  const { isAuth, user } = useAppSelector(state => state.auth)
+  const displayName = user?.fullName || user?.name || 'Người dùng';
   const dispatch = useAppDispatch()
   
 
   const handleEdit = async () => {
-    // try {
-
-    //   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    //   if (!permission.granted) {
-    //     Alert.alert("Cần quyền truy cập thư viện ảnh");
-    //     return;
-    //   }
-
-    //   const result = await ImagePicker.launchImageLibraryAsync({
-    //     mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    //     allowsEditing: true,
-    //     aspect: [1, 1],
-    //     quality: 0.8,
-    //   });
-
-    //   if (result.canceled) return;
-
-    //   const asset = result.assets[0];
-
-    //   const file = {
-    //     uri: asset.uri,
-    //     name: `avatar_${Date.now()}.jpg`,
-    //     type: asset.mimeType || "image/jpeg",
-    //   };
-
-    //   dispatch(updateAvatar(file));
-
-    // } catch (error) {
-    //   Alert.alert("Upload avatar thất bại");
-    // }
-
     router.push("/(profile)/edit")
   };
 
   const handleVerification = () => {
     if (verificationStatus === 'verified') {
-      Alert.alert('Thông tin xác minh', 'Họ tên: Xuân Mạch\nCCCD: 079199******\nNgày xác minh: 15/01/2026');
+      Alert.alert('Thông tin xác minh', `Họ tên: ${displayName}\nTrạng thái: Đã xác minh`);
     } else if (verificationStatus === 'pending') {
       Alert.alert('Đang xử lý', 'CCCD của bạn đang được xem xét. Thời gian dự kiến: 1-2 ngày làm việc.');
     } else {
@@ -196,7 +162,7 @@ const ProfileScreen = () => {
                 }
               </Text>
               <Text className="text-center text-gray-500 text-sm mb-4">
-                ID: {user?.id}
+                {user?.phone || user?.email || `ID: ${user?.id}`}
               </Text>
 
               <View className="flex-row justify-center gap-8 mb-6 px-4">
@@ -237,7 +203,7 @@ const ProfileScreen = () => {
               <TouchableOpacity
                 className="w-full bg-blue-500 py-4 rounded-2xl mb-3"
                 activeOpacity={0.85}
-                onPress={() => console.log('Đi tới đăng nhập')}
+                onPress={() => router.push('/(auth)/login')}
               >
                 <Text className="text-white text-center font-semibold text-base">
                   Đăng nhập
@@ -247,7 +213,7 @@ const ProfileScreen = () => {
               <TouchableOpacity
                 className="w-full border border-blue-500 py-4 rounded-2xl"
                 activeOpacity={0.85}
-                onPress={() => console.log('Đi tới đăng ký')}
+                onPress={() => router.push('/(auth)/register')}
               >
                 <Text className="text-blue-500 text-center font-semibold text-base">
                   Tạo tài khoản
@@ -268,11 +234,7 @@ const ProfileScreen = () => {
           icon={User}
           title="Thông tin cá nhân"
           subtitle="Cập nhật thông tin của bạn"
-          onPress={() => showAlert(
-            'Trang thông tin cá nhân đang được phát triển',
-            'Thông tin cá nhân',
-            'info'
-          )}
+          onPress={() => router.push('/(profile)/edit')}
           iconBgColor="bg-blue-100"
           iconColor="#3b82f6"
         />
