@@ -21,6 +21,7 @@ import {
   cancelContract,
   updateContract,
   clearContractDetail,
+  sendContractToTenant,
 } from "@/stores/slices/contract.slice";
 import type { RentalContract, RentalContractStatus, StatusCount } from "@/types/contract.type";
 import { Form } from "antd";
@@ -239,6 +240,26 @@ export default function ContractsPage() {
     });
   };
 
+  const handleSendToTenant = (rentalId: string) => {
+    modal.confirm({
+      title: "Gửi hợp đồng cho người thuê",
+      icon: <ExclamationCircleOutlined />,
+      content: "Hợp đồng sẽ được gửi cho người thuê để ký. Bạn có chắc chắn?",
+      okText: "Gửi hợp đồng",
+      cancelText: "Hủy",
+      onOk: async () => {
+        try {
+          await dispatch(sendContractToTenant(rentalId)).unwrap();
+          message.success("Đã gửi hợp đồng cho người thuê");
+          handleRefresh();
+          if (detailOpen) dispatch(getContractDetail(rentalId));
+        } catch (err: any) {
+          message.error(err || "Gửi thất bại");
+        }
+      },
+    });
+  };
+
   const handleOpenEdit = async (record: RentalContract) => {
     const templateId = record.templateId || "3c6930b3-2da9-4870-abed-fb8830150eac";
     const requestId = record.fromRequestId || record.rentalRequest?.requestId;
@@ -297,6 +318,7 @@ export default function ContractsPage() {
   const columns = getContractTableColumns(user?.id, {
     onViewDetail: handleViewDetail,
     onEdit: handleOpenEdit,
+    onSendToTenant: handleSendToTenant,
     onTenantSign: handleTenantSign,
     onOwnerSign: handleOwnerSign,
     onActivate: handleActivate,
@@ -634,6 +656,7 @@ export default function ContractsPage() {
         userId={user?.id}
         onClose={() => { setDetailOpen(false); dispatch(clearContractDetail()); }}
         onEdit={handleOpenEdit}
+        onSendToTenant={handleSendToTenant}
         onTenantSign={handleTenantSign}
         onOwnerSign={handleOwnerSign}
         onActivate={handleActivate}

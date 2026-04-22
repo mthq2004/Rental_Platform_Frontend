@@ -1,6 +1,17 @@
 // Rental Request Types
 export type RentalRequestStatus =
-  'pending' | 'under_review' | 'approved' | 'rejected' | 'cancelled' | 'expired' | 'contract_created';
+  'pending'
+  | 'under_review'
+  | 'approved'
+  | 'holding_deposit_open'
+  | 'holding_deposit_paid'
+  | 'holding_deposit_locked'
+  | 'holding_deposit_expired'
+  | 'holding_deposit_refunded'
+  | 'rejected'
+  | 'cancelled'
+  | 'expired'
+  | 'contract_created';
 
 export interface RentalRequest {
   requestId: string;
@@ -16,9 +27,20 @@ export interface RentalRequest {
   reviewedAt?: string;
   rejectionReason?: string;
   landlordNotes?: string;
+  holdingDepositStatus?: 'open' | 'paid' | 'locked' | 'expired' | 'refunded';
+  holdingDepositPaymentId?: string;
+  holdingDepositAmount?: number;
+  holdingDepositExpiresAt?: string;
+  holdingDepositPaidAt?: string;
   contractId?: string;
   createdAt: string;
   updatedAt: string;
+  property?: {
+    id?: string;
+    title?: string;
+    address?: string;
+    imageUrl?: string;
+  };
   contract?: {
     rentalId: string;
     contractCode: string;
