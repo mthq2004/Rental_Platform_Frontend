@@ -27,9 +27,10 @@ interface GooeyPullToRefreshProps {
 
 const GooeyPullToRefresh: React.FC<GooeyPullToRefreshProps> = ({
   pullDistance,
+  
   refreshing,
   threshold = 86,
-  color = '#2563EB',
+  color = '#0052cc',
 }) => {
   const { width } = useWindowDimensions();
   const spin = useRef(new Animated.Value(0)).current;
@@ -54,25 +55,20 @@ const GooeyPullToRefresh: React.FC<GooeyPullToRefreshProps> = ({
   }, [refreshing, spin]);
 
   const clampedPull = Math.max(0, Math.min(pullDistance, 160));
-  const progress = Math.min(clampedPull / threshold, 1.2);
-  const visibleHeight = refreshing ? Math.max(clampedPull, 82) : clampedPull;
+  const progress = Math.min(clampedPull / threshold, 1);
+  const topBandHeight = 60;
 
   const circleRadius = refreshing
-    ? 26
-    : Math.max(14, Math.min(30, 14 + clampedPull * 0.16));
-  const topBandHeight = Math.max(12, Math.min(24, 12 + progress * 8));
+    ? 22
+    : Math.min(24, 12 + progress * 10);
   const circleY = refreshing
-    ? Math.max(topBandHeight + circleRadius + 8, visibleHeight - 8)
-    : Math.max(topBandHeight + circleRadius, topBandHeight + 18 + clampedPull * 0.6);
-  const neckWidth = refreshing
-    ? 18
-    : Math.max(8, Math.min(20, 8 + progress * 8));
-  const neckY = topBandHeight - 2;
-  const neckHeight = Math.max(10, circleY - circleRadius * 0.75 - neckY);
-  const bridgeRadius = refreshing
-    ? 10
-    : Math.max(4, Math.min(12, 4 + progress * 7));
-  const bridgeY = neckY + neckHeight * 0.68;
+    ? topBandHeight + 25
+    : topBandHeight + clampedPull * 0.4;
+  const neckWidth = Math.max(0, 15 - progress * 15);
+  const neckY = topBandHeight - 5;
+  const neckHeight = Math.max(0, circleY - topBandHeight + 5);
+  const bridgeRadius = Math.max(0, 18 - progress * 18);
+  const bridgeY = topBandHeight + 4;
 
   const ready = clampedPull >= threshold;
 
@@ -93,7 +89,7 @@ const GooeyPullToRefresh: React.FC<GooeyPullToRefreshProps> = ({
     []
   );
 
-  if (visibleHeight <= 0.5 && !refreshing) {
+  if (clampedPull <= 0 && !refreshing) {
     return null;
   }
 
@@ -103,10 +99,10 @@ const GooeyPullToRefresh: React.FC<GooeyPullToRefreshProps> = ({
   });
 
   return (
-    <View pointerEvents="none" style={[styles.container, { height: visibleHeight + 6 }]}> 
-      <Canvas style={StyleSheet.absoluteFill}>
+    <View pointerEvents="none" style={styles.container}>
+      <Canvas style={{ height: 200, width }}>
         <Group layer={layerPaint}>
-          <Rect x={0} y={-240} width={width} height={topBandHeight + 240} color={color} />
+          <Rect x={0} y={0} width={width} height={topBandHeight} color={color} />
           <RoundedRect
             x={width / 2 - neckWidth / 2}
             y={neckY}

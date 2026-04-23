@@ -1,6 +1,5 @@
 import Categories from '@/components/home/Categories';
 import CategoryItem from '@/components/home/CategoryItem';
-import GooeyRefreshScrollView from '@/components/common/GooeyRefreshScrollView';
 import HeaderBanner from '@/components/home/Header';
 import SearchFilter from '@/components/home/SearchFilter';
 import PropertyCard from '@/components/PropertyCard';
@@ -18,14 +17,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
-  SafeAreaView,
   StatusBar,
-  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 
 const Home = () => {
-  const [refreshing, setRefreshing] = useState(false)
   const [selectedPropertyTypeId, setSelectedPropertyTypeId] = useState<string>(
     "apartment"
   );
@@ -37,7 +34,7 @@ const Home = () => {
   const dispatch = useAppDispatch()
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
-  const isInitialLoading = loading && !refreshing
+  const isInitialLoading = loading
 
   const properties = data
 
@@ -92,24 +89,6 @@ const Home = () => {
     dispatch(getNumberPropertyByCity(selectedPropertyTypeId)).unwrap();
   }, [dispatch, selectedPropertyTypeId]);
 
-  const onRefresh = async () => {
-    if (refreshing) return;
-
-    setRefreshing(true);
-
-    try {
-      if (isAuth) {
-        await dispatch(getListProperty()).unwrap();
-      } else {
-        await dispatch(getFeaturedPropertiesThunk(10)).unwrap();
-      }
-    } catch (error) {
-      Alert.alert("Lỗi", "Không thể tải lại dữ liệu");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   const handleLoadMore = async () => {
     router.push("/(post)/filter-search")
   }
@@ -121,21 +100,20 @@ const Home = () => {
 
   if (isInitialLoading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center">
+      <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 items-center justify-center">
         <Text>Đang tải...</Text>
       </SafeAreaView>
     )
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-background-dark relative">
+    <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-gray-50 dark:bg-background-dark relative">
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#19191a' : '#f9fafb'} />
-      <GooeyRefreshScrollView
-        refreshing={refreshing}
-        onRefresh={onRefresh}
+      <ScrollView
+        className="flex-1"
         showsVerticalScrollIndicator={false}
-        className="flex-1 absolute top-0 left-0 right-0 bottom-0"
-        contentContainerStyle={{ paddingBottom: 20 }}
+        nestedScrollEnabled
+        contentContainerStyle={{ paddingBottom: 0 }}
       >
         <HeaderBanner />
         <SearchFilter />
@@ -148,6 +126,8 @@ const Home = () => {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            nestedScrollEnabled
+            directionalLockEnabled
             contentContainerStyle={{ paddingHorizontal: 16 }}
           >
             {properties?.map((item) => (
@@ -174,6 +154,8 @@ const Home = () => {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            nestedScrollEnabled
+            directionalLockEnabled
             contentContainerStyle={{ paddingHorizontal: 16 }}
           >
             {propertyType.map((item) => {
@@ -202,6 +184,8 @@ const Home = () => {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
+            nestedScrollEnabled
+            directionalLockEnabled
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 4, marginTop: 16, gap: 10 }}
           >
             {propertyCountByCity && propertyCountByCity.length > 0 ? (
@@ -263,7 +247,7 @@ const Home = () => {
             )): <Text>Khong ton tại</Text>}
           </MapView> */}
         </View>
-      </GooeyRefreshScrollView>
+      </ScrollView>
     </SafeAreaView>
   );
 };

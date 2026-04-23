@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  View,
+  StyleSheet,
   ScrollView,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -20,7 +22,8 @@ const GooeyRefreshScrollView: React.FC<GooeyRefreshScrollViewProps> = ({
   refreshing,
   onRefresh,
   threshold = 86,
-  maxPull = 170,
+  maxPull = 150,
+  contentContainerStyle,
   onScroll,
   onScrollEndDrag,
   onMomentumScrollEnd,
@@ -94,15 +97,22 @@ const GooeyRefreshScrollView: React.FC<GooeyRefreshScrollViewProps> = ({
   };
 
   return (
-    <>
-      <GooeyPullToRefresh
-        pullDistance={pullDistance}
-        refreshing={refreshing}
-        threshold={threshold}
-      />
+    <View style={styles.outerContainer}>
+      <View style={[styles.refreshBackground, { height: pullDistance + 100 }]}> 
+        {pullDistance > 0 || refreshing ? (
+          <GooeyPullToRefresh
+            pullDistance={pullDistance}
+            refreshing={refreshing}
+            threshold={threshold}
+            color="#0052cc"
+          />
+        ) : null}
+      </View>
 
       <ScrollView
         {...rest}
+        style={styles.scrollLayer}
+        contentContainerStyle={[styles.contentContainer, contentContainerStyle]}
         bounces
         overScrollMode="always"
         scrollEventThrottle={scrollEventThrottle}
@@ -112,8 +122,30 @@ const GooeyRefreshScrollView: React.FC<GooeyRefreshScrollViewProps> = ({
       >
         {children}
       </ScrollView>
-    </>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  refreshBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 0,
+    overflow: 'hidden',
+    backgroundColor: '#0052cc',
+  },
+  scrollLayer: {
+    zIndex: 1,
+  },
+  contentContainer: {
+    backgroundColor: '#FFFFFF',
+  },
+});
 
 export default GooeyRefreshScrollView;
