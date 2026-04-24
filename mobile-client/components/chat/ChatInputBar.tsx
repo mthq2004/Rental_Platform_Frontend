@@ -27,52 +27,50 @@ const ChatInputBar: React.FC<ChatInputBarProps> = ({
   };
 
   return (
-    <View className="bg-white dark:bg-secondary-dark px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-      <View className="flex-row items-center">
-        <TouchableOpacity
-          className="p-2 mr-1"
-          onPress={onShowAttachments}
-        >
-          <Ionicons name="add-circle-outline" size={28} color="#2196F3" />
-        </TouchableOpacity>
+    <View className="bg-white dark:bg-[#1a1a1a] px-3 py-2 border-t border-gray-200 dark:border-gray-800 flex-row items-end">
+      {/* Icon Sticker / Emoji */}
+      <TouchableOpacity className="p-2 mb-0.5" activeOpacity={0.7}>
+        <Ionicons name="happy-outline" size={28} color="#6b7280" />
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          className="p-2 mr-1"
-          onPress={onSendImage}
-        >
-          <Ionicons name="image-outline" size={24} color="#2196F3" />
-        </TouchableOpacity>
+      {/* Input Field */}
+      <TextInput
+        className="flex-1 ml-2 mr-1 py-2.5 text-[17px] text-gray-900 dark:text-gray-100"
+        placeholder="Tin nhắn"
+        placeholderTextColor="#9ca3af"
+        value={message}
+        onChangeText={setMessage}
+        multiline
+        maxLength={1000}
+        style={{
+          maxHeight: 120, // Allow expansion up to a point
+        }}
+      />
 
+      {/* Right Icons or Send Button */}
+      {message.trim() || canSend ? (
         <TouchableOpacity
-          className="p-2 mr-2"
-          onPress={onSendLocation}
-        >
-          <Ionicons name="location-outline" size={24} color="#2196F3" />
-        </TouchableOpacity>
-
-        <View className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2 mr-2">
-          <TextInput
-            className="text-base text-gray-800 dark:text-gray-100"
-            placeholder="Nhập tin nhắn..."
-            placeholderTextColor="#999"
-            value={message}
-            onChangeText={setMessage}
-            multiline
-            maxLength={1000}
-          />
-        </View>
-
-        <TouchableOpacity
-          disabled={!message.trim() && !canSend}
-          className={`rounded-full w-10 h-10 items-center justify-center ${message.trim() || canSend
-              ? 'bg-blue-500'
-              : 'bg-gray-300'
-            }`}
+          className="p-2 ml-1 mb-0.5"
+          activeOpacity={0.7}
           onPress={handleSend}
         >
-          <Ionicons name="send" size={20} color="white" />
+          <Ionicons name="send" size={26} color="#0068ff" />
         </TouchableOpacity>
-      </View>
+      ) : (
+        <View className="flex-row items-center mb-0.5">
+          <TouchableOpacity className="p-2" activeOpacity={0.7} onPress={onShowAttachments}>
+            <Ionicons name="ellipsis-horizontal" size={28} color="#6b7280" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity className="p-2" activeOpacity={0.7} onPress={onSendLocation}>
+            <Ionicons name="mic-outline" size={28} color="#6b7280" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity className="p-2" activeOpacity={0.7} onPress={onSendImage}>
+            <Ionicons name="image-outline" size={28} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };

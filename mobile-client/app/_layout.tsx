@@ -9,6 +9,8 @@ import { useAppDispatch } from "@/store/hook";
 import AppInitializer from "@/components/AppInitializer";
 import { ChatSocketProvider } from "@/contexts/ChatSocketContext";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { CallProvider } from "@/contexts/CallContext";
+import CallOverlay from "@/components/chat/CallOverlay";
 
 export default function RootLayout() {
   return (
@@ -16,11 +18,15 @@ export default function RootLayout() {
       <AppInitializer>
         <SocketProvider>
           <ChatSocketProvider>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="(auth)" />
-              </Stack></GestureHandlerRootView>
+            <CallProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tab)" />
+                  <Stack.Screen name="(auth)" />
+                </Stack>
+                <CallOverlay />
+              </GestureHandlerRootView>
+            </CallProvider>
           </ChatSocketProvider>
         </SocketProvider>
       </AppInitializer>

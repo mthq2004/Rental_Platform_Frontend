@@ -1,23 +1,26 @@
-import { Text, View, TouchableOpacity, FlatList, Alert, Modal, Pressable } from 'react-native';
-import React, { useEffect, useRef, useState } from 'react';
+import { Text, View, TouchableOpacity, FlatList, Alert, ScrollView } from 'react-native';
+import React, { useRef, useState } from 'react';
 import ChatHeader from './ChatHeader';
 import ChatListItem from './ChatListItem';
 import { Conversation } from '@/types/conversation.type';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
-import { Feather } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import TagModal from './TagModal';
-import { CustomerCategory } from '@/types/customer-category.type';
-import { addConversationToCategory, getAllCustomerCategories } from '@/store/slices/customer-category.slice';
+import { addConversationToCategory } from '@/store/slices/customer-category.slice';
+import { useColorScheme } from 'nativewind';
+import { router } from 'expo-router';
 
 interface ChatListProps {
   onSelectChat: (conversation: Conversation) => void;
 }
 
+type TabKey = 'all' | 'unread' | 'ai' | 'users';
+
 const SWIPE_ACTION_WIDTH = 80;
 
 const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
-  const [activeTab, setActiveTab] = useState<'all' | 'unread'>('all');
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [searchText, setSearchText] = useState('');
   const { conversations, loading } = useAppSelector(state => state.conversation);
   const [tagModalVisible, setTagModalVisible] = useState(false)
@@ -25,6 +28,8 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
   const dispatch = useAppDispatch()
   const { customerCategories } = useAppSelector(state => state.customerCategory)
   const [initialCategoryIds, setInitialCategoryIds] = useState<string[]>([]);
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
 
   const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
   const currentlyOpenId = useRef<string | null>(null);
@@ -73,8 +78,6 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
     setSelectedConversationId(conversation.id);
 
     const currentIds = conversation.categories?.map(cat => cat.id) || [];
-    console.log("heonj: ", currentIds);
-
     setInitialCategoryIds(currentIds);
 
     setTagModalVisible(true);
@@ -149,67 +152,216 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
     )
   }
 
-  if(loading) {
-    return <Text>Đang tải</Text>
-  }
-
   const filteredConversations = conversations?.filter((conv) => {
-
-    const matchesTab = activeTab === 'all' || conv.unreadCount > 0
-    const matchesSearch = conv.participant?.id
-      .toLowerCase()
+    const matchesSearch = conv.participant?.fullName
+      ?.toLowerCase()
       .includes(searchText.toLowerCase());
-    return matchesTab && matchesSearch;
+    return matchesSearch;
   });
 
-  const unreadCount = conversations?.filter((c) => c.unreadCount > 0).length;
+  const unreadCount = conversations?.filter((c) => c.unreadCount > 0).length || 0;
+
+  const tabs: { key: TabKey; label: string; badge?: number }[] = [
+    { key: 'all', label: 'Tất cả' },
+    { key: 'unread', label: 'Chưa đọc', badge: unreadCount > 0 ? unreadCount : undefined },
+    { key: 'ai', label: 'AI Chat' },
+    { key: 'users', label: 'Người dùng' },
+  ];
+
+  // Filter conversations based on active tab
+  const displayedConversations = filteredConversations?.filter((conv) => {
+    if (activeTab === 'unread') return conv.unreadCount > 0;
+    if (activeTab === 'users') return true; // All are user conversations
+    if (activeTab === 'ai') return false;   // AI tab shows only AI section
+    return true; // 'all' tab
+  });
+
+  const showAISection = activeTab === 'all' || activeTab === 'ai';
+  const showUserSection = activeTab !== 'ai';
+
+  if (loading) {
+    return (
+      <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-background-dark">
+        <Text className="text-gray-500 dark:text-gray-400">Đang tải...</Text>
+      </View>
+    );
+  }
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-background-dark">
-      <ChatHeader title="Liên hệ" onSearch={setSearchText} />
+    <View style={{ flex: 1, backgroundColor: isDark ? '#19191a' : '#f9fafb' }}>
+      <ChatHeader title="Tin nhắn" onSearch={setSearchText} />
 
-      <View className="flex-row bg-white dark:bg-secondary-dark border-b border-gray-200 dark:border-gray-700">
-        <TouchableOpacity
-          className={`flex-1 py-3 ${activeTab === 'all' ? 'border-b-2 border-blue-500' : ''}`}
-          onPress={() => setActiveTab('all')}
-        >
-          <Text
-            className={`text-center text-base font-medium ${activeTab === 'all' ? 'text-blue-500' : 'text-gray-600'
-              }`}
+      {/* ── Tabs ── */}
+      <View
+        style={{
+          flexDirection: 'row',
+          backgroundColor: isDark ? '#1f2937' : '#ffffff',
+          borderBottomWidth: 0.5,
+          borderBottomColor: isDark ? '#374151' : '#e5e7eb',
+        }}
+      >
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            onPress={() => setActiveTab(tab.key)}
+            style={{
+              flex: 1,
+              paddingVertical: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+            }}
           >
-            Tất cả
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className={`flex-1 py-3 flex-row justify-center items-center ${activeTab === 'unread' ? 'border-b-2 border-blue-500' : ''
-            }`}
-          onPress={() => setActiveTab('unread')}
-        >
-          <Text
-            className={`text-center text-base font-medium ${activeTab === 'unread' ? 'text-blue-500' : 'text-gray-600'
-              }`}
-          >
-            Chưa đọc
-          </Text>
-          {unreadCount > 0 && (
-            <View className="bg-red-500 rounded-full w-5 h-5 items-center justify-center ml-2">
-              <Text className="text-white text-xs font-bold">{unreadCount}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: activeTab === tab.key ? '600' : '400',
+                  color: activeTab === tab.key
+                    ? '#185FA5'
+                    : isDark ? '#9ca3af' : '#6b7280',
+                }}
+              >
+                {tab.label}
+              </Text>
+              {tab.badge && (
+                <View
+                  style={{
+                    minWidth: 16, height: 16,
+                    borderRadius: 8,
+                    backgroundColor: '#ef4444',
+                    alignItems: 'center', justifyContent: 'center',
+                    paddingHorizontal: 4,
+                  }}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: '600', color: '#fff' }}>{tab.badge}</Text>
+                </View>
+              )}
             </View>
-          )}
-        </TouchableOpacity>
+            {activeTab === tab.key && (
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 16, right: 16,
+                  height: 2,
+                  backgroundColor: '#185FA5',
+                  borderTopLeftRadius: 2,
+                  borderTopRightRadius: 2,
+                }}
+              />
+            )}
+          </TouchableOpacity>
+        ))}
       </View>
 
+      {/* ── Content ── */}
       <FlatList
-        data={filteredConversations}
-        // Khi scroll list → đóng swipeable đang mở
+        data={showUserSection ? displayedConversations : []}
         onScrollBeginDrag={closeCurrentSwipeable}
+        ListHeaderComponent={
+          showAISection ? (
+            <View>
+              {/* Section Label: Trợ lý AI */}
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: isDark ? '#9ca3af' : '#6b7280',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.6,
+                  paddingHorizontal: 16,
+                  paddingTop: 14,
+                  paddingBottom: 6,
+                }}
+              >
+                Trợ lý AI
+              </Text>
+
+              {/* AI Chat Item */}
+              <TouchableOpacity
+                onPress={() => router.push('/(chat)/AIChat')}
+                activeOpacity={0.6}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                  borderBottomWidth: 0.5,
+                  borderBottomColor: isDark ? '#374151' : '#f3f4f6',
+                }}
+              >
+                {/* AI Avatar */}
+                <View
+                  style={{
+                    width: 48, height: 48, borderRadius: 24,
+                    backgroundColor: isDark ? '#1e3a5f' : '#e0f2fe',
+                    borderWidth: 1.5,
+                    borderColor: isDark ? '#3b82f6' : '#93c5fd',
+                    alignItems: 'center', justifyContent: 'center',
+                    marginRight: 12,
+                  }}
+                >
+                  <Ionicons name="flash" size={22} color="#3b82f6" />
+                </View>
+
+                {/* Info */}
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 2 }}>
+                    <Text style={{ fontSize: 16, fontWeight: '600', color: isDark ? '#f1f5f9' : '#1a1a1a' }}>
+                      Trợ lý AI
+                    </Text>
+                    <Text style={{ fontSize: 12, color: isDark ? '#9ca3af' : '#6b7280' }}>Vừa xong</Text>
+                  </View>
+                  <Text
+                    numberOfLines={1}
+                    style={{ fontSize: 14, color: isDark ? '#9ca3af' : '#6b7280' }}
+                  >
+                    Tìm kiếm BĐS, tư vấn thuê nhà, giải đáp thắc mắc...
+                  </Text>
+                </View>
+
+                {/* Badge & Label */}
+                <View style={{ alignItems: 'flex-end', gap: 4, marginLeft: 8 }}>
+                  <View
+                    style={{
+                      paddingHorizontal: 8, paddingVertical: 2,
+                      borderRadius: 6,
+                      backgroundColor: isDark ? 'rgba(59,130,246,0.15)' : '#e0f2fe',
+                    }}
+                  >
+                    <Text style={{ fontSize: 10, fontWeight: '600', color: '#3b82f6' }}>AI</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Section Label: Hội thoại */}
+              {showUserSection && (
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: '600',
+                    color: isDark ? '#9ca3af' : '#6b7280',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.6,
+                    paddingHorizontal: 16,
+                    paddingTop: 14,
+                    paddingBottom: 6,
+                  }}
+                >
+                  Hội thoại gần đây
+                </Text>
+              )}
+            </View>
+          ) : null
+        }
         renderItem={({ item }) => (
           <Swipeable
             ref={(ref) => { swipeableRefs.current.set(item.id, ref); }}
-            friction={2}               // cảm giác kéo tự nhiên hơn
-            rightThreshold={40}        // kéo 40px là snap ra
-            overshootRight={false}     // không cho kéo quá
+            friction={2}
+            rightThreshold={40}
+            overshootRight={false}
             renderRightActions={() => renderRightActions(item)}
             onSwipeableOpen={() => handleSwipeOpen(item.id)}
           >
@@ -224,9 +376,14 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
         )}
         keyExtractor={(item) => item.id}
         ListEmptyComponent={
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-gray-500 dark:text-gray-400">Không có hội thoại nào</Text>
-          </View>
+          !showAISection ? (
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80 }}>
+              <Ionicons name="chatbubble-ellipses-outline" size={48} color="#d1d5db" />
+              <Text style={{ color: '#9ca3af', marginTop: 12, fontSize: 14 }}>
+                {activeTab === 'unread' ? 'Không có tin nhắn chưa đọc' : 'Không có hội thoại nào'}
+              </Text>
+            </View>
+          ) : null
         }
       />
 

@@ -1,4 +1,5 @@
 import { Text, View, Image, TouchableWithoutFeedback, Dimensions } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Message } from '@/types/message.type';
 import MessageContextMenu from './MessageContextMenu';
@@ -7,6 +8,8 @@ interface ChatMessageProps {
   message: Message;
   isMe: boolean;
   time: string;
+  avatar?: string;
+  name?: string;
   onReaction?: (messageId: string, reaction: string) => void;
   onAction?: (messageId: string, action: string) => void;
 }
@@ -159,6 +162,78 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
         </View>
       );
 
+    case 'CALL_VOICE':
+    case 'CALL_VIDEO':
+    case 'CALL_MISSED': {
+      const isMissed = message.messageType === 'CALL_MISSED';
+      const isVideoCall = message.messageType === 'CALL_VIDEO';
+      const callLabel = isVideoCall ? 'Cuộc gọi video' : isMissed ? 'Cuộc gọi nhỡ' : 'Cuộc gọi thoại';
+
+      const formatCallDuration = (dur: number | null) => {
+        if (!dur) return null;
+        const m = Math.floor(dur / 60).toString().padStart(2, '0');
+        const s = Math.round(dur % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+      };
+
+      const durationFormatted = formatCallDuration(message.duration);
+      const subtitleText = isMissed
+        ? 'Missed call'
+        : `${isVideoCall ? 'Video' : 'Voice'} call (${durationFormatted || '00:00'})`;
+
+      return (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+            gap: 12,
+            minWidth: 180,
+          }}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: isMe ? '#ffffff' : '#EFF6FF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderWidth: 1,
+              borderColor: isMe ? '#DBEAFE' : '#E0E7FF',
+            }}
+          >
+            <Ionicons
+              name={isVideoCall ? 'videocam' : 'call'}
+              size={20}
+              color="#3B82F6"
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: '600',
+                color: '#1e293b',
+              }}
+            >
+              {callLabel}
+            </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                color: isMissed ? '#EF4444' : '#64748b',
+                marginTop: 2,
+              }}
+            >
+              {subtitleText}
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     default:
       return null;
   }
@@ -253,15 +328,23 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMe }) => {
 
   const hasReactions = message.reactions && message.reactions.length > 0;
 
+  const isCall =
+    message.messageType === 'CALL_VOICE' ||
+    message.messageType === 'CALL_VIDEO' ||
+    message.messageType === 'CALL_MISSED';
+
   const isMediaOnly =
-    (message.messageType === 'IMAGE' || message.messageType === 'VIDEO') &&
-    !message.replyTo;
+    ((message.messageType === 'IMAGE' || message.messageType === 'VIDEO') && !message.replyTo) ||
+    isCall;
+
+  const bubbleBg = isCall
+    ? isMe ? 'bg-blue-50 border border-blue-100' : 'bg-white border border-gray-100'
+    : isMe ? 'bg-blue-500' : 'bg-white dark:bg-secondary-dark border border-gray-200 dark:border-gray-600';
 
   return (
     <View style={{ position: 'relative', marginBottom: hasReactions ? 10 : 0 }}>
       <View
-        className={`max-w-[75%] rounded-2xl overflow-hidden ${isMediaOnly ? '' : 'px-3.5 py-2.5'
-          } ${isMe ? 'bg-blue-500' : 'bg-white dark:bg-secondary-dark border border-gray-200 dark:border-gray-600'}`}
+        className={`max-w-[85%] rounded-2xl overflow-hidden ${isMediaOnly ? '' : 'px-3.5 py-2.5'} ${bubbleBg}`}
       >
         {!isMediaOnly && message.replyTo && (
           <ReplyPreview
@@ -319,11 +402,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
   isMe,
   time,
+  avatar,
+  name,
   onReaction,
   onAction,
 }) => {
   const [menuVisible, setMenuVisible] = useState(false);
-  const otherUserName = 'Người dùng';
+  const otherUserName = name || 'Người dùng';
 
   const handleLongPress = () => setMenuVisible(true);
   const handleReaction = (key: string) => onReaction?.(message.id, key);
@@ -338,7 +423,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         >
           {!isMe && (
             <View className="mb-4">
-              <Avatar name={otherUserName} />
+              <Avatar avatarUrl={avatar} name={otherUserName} />
             </View>
           )}
 

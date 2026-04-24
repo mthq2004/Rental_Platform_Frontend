@@ -1,6 +1,7 @@
 import AuthGuard from '@/components/AuthGuard';
 import { PROPERTY_META } from '@/constants/property.constant';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
+import { selectUnreadCount } from '@/store/slices/notification.slice';
 import { getPostStatusCounts, getPropertiesByStatus, getPropertyById } from '@/store/slices/property.slice';
 import { ListingType, PropertyType } from '@/types/property.type';
 import { useThemeColors } from '@/utils/colors';
@@ -54,9 +55,10 @@ const MyPost = () => {
   const dispatch = useAppDispatch()
   const { statusCount, properties, loadingPropertyStatus } = useAppSelector(state => state.property)
   const user = useAppSelector(state => state.auth.user)
+  const unreadCount = useAppSelector(selectUnreadCount);
 
   const tabs = Array.isArray(statusCount) ? statusCount : []
-  const userName = user?.fullName || user?.name || 'Người dùng';
+  const userName = user?.fullName || 'Người dùng';
   const userAvatar = user?.avatarUrl
     ? { uri: user.avatarUrl }
     : require('@/assets/images/avatar.png');
@@ -82,7 +84,7 @@ const MyPost = () => {
   const filteredProperties = Array.isArray(properties) ? properties : [];
 
   const handleNotification = () => {
-    console.log('Thông báo của bạn');
+    router.push('/(notification)');
   };
 
   const handlePostDetail = (propertyId: string) => {
@@ -126,9 +128,11 @@ const MyPost = () => {
           <View className="flex-row gap-4">
             <TouchableOpacity onPress={handleNotification} className="p-2 relative">
               <Ionicons name="notifications-outline" size={24} color={colors.current.icon} />
-              <View className="absolute top-1 right-1 bg-red-500 rounded-full w-5 h-5 items-center justify-center">
-                <Text className="text-white text-xs font-bold">3</Text>
-              </View>
+              {unreadCount > 0 && (
+                <View className="absolute top-1 right-1 bg-red-500 rounded-full w-5 h-5 items-center justify-center">
+                  <Text className="text-white text-xs font-bold">{unreadCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
             <TouchableOpacity onPress={handleNotification} className="p-2 relative">
               <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.current.icon} />

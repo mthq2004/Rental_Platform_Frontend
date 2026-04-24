@@ -9,7 +9,7 @@ import { selectUnreadCount } from "@/store/slices/notification.slice";
 const HeaderBanner: React.FC = () => {
     const unreadCount = useAppSelector(selectUnreadCount);
     const user = useAppSelector((state) => state.auth.user);
-    const userName = user?.fullName || user?.name || "Bạn";
+    const userName = user?.fullName || "Bạn";
     const handleFavorite = () => {
         console.log('Danh sách yêu thích');
     };

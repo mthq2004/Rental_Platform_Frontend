@@ -34,9 +34,9 @@ const ProfileScreen = () => {
   const [verificationStatus, setVerificationStatus] = useState<'verified' | 'pending' | 'unverified'>('verified');
   const { alert, showAlert, hideAlert } = useCustomAlert();
   const { isAuth, user } = useAppSelector(state => state.auth)
-  const displayName = user?.fullName || user?.name || 'Người dùng';
+  const userName = user?.fullName || 'Người dùng';
   const dispatch = useAppDispatch()
-  
+
 
   const handleEdit = async () => {
     router.push("/(profile)/edit")
@@ -44,7 +44,7 @@ const ProfileScreen = () => {
 
   const handleVerification = () => {
     if (verificationStatus === 'verified') {
-      Alert.alert('Thông tin xác minh', `Họ tên: ${displayName}\nTrạng thái: Đã xác minh`);
+      Alert.alert('Thông tin xác minh', `Họ tên: ${userName}\nTrạng thái: Đã xác minh`);
     } else if (verificationStatus === 'pending') {
       Alert.alert('Đang xử lý', 'CCCD của bạn đang được xem xét. Thời gian dự kiến: 1-2 ngày làm việc.');
     } else {
@@ -107,7 +107,7 @@ const ProfileScreen = () => {
       icon: Bell,
       title: 'Thông báo',
       subtitle: "Quản lý thông báo",
-      onPress: () => Alert.alert('Thông báo'),
+      onPress: () => router.push('/(profile)/notification-settings'),
       iconBgColor: 'bg-purple-100',
       iconColor: '#a855f7',
       showBadge: true
@@ -152,7 +152,7 @@ const ProfileScreen = () => {
           isAuth ? (
             <View className="bg-background dark:bg-background-dark pt-16 pb-8">
               <ProfileAvatar
-                imageUrl= { user?.avatarUrl ? user.avatarUrl : "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400" }
+                imageUrl={user?.avatarUrl ? user.avatarUrl : "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400"}
                 onEdit={handleEdit}
                 isVerified={verificationStatus === 'verified'}
               />

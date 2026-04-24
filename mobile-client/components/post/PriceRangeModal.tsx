@@ -43,7 +43,7 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
   // Animated values để điều khiển vị trí nút
   const minAnim = useRef(new Animated.Value(0)).current;
   const maxAnim = useRef(new Animated.Value(0)).current;
-  
+
   const minScale = useRef(new Animated.Value(1)).current;
   const maxScale = useRef(new Animated.Value(1)).current;
 
@@ -77,11 +77,11 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
     },
     onPanResponderMove: (_, gesture) => {
       if (widthRef.current === 0) return;
-      
+
       // Tính toán vị trí X mới dựa trên vị trí cũ + độ dời dx
       const startX = (minRef.current / MAX_PRICE) * widthRef.current;
       let newX = startX + gesture.dx;
-      
+
       // Giới hạn trong khoảng [0, vị trí nút Max]
       const maxXPos = (maxRef.current / MAX_PRICE) * widthRef.current;
       newX = Math.max(0, Math.min(newX, maxXPos - 10));
@@ -108,7 +108,7 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
 
       const startX = (maxRef.current / MAX_PRICE) * widthRef.current;
       let newX = startX + gesture.dx;
-      
+
       const minXPos = (minRef.current / MAX_PRICE) * widthRef.current;
       newX = Math.max(minXPos + 10, Math.min(newX, widthRef.current));
 
@@ -127,7 +127,7 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
       <View className="flex-1 bg-black/50 justify-end">
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <View className="bg-white dark:bg-zinc-900 rounded-t-3xl p-6 pb-10">
-            
+
             <View className="flex-row justify-between items-center mb-10">
               <Text className="text-xl font-bold dark:text-white">Khoảng giá</Text>
               <TouchableOpacity onPress={onClose} hitSlop={20}>
@@ -138,17 +138,17 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
             {/* AREA SLIDER */}
             <View className="px-4 mb-12 h-10 justify-center">
               {/* Thanh nền (Track) */}
-              <View 
-                onLayout={onLayout} 
+              <View
+                onLayout={onLayout}
                 className="h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-full w-full relative"
               >
-                
+
                 {/* Dải màu cam nối giữa 2 nút */}
                 <Animated.View
                   style={{
                     position: "absolute",
-                    height: "100%", 
-                    backgroundColor: "#f59e0b", // amber-500
+                    height: "100%",
+                    backgroundColor: "#38bdf8", // amber-500
                     borderRadius: 999,
                     left: minAnim,
                     width: Animated.subtract(maxAnim, minAnim),
@@ -162,19 +162,19 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
                     position: "absolute",
                     // Căn giữa nút theo chiều dọc của thanh
                     top: -THUMB / 2 + 3, // 3 là nửa độ cao của thanh track (1.5 * 2)
-                    left: -THUMB / 2, 
+                    left: -THUMB / 2,
                     transform: [{ translateX: minAnim }, { scale: minScale }],
                     zIndex: 30,
                   }}
                 >
-                  <View 
-                    style={{ 
-                      width: THUMB, 
+                  <View
+                    style={{
+                      width: THUMB,
                       height: THUMB,
                       borderRadius: THUMB / 2,
                       backgroundColor: 'white',
                       borderWidth: 3,
-                      borderColor: '#f59e0b',
+                      borderColor: '#38bdf8',
                       // Đổ bóng cho nút nổi lên
                       ...Platform.select({
                         ios: {
@@ -200,14 +200,14 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
                     zIndex: 30,
                   }}
                 >
-                  <View 
-                    style={{ 
-                      width: THUMB, 
+                  <View
+                    style={{
+                      width: THUMB,
                       height: THUMB,
                       borderRadius: THUMB / 2,
                       backgroundColor: 'white',
                       borderWidth: 3,
-                      borderColor: '#f59e0b',
+                      borderColor: '#38bdf8',
                       ...Platform.select({
                         ios: {
                           shadowColor: "#000",
@@ -262,7 +262,7 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
 
               <TouchableOpacity
                 onPress={() => { onApply(min, max); onClose(); }}
-                className="flex-1 py-4 rounded-2xl bg-amber-500 items-center shadow-lg shadow-amber-500/30"
+                className="flex-1 py-4 rounded-2xl bg-primary items-center shadow-lg shadow-primary/30"
               >
                 <Text className="text-white font-bold text-base">Áp dụng</Text>
               </TouchableOpacity>

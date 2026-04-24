@@ -18,7 +18,7 @@ const Chat = () => {
         id: conversation.id,
         participantId: conversation.participant.id,
         status: conversation.status,
-        avatar: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400",
+        avatar: conversation.participant.avatarUrl || '',
         name: conversation.participant.fullName
       },
     });

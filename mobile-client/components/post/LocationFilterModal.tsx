@@ -5,8 +5,8 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { X, ChevronDown } from "lucide-react-native";
 import LocationPickerModal from "./LocationPickerModal";
 import { useAppDispatch } from "@/store/hook";

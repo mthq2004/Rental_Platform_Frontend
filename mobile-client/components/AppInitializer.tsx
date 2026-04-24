@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAppDispatch } from '@/store/hook';
 import { getProfile, logout } from '@/store/slices/auth.slice';
 import { getAccessToken } from '@/utils/secureStorage';
@@ -9,8 +9,12 @@ const AppInitializer = ({ children }: { children: React.ReactNode }) => {
   const dispatch = useAppDispatch();
   const [isReady, setIsReady] = useState(false);
   const { setColorScheme } = useColorScheme();
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     const initAuth = async () => {
       try {
         const savedTheme = await getSavedThemePreference();
