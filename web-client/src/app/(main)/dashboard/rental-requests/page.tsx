@@ -354,59 +354,34 @@ export default function RentalRequestsPage() {
       ];
     }
 
-    const byProperty = new Map<string, RentalRequestStatus[]>();
-    ownerRequests.forEach((req) => {
-      const list = byProperty.get(req.propertyId) || [];
-      list.push(req.status);
-      byProperty.set(req.propertyId, list);
-    });
-
-    let pending = 0;
-    let holding = 0;
-    let closed = 0;
-
-    const hasAny = (statuses: RentalRequestStatus[], targets: RentalRequestStatus[]) =>
-      statuses.some((status) => targets.includes(status));
-
-    byProperty.forEach((statuses) => {
-      if (hasAny(statuses, ["contract_created", "holding_deposit_locked"])) {
-        closed += 1;
-        return;
-      }
-
-      if (hasAny(statuses, ["holding_deposit_open", "holding_deposit_paid"])) {
-        holding += 1;
-        return;
-      }
-
-      if (hasAny(statuses, ["pending", "under_review"])) {
-        pending += 1;
-      }
-    });
+    const counts = ownerRequests.reduce<Record<string, number>>((acc, item) => {
+      acc[item.status] = (acc[item.status] || 0) + 1;
+      return acc;
+    }, {});
 
     return [
       {
         key: "total",
         title: "Tổng yêu cầu",
-        value: byProperty.size,
+        value: ownerRequests.length,
         icon: <TeamOutlined />,
       },
       {
         key: "pending",
         title: "Chờ xử lý",
-        value: pending,
+        value: (counts.pending || 0) + (counts.under_review || 0),
         icon: <ClockCircleOutlined />,
       },
       {
         key: "holding",
         title: "Đang giữ chỗ",
-        value: holding,
+        value: (counts.holding_deposit_open || 0) + (counts.holding_deposit_paid || 0),
         icon: <ThunderboltOutlined />,
       },
       {
         key: "closed",
         title: "Đã chốt/khóa",
-        value: closed,
+        value: (counts.holding_deposit_locked || 0) + (counts.contract_created || 0),
         icon: <CheckCircleOutlined />,
       },
     ];
