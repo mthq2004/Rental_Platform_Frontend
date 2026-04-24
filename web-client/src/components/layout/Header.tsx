@@ -92,7 +92,7 @@ const Header = () => {
     // Routing logic here
     switch (key) {
       case "rent":
-        router.push("/rent");
+        router.push("/search");
         break;
 
         break;

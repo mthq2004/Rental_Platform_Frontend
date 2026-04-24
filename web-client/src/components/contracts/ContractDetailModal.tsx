@@ -21,6 +21,7 @@ interface ContractDetailModalProps {
   userId: string | undefined;
   onClose: () => void;
   onEdit: (record: RentalContract) => void;
+  onSendToTenant: (rentalId: string) => void;
   onTenantSign: (rentalId: string) => void;
   onOwnerSign: (rentalId: string) => void;
   onActivate: (rentalId: string) => void;
@@ -33,6 +34,7 @@ export default function ContractDetailModal({
   userId,
   onClose,
   onEdit,
+  onSendToTenant,
   onTenantSign,
   onOwnerSign,
   onActivate,
@@ -100,14 +102,14 @@ export default function ContractDetailModal({
                       size="small"
                       type="primary"
                       icon={<CheckCircleOutlined />}
-                      onClick={() => onOwnerSign(contractDetail.rentalId)}
+                      onClick={() => onSendToTenant(contractDetail.rentalId)}
                     >
-                      Ký hợp đồng
+                      Gửi ký
                     </Button>
                   </>
                 )}
 
-                {contractDetail.status === "owner_signed" && !ownerSide && (
+                {contractDetail.status === "pending_tenant" && !ownerSide && (
                   <>
                     {contractDetail.signedContractUrl && (
                       <Button
@@ -125,18 +127,10 @@ export default function ContractDetailModal({
                   </>
                 )}
 
-                {contractDetail.status === "fully_signed" && ownerSide && (
-                  <Button size="small" type="primary" onClick={() => onActivate(contractDetail.rentalId)}>
-                    Kích hoạt hợp đồng
+                {contractDetail.status === "pending_landlord" && ownerSide && (
+                  <Button size="small" type="primary" onClick={() => onOwnerSign(contractDetail.rentalId)}>
+                    Ký hợp đồng
                   </Button>
-                )}
-
-                {contractDetail.status === "fully_signed" && !ownerSide && (
-                  <Link href="/dashboard/payments">
-                    <Button size="small" type="primary" icon={<DollarOutlined />}>
-                      Thanh toán tiền cọc
-                    </Button>
-                  </Link>
                 )}
 
                 {contractDetail.status === "active" && !ownerSide && (

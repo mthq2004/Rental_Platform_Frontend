@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { propertySlug } from "@/utils/slug";
 import {
@@ -89,12 +89,14 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
   const isFavorite = !!favoriteStatusMap[property.id];
   const [showPhone, setShowPhone] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    if (isAuth && favoriteStatusMap[property.id] === undefined) {
+    if (isAuth && favoriteStatusMap[property.id] === undefined && !hasFetchedRef.current) {
+      hasFetchedRef.current = true;
       dispatch(getFavoriteStatusThunk(property.id));
     }
-  }, [dispatch, isAuth, property.id, favoriteStatusMap]);
+  }, [dispatch, isAuth, property.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const primaryImage = property.images.find((img) => img.isPrimary) || property.images[0];
   const otherImages = property.images.filter((img) => !img.isPrimary).slice(0, 3);

@@ -681,11 +681,15 @@ const RentalContractPage = () => {
     setIsSaving(true);
 
     try {
+      if (!requestData?.property?.id || !requestData?.owner?.id || !requestData?.tenant?.id) {
+        throw new Error("Thiếu thông tin bất động sản hoặc người dùng để tạo hợp đồng");
+      }
+
       const payload: CreateContractPayload = {
         templateId: template?.templateId,
-        propertyId: requestData?.property.id,
-        ownerId: requestData?.owner.id,
-        tenantId: requestData?.tenant.id,
+        propertyId: requestData.property.id,
+        ownerId: requestData.owner.id,
+        tenantId: requestData.tenant.id,
         fromRequestId: requestData?.contract.id,
         startDate: new Date(requestData!.contract.startDate).toISOString(),
         endDate: new Date(requestData!.contract.endDate).toISOString(),
@@ -735,12 +739,16 @@ const RentalContractPage = () => {
     if (!validateSendForm()) return;
     setIsSendingContract(true);
     try {
+      if (!requestData?.property?.id || !requestData?.owner?.id || !requestData?.tenant?.id) {
+        throw new Error("Thiếu thông tin bất động sản hoặc người dùng để tạo hợp đồng");
+      }
+
       // 1. First ensure contract is created/saved as draft
       const payload: CreateContractPayload = {
         templateId: template?.templateId,
-        propertyId: requestData?.property.id,
-        ownerId: requestData?.owner.id,
-        tenantId: requestData?.tenant.id,
+        propertyId: requestData.property.id,
+        ownerId: requestData.owner.id,
+        tenantId: requestData.tenant.id,
         fromRequestId: requestData?.contract.id,
         startDate: new Date(requestData!.contract.startDate).toISOString(),
         endDate: new Date(requestData!.contract.endDate).toISOString(),

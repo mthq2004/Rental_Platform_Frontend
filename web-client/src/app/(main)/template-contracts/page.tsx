@@ -55,9 +55,8 @@ const ContractTemplatesContent = () => {
   }, [requestId, dispatch]);
 
   useEffect(() => {
-    if (requestData?.property.type) {
-      dispatch(getTemplates(requestData?.property.type));
-    }
+    const propertyType = requestData?.property.type;
+    dispatch(getTemplates(propertyType || "all"));
   }, [dispatch, requestData]);
 
   const getCategory = (type: string) => {
@@ -83,7 +82,7 @@ const ContractTemplatesContent = () => {
       typeLabel: getTypeLabel(t.templateType),
     })).filter(t =>
       t.templateName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.description.toLowerCase().includes(searchTerm.toLowerCase())
+      (t.description || "").toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [templates, searchTerm]);
 

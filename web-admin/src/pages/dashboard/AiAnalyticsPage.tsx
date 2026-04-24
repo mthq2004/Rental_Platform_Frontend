@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import {
   Button,
   Card,
+  Checkbox,
   Col,
-  Input,
+  Divider,
   InputNumber,
+  Progress,
+  Radio,
   Row,
   Select,
   Skeleton,
@@ -39,8 +42,18 @@ import {
   DatabaseOutlined,
   CheckCircleOutlined,
   LineChartOutlined,
+  EnvironmentOutlined,
+  SafetyOutlined,
+  ShopOutlined,
+  HomeOutlined,
+  MedicineBoxOutlined,
+  BankOutlined,
+  ShoppingCartOutlined,
+  ReadOutlined,
 } from "@ant-design/icons";
 import envConfig from "../../config";
+import provinceService from "../../services/province.service";
+import type { Province, District } from "../../types/province.type";
 
 const money = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -65,6 +78,15 @@ interface PricePrediction {
   maxPrice: number;
   predictedAvg: number;
   sampleCount: number;
+  avgPricePerSqm?: number;
+}
+
+interface DistrictInsight {
+  district: string;
+  province?: string;
+  propertyType?: string;
+  avgPrice: number;
+  count: number;
 }
 
 interface PriceAnalytics {
@@ -72,10 +94,16 @@ interface PriceAnalytics {
   modelAccuracy: number;
   totalSamples: number;
   lastTrainedAt: string;
+  districtInsights?: DistrictInsight[];
 }
 
 interface PredictResult {
   predictedPrice: number;
+  minPrice?: number;
+  maxPrice?: number;
+  confidence?: number;
+  comparableCount?: number;
+  marketAdjusted?: boolean;
 }
 
 const AI_BASE = `${envConfig.API_ENDPOINT}/api/ai/api/v1`;
@@ -86,12 +114,29 @@ const AiAnalyticsPage = () => {
   const [predicting, setPredicting] = useState(false);
   const [analytics, setAnalytics] = useState<PriceAnalytics | null>(null);
 
+  // Province / District selector state
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | null>(null);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+
+  // District insights filter
+  const [districtFilterType, setDistrictFilterType] = useState<string>("");
+
   // Predict form
   const [predictForm, setPredictForm] = useState({
     area: 50,
     rooms: 2,
-    location: "Quận 7",
+    floors: 1,
+    streetFacing: null as boolean | null,
+    location: "",
     propertyType: "apartment" as string,
+    furnitureStatus: "none" as string,
+    nearCityCenter: false,
+    nearShoppingMall: false,
+    nearMarket: false,
+    nearSchool: false,
+    nearHospital: false,
   });
   const [predictResult, setPredictResult] = useState<PredictResult | null>(null);
 
@@ -130,10 +175,26 @@ const AiAnalyticsPage = () => {
   const handlePredict = async () => {
     setPredicting(true);
     try {
+      const body: Record<string, unknown> = {
+        area: predictForm.area,
+        rooms: predictForm.rooms,
+        location: predictForm.location,
+        propertyType: predictForm.propertyType,
+        furnitureStatus: predictForm.furnitureStatus,
+        nearCityCenter: predictForm.nearCityCenter,
+        nearShoppingMall: predictForm.nearShoppingMall,
+        nearMarket: predictForm.nearMarket,
+        nearSchool: predictForm.nearSchool,
+        nearHospital: predictForm.nearHospital,
+      };
+      if (predictForm.propertyType === "house") {
+        body.floors = predictForm.floors;
+        body.streetFacing = predictForm.streetFacing;
+      }
       const res = await fetch(`${AI_BASE}/predict-price`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(predictForm),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         const data = await res.json();
@@ -149,7 +210,22 @@ const AiAnalyticsPage = () => {
 
   useEffect(() => {
     fetchAnalytics();
+    provinceService.getProvinces().then(setProvinces).catch(() => {});
   }, []);
+
+  const handleProvinceChange = async (code: number) => {
+    setSelectedProvinceCode(code);
+    setDistricts([]);
+    setPredictForm((p) => ({ ...p, location: "" }));
+    setLoadingDistricts(true);
+    try {
+      const prov = await provinceService.getProvinceWithDistricts(code);
+      setDistricts(prov.districts ?? []);
+    } catch {
+      // ignore
+    }
+    setLoadingDistricts(false);
+  };
 
   const chartData = analytics?.predictions.filter((p) => p.sampleCount > 0) || [];
 
@@ -199,6 +275,12 @@ const AiAnalyticsPage = () => {
       dataIndex: "maxPrice",
       key: "maxPrice",
       render: (v: number) => money.format(v),
+    },
+    {
+      title: "Giá/m² TB",
+      dataIndex: "avgPricePerSqm",
+      key: "avgPricePerSqm",
+      render: (v: number) => v ? <span style={{ color: "#7c3aed", fontWeight: 600 }}>{money.format(v)}</span> : "—",
     },
     {
       title: "AI dự đoán TB",
@@ -343,13 +425,24 @@ const AiAnalyticsPage = () => {
             variant="borderless"
             style={{ borderRadius: 12 }}
           >
+            {/* Row 1: core fields */}
             <Row gutter={[16, 16]} align="bottom">
               <Col xs={24} sm={12} md={5}>
                 <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>Loại BĐS</label>
                 <Select
                   style={{ width: "100%" }}
                   value={predictForm.propertyType}
-                  onChange={(v) => setPredictForm((p) => ({ ...p, propertyType: v }))}
+                  onChange={(v) =>
+                    setPredictForm((p) => ({
+                      ...p,
+                      propertyType: v,
+                      // reset fields không phù hợp khi đổi loại
+                      rooms: v === "land" || v === "office" ? 0 : p.rooms,
+                      floors: v === "house" ? p.floors : 1,
+                      streetFacing: v === "house" ? p.streetFacing : null,
+                      furnitureStatus: v === "land" || v === "office" ? "none" : p.furnitureStatus,
+                    }))
+                  }
                   options={[
                     { value: "apartment", label: "Căn hộ" },
                     { value: "house", label: "Nhà nguyên căn" },
@@ -368,50 +461,357 @@ const AiAnalyticsPage = () => {
                   onChange={(v) => setPredictForm((p) => ({ ...p, area: v || 50 }))}
                 />
               </Col>
-              <Col xs={24} sm={12} md={4}>
-                <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>Số phòng</label>
-                <InputNumber
+              {/* Phòng ngủ — ẩn cho đất và văn phòng */}
+              {predictForm.propertyType !== "land" && predictForm.propertyType !== "office" && (
+                <Col xs={24} sm={12} md={3}>
+                  <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>Phòng ngủ</label>
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0}
+                    value={predictForm.rooms}
+                    onChange={(v) => setPredictForm((p) => ({ ...p, rooms: v || 0 }))}
+                  />
+                </Col>
+              )}
+              {/* Số tầng — chỉ cho nhà nguyên căn */}
+              {predictForm.propertyType === "house" && (
+                <Col xs={24} sm={12} md={3}>
+                  <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>Số tầng</label>
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={1}
+                    max={20}
+                    value={predictForm.floors}
+                    onChange={(v) => setPredictForm((p) => ({ ...p, floors: v || 1 }))}
+                  />
+                </Col>
+              )}
+              <Col xs={24} sm={12} md={5}>
+                <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>Tỉnh / Thành phố</label>
+                <Select
                   style={{ width: "100%" }}
-                  min={0}
-                  value={predictForm.rooms}
-                  onChange={(v) => setPredictForm((p) => ({ ...p, rooms: v || 0 }))}
+                  placeholder="Chọn tỉnh/thành phố"
+                  showSearch
+                  filterOption={(input, opt) =>
+                    String(opt?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                  }
+                  value={selectedProvinceCode ?? undefined}
+                  onChange={handleProvinceChange}
+                  options={provinces.map((p) => ({ value: p.code, label: p.name }))}
                 />
               </Col>
               <Col xs={24} sm={12} md={5}>
-                <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>Khu vực</label>
-                <Input
-                  value={predictForm.location}
-                  onChange={(e) => setPredictForm((p) => ({ ...p, location: e.target.value }))}
-                  placeholder="VD: Quận 7, Thủ Đức..."
+                <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>Quận / Huyện</label>
+                <Select
+                  style={{ width: "100%" }}
+                  placeholder={loadingDistricts ? "Đang tải..." : "Chọn quận/huyện"}
+                  showSearch
+                  filterOption={(input, opt) =>
+                    String(opt?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                  }
+                  disabled={districts.length === 0}
+                  loading={loadingDistricts}
+                  value={predictForm.location || undefined}
+                  onChange={(v) => setPredictForm((p) => ({ ...p, location: v }))}
+                  options={districts.map((d) => ({ value: d.name, label: d.name }))}
                 />
               </Col>
-              <Col xs={24} sm={12} md={3}>
-                <Button
-                  type="primary"
-                  icon={<ExperimentOutlined />}
-                  onClick={handlePredict}
-                  loading={predicting}
-                  block
-                  size="large"
+              {/* Nội thất — ẩn cho đất và văn phòng */}
+              {predictForm.propertyType !== "land" && predictForm.propertyType !== "office" && (
+                <Col xs={24} sm={12} md={6}>
+                  <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>
+                    <HomeOutlined style={{ marginRight: 4 }} />
+                    Tình trạng nội thất
+                  </label>
+                  <Select
+                    style={{ width: "100%" }}
+                    value={predictForm.furnitureStatus}
+                    onChange={(v) => setPredictForm((p) => ({ ...p, furnitureStatus: v }))}
+                    options={[
+                      { value: "none", label: "Không có nội thất" },
+                      { value: "basic", label: "Nội thất cơ bản" },
+                      { value: "full", label: "Nội thất đầy đủ / cao cấp" },
+                    ]}
+                  />
+                </Col>
+              )}
+              {/* Mặt tiền / hẻm — chỉ cho nhà nguyên căn */}
+              {predictForm.propertyType === "house" && (
+                <Col xs={24}>
+                  <label style={{ display: "block", marginBottom: 8, fontSize: 13, color: "#666" }}>
+                    <EnvironmentOutlined style={{ marginRight: 4, color: "#f97316" }} />
+                    Vị trí nhà
+                  </label>
+                  <Radio.Group
+                    value={predictForm.streetFacing}
+                    onChange={(e) => setPredictForm((p) => ({ ...p, streetFacing: e.target.value }))}
+                    optionType="button"
+                    buttonStyle="solid"
+                  >
+                    <Radio.Button value={null}>Chưa rõ</Radio.Button>
+                    <Radio.Button value={true}>Mặt tiền (+20%)</Radio.Button>
+                    <Radio.Button value={false}>Trong hẻm</Radio.Button>
+                  </Radio.Group>
+                </Col>
+              )}
+            </Row>
+
+            {/* Row 2: proximity checkboxes */}
+            <Divider style={{ margin: "16px 0 12px" }} />
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ fontSize: 13, color: "#666", fontWeight: 500 }}>
+                <EnvironmentOutlined style={{ marginRight: 6, color: "#16a34a" }} />
+                Vị trí lân cận (ảnh hưởng đến giá)
+              </span>
+            </div>
+            <Row gutter={[12, 12]}>
+              <Col xs={12} sm={8} md={5}>
+                <Checkbox
+                  checked={predictForm.nearCityCenter}
+                  onChange={(e) => setPredictForm((p) => ({ ...p, nearCityCenter: e.target.checked }))}
                 >
-                  Dự đoán
-                </Button>
+                  <BankOutlined style={{ color: "#2563eb", marginRight: 4 }} />
+                  Gần trung tâm thành phố
+                </Checkbox>
               </Col>
-              <Col xs={24} sm={12} md={3}>
-                {predicting ? (
-                  <Spin />
-                ) : predictResult ? (
-                  <div style={{ textAlign: "center", padding: "4px 0" }}>
-                    <div style={{ fontSize: 12, color: "#666" }}>Giá dự đoán</div>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: "#2563eb" }}>
-                      {money.format(predictResult.predictedPrice)}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#999" }}>/tháng</div>
-                  </div>
-                ) : null}
+              <Col xs={12} sm={8} md={5}>
+                <Checkbox
+                  checked={predictForm.nearShoppingMall}
+                  onChange={(e) => setPredictForm((p) => ({ ...p, nearShoppingMall: e.target.checked }))}
+                >
+                  <ShoppingCartOutlined style={{ color: "#7c3aed", marginRight: 4 }} />
+                  Gần trung tâm thương mại
+                </Checkbox>
+              </Col>
+              <Col xs={12} sm={8} md={4}>
+                <Checkbox
+                  checked={predictForm.nearMarket}
+                  onChange={(e) => setPredictForm((p) => ({ ...p, nearMarket: e.target.checked }))}
+                >
+                  <ShopOutlined style={{ color: "#f97316", marginRight: 4 }} />
+                  Gần chợ
+                </Checkbox>
+              </Col>
+              <Col xs={12} sm={8} md={4}>
+                <Checkbox
+                  checked={predictForm.nearSchool}
+                  onChange={(e) => setPredictForm((p) => ({ ...p, nearSchool: e.target.checked }))}
+                >
+                  <ReadOutlined style={{ color: "#16a34a", marginRight: 4 }} />
+                  Gần trường học
+                </Checkbox>
+              </Col>
+              <Col xs={12} sm={8} md={4}>
+                <Checkbox
+                  checked={predictForm.nearHospital}
+                  onChange={(e) => setPredictForm((p) => ({ ...p, nearHospital: e.target.checked }))}
+                >
+                  <MedicineBoxOutlined style={{ color: "#dc2626", marginRight: 4 }} />
+                  Gần bệnh viện
+                </Checkbox>
               </Col>
             </Row>
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+              <Button
+                type="primary"
+                icon={<ExperimentOutlined />}
+                onClick={handlePredict}
+                loading={predicting}
+                size="large"
+                style={{ paddingInline: 32, height: 44, fontSize: 15, borderRadius: 8 }}
+              >
+                Dự đoán
+              </Button>
+            </div>
+
+            {/* Prediction result */}
+            {(predicting || predictResult) && (
+              <div style={{ marginTop: 20, borderTop: "1px solid #f0f0f0", paddingTop: 16 }}>
+                {predicting ? (
+                  <div style={{ textAlign: "center", padding: 16 }}><Spin tip="Đang tính toán..." /></div>
+                ) : predictResult ? (
+                  <>
+                    <Row gutter={[16, 12]} align="middle">
+                      <Col xs={24} md={6}>
+                        <div style={{ textAlign: "center", background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)", borderRadius: 12, padding: "16px 20px", color: "#fff" }}>
+                          <div style={{ fontSize: 12, opacity: 0.85 }}>Giá dự đoán</div>
+                          <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4 }}>
+                            {money.format(predictResult.predictedPrice)}
+                          </div>
+                          <div style={{ fontSize: 11, opacity: 0.7 }}>/tháng</div>
+                        </div>
+                      </Col>
+                      {predictResult.minPrice != null && predictResult.maxPrice != null && (
+                        <Col xs={24} md={6}>
+                          <div style={{ background: "#f0f7ff", borderRadius: 10, padding: "12px 16px" }}>
+                            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
+                              <DollarOutlined style={{ marginRight: 4 }} />
+                              Khoảng giá dự kiến
+                            </div>
+                            <div style={{ fontWeight: 600, color: "#1e40af" }}>
+                              {money.format(predictResult.minPrice)}
+                            </div>
+                            <div style={{ fontSize: 11, color: "#94a3b8" }}>đến</div>
+                            <div style={{ fontWeight: 600, color: "#1e40af" }}>
+                              {money.format(predictResult.maxPrice)}
+                            </div>
+                          </div>
+                        </Col>
+                      )}
+                      {predictResult.confidence != null && (
+                        <Col xs={24} md={6}>
+                          <div style={{ background: "#f0fdf4", borderRadius: 10, padding: "12px 16px" }}>
+                            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 6 }}>
+                              <SafetyOutlined style={{ marginRight: 4 }} />
+                              Độ tin cậy
+                            </div>
+                            <Progress
+                              percent={Math.round(predictResult.confidence)}
+                              strokeColor={
+                                predictResult.confidence >= 75
+                                  ? "#16a34a"
+                                  : predictResult.confidence >= 55
+                                  ? "#f97316"
+                                  : "#dc2626"
+                              }
+                              size="small"
+                            />
+                          </div>
+                        </Col>
+                      )}
+                      {predictResult.comparableCount != null && (
+                        <Col xs={24} md={6}>
+                          <div style={{ background: "#fdf4ff", borderRadius: 10, padding: "12px 16px" }}>
+                            <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
+                              <ShopOutlined style={{ marginRight: 4 }} />
+                              So sánh thị trường
+                            </div>
+                            <div style={{ fontWeight: 600, color: "#7c3aed" }}>
+                              {predictResult.comparableCount} BĐS tương đương
+                            </div>
+                            {predictResult.marketAdjusted && (
+                              <Tag color="purple" style={{ marginTop: 4, fontSize: 11 }}>
+                                Đã điều chỉnh theo thị trường
+                              </Tag>
+                            )}
+                          </div>
+                        </Col>
+                      )}
+                    </Row>
+                    {/* Amenity tags applied */}
+                    {((predictForm.propertyType !== "land" && predictForm.propertyType !== "office" && predictForm.furnitureStatus !== "none") ||
+                      (predictForm.propertyType === "house" && (predictForm.floors ?? 1) > 1) ||
+                      predictForm.streetFacing === true ||
+                      predictForm.nearCityCenter || predictForm.nearShoppingMall || predictForm.nearMarket || predictForm.nearSchool || predictForm.nearHospital) ? (
+                      <div style={{ marginTop: 12 }}>
+                        <span style={{ fontSize: 12, color: "#94a3b8", marginRight: 8 }}>Yếu tố đã áp dụng:</span>
+                        {predictForm.propertyType !== "land" && predictForm.propertyType !== "office" && predictForm.furnitureStatus === "full" && <Tag color="orange">Nội thất cao cấp +15%</Tag>}
+                        {predictForm.propertyType !== "land" && predictForm.propertyType !== "office" && predictForm.furnitureStatus === "basic" && <Tag color="gold">Nội thất cơ bản +7%</Tag>}
+                        {predictForm.propertyType === "house" && (predictForm.floors ?? 1) > 1 && <Tag color="volcano">{predictForm.floors} tầng +{Math.min(((predictForm.floors ?? 1) - 1), 5) * 5}%</Tag>}
+                        {predictForm.streetFacing === true && <Tag color="magenta">Mặt tiền +20%</Tag>}
+                        {predictForm.streetFacing === false && <Tag color="default">Trong hẻm</Tag>}
+                        {predictForm.nearCityCenter && <Tag color="blue">Trung tâm TP +8%</Tag>}
+                        {predictForm.nearShoppingMall && <Tag color="purple">Gần TTTM +5%</Tag>}
+                        {predictForm.nearMarket && <Tag color="green">Gần chợ +3%</Tag>}
+                        {predictForm.nearSchool && <Tag color="cyan">Gần trường +3%</Tag>}
+                        {predictForm.nearHospital && <Tag color="red">Gần bệnh viện +2%</Tag>}
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+              </div>
+            )}
           </Card>
+
+          {/* District Insights */}
+          {analytics?.districtInsights && analytics.districtInsights.length > 0 && (
+            <Card
+              title={
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                  <span>
+                    <EnvironmentOutlined style={{ color: "#16a34a", marginRight: 8 }} />
+                    Top khu vực có giá thuê cao nhất
+                  </span>
+                  <Select
+                    style={{ width: 200, fontWeight: 400 }}
+                    placeholder="Lọc theo loại BĐS"
+                    allowClear
+                    value={districtFilterType || undefined}
+                    onChange={(v) => setDistrictFilterType(v ?? "")}
+                    options={[
+                      { value: "apartment", label: "Căn hộ" },
+                      { value: "house", label: "Nhà nguyên căn" },
+                      { value: "room", label: "Phòng trọ" },
+                      { value: "office", label: "Văn phòng" },
+                      { value: "land", label: "Đất" },
+                    ]}
+                  />
+                </div>
+              }
+              variant="borderless"
+              style={{ borderRadius: 12, marginTop: 16 }}
+            >
+              <Row gutter={[12, 12]}>
+                {(districtFilterType
+                  ? analytics.districtInsights.filter((d) => d.propertyType === districtFilterType)
+                  : analytics.districtInsights
+                )
+                  .sort((a, b) => b.avgPrice - a.avgPrice)
+                  .slice(0, 10)
+                  .map((d, idx) => (
+                  <Col xs={24} sm={12} md={8} lg={6} key={`${d.district}-${d.propertyType}-${idx}`}>
+                    <div
+                      style={{
+                        background: idx === 0 ? "#fef9c3" : idx === 1 ? "#f8fafc" : "#fff",
+                        border: `1px solid ${idx === 0 ? "#fde68a" : "#e2e8f0"}`,
+                        borderRadius: 10,
+                        padding: "10px 14px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div>
+                        <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                          <Tag color={idx === 0 ? "gold" : idx === 1 ? "orange" : "default"}>
+                            #{idx + 1}
+                          </Tag>
+                          {d.propertyType && !districtFilterType && (
+                            <Tag color="blue" style={{ fontSize: 11 }}>
+                              {{
+                                apartment: "Căn hộ",
+                                house: "Nhà nguyên căn",
+                                room: "Phòng trọ",
+                                office: "Văn phòng",
+                                land: "Đất",
+                              }[d.propertyType] ?? d.propertyType}
+                            </Tag>
+                          )}
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: 13, textTransform: "capitalize" }}>
+                          {d.district}
+                          {d.province && (
+                            <span style={{ fontWeight: 400, color: "#64748b", fontSize: 12 }}>
+                              {", "}{d.province}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                          {num.format(d.count)} tin đăng
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontWeight: 700, color: "#2563eb", fontSize: 14 }}>
+                          {money.format(d.avgPrice)}
+                        </div>
+                        <div style={{ fontSize: 11, color: "#94a3b8" }}>trung bình</div>
+                      </div>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </Card>
+          )}
         </>
       )}
     </div>

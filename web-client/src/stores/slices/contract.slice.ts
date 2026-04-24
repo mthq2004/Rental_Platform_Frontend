@@ -107,10 +107,14 @@ const normalizeRentalRequest = (request: any): RentalRequest => {
     request?.proposed_rent ??
     request?.proposedPrice ??
     request?.suggestedRent;
+  const holdingDepositAmountRaw =
+    request?.holdingDepositAmount ??
+    request?.holding_deposit_amount;
 
   return {
     ...request,
     proposedRent: parseNumberSafe(proposedRentRaw),
+    holdingDepositAmount: holdingDepositAmountRaw != null ? parseNumberSafe(holdingDepositAmountRaw) : undefined,
   } as RentalRequest;
 };
 
@@ -213,6 +217,34 @@ export const reviewRequest = createAsyncThunk(
   async ({ requestId, data }: { requestId: string; data: { status: string; rejectionReason?: string; landlordNotes?: string } }, { rejectWithValue }) => {
     try {
       return await http.put(`/contract/rental-requests/${requestId}/review`, data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const openHoldingDepositWindow = createAsyncThunk(
+  "contract/openHoldingDepositWindow",
+  async (
+    data: { requestIds: string[]; expireMinutes?: number },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await http.post("/contract/holding-deposits/open", data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const payHoldingDeposit = createAsyncThunk(
+  "contract/payHoldingDeposit",
+  async (
+    data: { requestId: string; method: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await http.post("/contract/holding-deposits/pay", data);
     } catch (e: any) {
       return rejectWithValue(e.message);
     }
@@ -512,6 +544,16 @@ export const contractSlice = createSlice({
       .addCase(reviewRequest.pending, (state) => { state.actionLoading = true; })
       .addCase(reviewRequest.fulfilled, (state) => { state.actionLoading = false; })
       .addCase(reviewRequest.rejected, (state) => { state.actionLoading = false; });
+
+    builder
+      .addCase(openHoldingDepositWindow.pending, (state) => { state.actionLoading = true; })
+      .addCase(openHoldingDepositWindow.fulfilled, (state) => { state.actionLoading = false; })
+      .addCase(openHoldingDepositWindow.rejected, (state) => { state.actionLoading = false; });
+
+    builder
+      .addCase(payHoldingDeposit.pending, (state) => { state.actionLoading = true; })
+      .addCase(payHoldingDeposit.fulfilled, (state) => { state.actionLoading = false; })
+      .addCase(payHoldingDeposit.rejected, (state) => { state.actionLoading = false; });
 
     // Contracts
     builder

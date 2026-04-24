@@ -18,7 +18,6 @@ import {
   UserOutlined,
   EnvironmentOutlined,
   SafetyCertificateOutlined,
-  SendOutlined,
   EditOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
@@ -998,18 +997,6 @@ export default function ContractDetailPage() {
             >
               Làm mới
             </Button>
-            {contract.status === "draft" && isOwnerSide && (
-              <Button
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={handleSendToTenant}
-                loading={actionLoading}
-                className="rounded-lg h-9 px-4 shadow-none font-medium"
-                style={{ background: "#2563eb", borderColor: "#2563eb" }}
-              >
-                Gửi cho người thuê
-              </Button>
-            )}
             {contract.status === "pending_tenant" && isTenantSide && (
               <Button
                 type="primary"
@@ -1022,7 +1009,19 @@ export default function ContractDetailPage() {
                 Ký hợp đồng
               </Button>
             )}
-            {(contract.status === "tenant_signed" || contract.status === "pending_landlord") && isOwnerSide && (
+            {contract.status === "draft" && isOwnerSide && (
+              <Button
+                type="primary"
+                icon={<FileTextOutlined />}
+                onClick={handleSendToTenant}
+                loading={actionLoading}
+                className="rounded-lg h-9 px-4 shadow-none font-medium"
+                style={{ background: "#2563eb", borderColor: "#2563eb" }}
+              >
+                Gửi ký
+              </Button>
+            )}
+            {contract.status === "pending_landlord" && isOwnerSide && (
               <Button
                 type="primary"
                 icon={<EditOutlined />}
@@ -1032,30 +1031,6 @@ export default function ContractDetailPage() {
                 style={{ background: "#2563eb", borderColor: "#2563eb" }}
               >
                 Ký hợp đồng
-              </Button>
-            )}
-            {contract.status === "owner_signed" && isTenantSide && (
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                onClick={handleTenantSign}
-                loading={actionLoading}
-                className="rounded-lg h-9 px-4 shadow-none font-medium"
-                style={{ background: "#2563eb", borderColor: "#2563eb" }}
-              >
-                Ký hợp đồng
-              </Button>
-            )}
-            {contract.status === "fully_signed" && isOwnerSide && (
-              <Button
-                type="primary"
-                icon={<CheckCircleOutlined />}
-                onClick={handleActivate}
-                loading={actionLoading}
-                className="rounded-lg h-9 px-4 shadow-none font-medium"
-                style={{ background: "#2563eb", borderColor: "#2563eb" }}
-              >
-                Kích hoạt hợp đồng
               </Button>
             )}
             {canPay && (

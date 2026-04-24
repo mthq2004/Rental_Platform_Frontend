@@ -44,8 +44,10 @@ export const getTemplates = createAsyncThunk<
 >("template/getTemplates", async (propertyType, { rejectWithValue }) => {
   try {
     const res = await http.get(`contract/contract-templates/property-type/${propertyType}`);
-    if (Array.isArray(res?.data)) return res.data;
-    if (Array.isArray(res)) return res;
+    const payload = (res as any)?.data ?? res;
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray((payload as any)?.data)) return (payload as any).data;
+    if (Array.isArray((payload as any)?.items)) return (payload as any).items;
     return [];
   } catch (error: any) {
     return rejectWithValue(error?.message || "Error loading templates");

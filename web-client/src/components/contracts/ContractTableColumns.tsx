@@ -18,6 +18,7 @@ const { Text } = Typography;
 export interface ContractTableActions {
   onViewDetail: (rentalId: string) => void;
   onEdit: (record: RentalContract) => void;
+  onSendToTenant: (rentalId: string) => void;
   onTenantSign: (rentalId: string) => void;
   onOwnerSign: (rentalId: string) => void;
   onActivate: (rentalId: string) => void;
@@ -128,18 +129,18 @@ export function getContractTableColumns(
                     onClick={() => actions.onEdit(record)}
                   />
                 </Tooltip>
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<CheckCircleOutlined />}
-                  onClick={() => actions.onOwnerSign(record.rentalId)}
-                >
-                  Ký hợp đồng
-                </Button>
+                <Tooltip title="Gửi cho người thuê ký">
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    onClick={() => actions.onSendToTenant(record.rentalId)}
+                  />
+                </Tooltip>
               </>
             )}
 
-            {!owner && record.status === "owner_signed" && (
+            {!owner && record.status === "pending_tenant" && (
               <>
                 {record.signedContractUrl && (
                   <Button
@@ -161,17 +162,17 @@ export function getContractTableColumns(
               </>
             )}
 
-            {owner && record.status === "fully_signed" && (
+            {owner && record.status === "pending_landlord" && (
               <Button
                 size="small"
                 type="primary"
-                onClick={() => actions.onActivate(record.rentalId)}
+                onClick={() => actions.onOwnerSign(record.rentalId)}
               >
-                Kích hoạt
+                Ký hợp đồng
               </Button>
             )}
 
-            {!owner && (record.status === "fully_signed" || record.status === "active") && (
+            {!owner && record.status === "active" && (
               <Button
                 size="small"
                 type="primary"

@@ -48,15 +48,27 @@ const parseNumberSafe = (value: unknown): number => {
   return 0;
 };
 
-const normalizeWalletOverview = (item: any): WalletOverview => ({
-  walletId: item?.walletId,
-  userId: item?.userId,
-  currency: item?.currency ?? 'VND',
-  availableBalance: parseNumberSafe(item?.availableBalance),
-  pendingBalance: parseNumberSafe(item?.pendingBalance),
-  totalBalance: parseNumberSafe(item?.totalBalance),
-  updatedAt: item?.updatedAt,
-});
+const normalizeWalletOverview = (item: any): WalletOverview => {
+  const availableBalance = parseNumberSafe(item?.availableBalance);
+  const pendingBalance = parseNumberSafe(item?.pendingBalance);
+  const totalBalance = parseNumberSafe(item?.totalBalance);
+
+  const derivedAvailable = Number.isFinite(totalBalance) && Number.isFinite(pendingBalance)
+    ? totalBalance - pendingBalance
+    : availableBalance;
+  const useDerived = Number.isFinite(derivedAvailable)
+    && Math.abs(derivedAvailable - availableBalance) > 0.01;
+
+  return {
+    walletId: item?.walletId,
+    userId: item?.userId,
+    currency: item?.currency ?? 'VND',
+    availableBalance: useDerived ? derivedAvailable : availableBalance,
+    pendingBalance,
+    totalBalance,
+    updatedAt: item?.updatedAt,
+  };
+};
 
 const normalizeTransaction = (item: any): WalletTransaction => ({
   ...item,
