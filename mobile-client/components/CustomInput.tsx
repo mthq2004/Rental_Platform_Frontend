@@ -15,6 +15,7 @@ interface CustomInputProps {
   onTogglePassword?: () => void;
   maxLength?: number;
   editable?: boolean;
+  onBlur?: () => void;
 }
 
 const CustomInput = ({
@@ -30,6 +31,7 @@ const CustomInput = ({
   onTogglePassword,
   maxLength,
   editable = true,
+  onBlur,
 }: CustomInputProps) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -73,7 +75,7 @@ const CustomInput = ({
           keyboardType={keyboardType}
           placeholderTextColor={isFocused ? '#9CA3AF' : '#9CA3AF'}
           onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onBlur={() => { setIsFocused(false); onBlur?.(); }}
           maxLength={maxLength}
           editable={editable}
         />

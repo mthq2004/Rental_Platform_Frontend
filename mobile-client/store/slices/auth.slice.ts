@@ -47,7 +47,7 @@ export const getProfile = createAsyncThunk(
     "auth/getProfile",
     async (_, { rejectWithValue }) => {
         try {
-            const res = await apiClient.get("/estate/auth/user/profile");
+            const res = await apiClient.get("/estate/auth/profile");
 
             return res.data.data;
         } catch (err: any) {
@@ -280,8 +280,8 @@ export const authSlice = createSlice({
                 // Clearing storage on network errors would log the user
                 // out even when the server is only temporarily unreachable.
                 state.loading = false;
-                state.isAuth = false;
-                state.user = null;
+                // state.isAuth = false; // Prevent logout on network error
+                // state.user = null;
             });
 
         builder
@@ -394,10 +394,14 @@ export const authSlice = createSlice({
             })
             .addCase(updateAvatar.fulfilled, (state, action) => {
                 state.loading = false;
-                const avatarUrl = action.payload.avatarUrl;
+                const avatarUrl = action.payload.avatarUrl || action.payload;
                 if (avatarUrl && state.user) {
-                    state.user = { ...state.user, avatarUrl };
+                    state.user = { ...state.user, avatarUrl: typeof avatarUrl === 'string' ? avatarUrl : avatarUrl.avatarUrl };
                 }
+                state.message = {
+                    type: "success_update",
+                    message: "Đã cập nhật ảnh đại diện",
+                };
             })
             .addCase(updateAvatar.rejected, (state) => {
                 state.loading = false;
@@ -413,7 +417,7 @@ export const authSlice = createSlice({
                     state.user = { ...state.user, ...action.payload };
                 }
                 state.message = {
-                    type: "success",
+                    type: "success_update",
                     message: "Cập nhật thông tin thành công",
                 };
             })

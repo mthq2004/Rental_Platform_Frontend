@@ -22,17 +22,20 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { useColorScheme } from 'nativewind';
 import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
+import { validatePhone, validatePhoneRealtime } from '@/utils/validation';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
-  const { code } = useLocalSearchParams<{ code?: string }>();
+  const { code, redirect_to } = useLocalSearchParams<{ code?: string; redirect_to?: string }>();
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [errors, setErrors] = useState<{ phone?: string; password?: string }>({});
   const [handledOAuthCode, setHandledOAuthCode] = useState<string>('');
+  const [isRedirecting, setIsRedirecting] = useState<boolean>(false);
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const [phoneHint, setPhoneHint] = useState<string | null>(null);
 
   const dispatch = useAppDispatch();
   const { error, isAuth, loading, user, message } = useAppSelector((state) => state.auth);
@@ -42,8 +45,9 @@ const LoginScreen = () => {
 
     if (!phoneNumber) {
       newErrors.phone = 'Vui lòng nhập số điện thoại';
-    } else if (phoneNumber.length < 10) {
-      newErrors.phone = 'Số điện thoại phải có ít nhất 10 số';
+    } else {
+      const phoneErr = validatePhone(phoneNumber);
+      if (phoneErr) newErrors.phone = phoneErr;
     }
 
     // if (!password) {
@@ -131,7 +135,7 @@ const LoginScreen = () => {
     router.push('/(auth)/register');
   };
 
-  const isFormValid = phoneNumber.length >= 10 && password.length >= 6;
+  const isFormValid = /^\d{10}$/.test(phoneNumber) && password.length >= 6;
 
   const [toast, setToast] = useState({
     visible: false,
@@ -156,14 +160,15 @@ const LoginScreen = () => {
   if (!message) return;
 
   if (message.type === "success_login") {
-    showToast(message.message, 'success');
-
+    setIsRedirecting(true);
     setErrors({});
-    setPassword('');
-    setPhoneNumber('');
-
+    
     setTimeout(() => {
-      router.replace('/(tab)');
+      if (redirect_to) {
+        router.replace(redirect_to as any);
+      } else {
+        router.replace('/(tab)');
+      }
     }, 500);
 
   } else if (message.type === "error_login") {
@@ -205,13 +210,15 @@ const LoginScreen = () => {
                   value={phoneNumber}
                   onChangeText={(text) => {
                     setPhoneNumber(text);
+                    setPhoneHint(validatePhoneRealtime(text));
                     if (errors.phone) {
                       setErrors({ ...errors, phone: undefined });
                     }
                   }}
                   keyboardType="phone-pad"
                   icon="call-outline"
-                  error={errors.phone}
+                  error={errors.phone || (phoneHint ?? undefined)}
+                  maxLength={12}
                 />
 
                 <CustomInput
@@ -244,8 +251,8 @@ const LoginScreen = () => {
                 <PrimaryButton
                   title="Đăng Nhập"
                   onPress={handleLogin}
-                  disabled={!isFormValid}
-                  loading={loading}
+                  disabled={!isFormValid || isRedirecting}
+                  loading={loading || isRedirecting}
                 />
 
               </View>

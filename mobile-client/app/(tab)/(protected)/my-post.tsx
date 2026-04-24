@@ -134,9 +134,9 @@ const MyPost = () => {
                 </View>
               )}
             </TouchableOpacity>
-            <TouchableOpacity onPress={handleNotification} className="p-2 relative">
+            {/* <TouchableOpacity onPress={handleNotification} className="p-2 relative">
               <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.current.icon} />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </View>
 

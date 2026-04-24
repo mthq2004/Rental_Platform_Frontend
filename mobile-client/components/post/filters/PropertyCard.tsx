@@ -2,6 +2,7 @@ import { FURNITURE_STATUS_LABELS } from "@/constants/property.constant";
 import { PropertyImage, PropertyListItem } from "@/types/property.type";
 import { Camera, Heart, MapPin, MessageCircle } from "lucide-react-native";
 import { Image, Text, TouchableOpacity, View } from "react-native";
+import FavoriteButton from "@/components/FavoriteButton";
 
 const getPrimaryImage = (images: PropertyImage[]): string => {
     return (
@@ -21,11 +22,9 @@ const formatPrice = (price: number): string => {
 
 const PropertyCard: React.FC<{
     property: PropertyListItem;
-    onSave: (id: string) => void;
     onMessage: (id: string) => void;
     onPress: (id: string) => void;
-    isSaved?: boolean;
-}> = ({ property, onSave, onMessage, onPress, isSaved = false }) => {
+}> = ({ property, onMessage, onPress }) => {
     const image = getPrimaryImage(property.images);
     const addressText = formatAddress(property);
     const priceText = formatPrice(property.pricePerMonth);
@@ -104,17 +103,9 @@ const PropertyCard: React.FC<{
                     </View>
 
                     {/* Save button */}
-                    <TouchableOpacity
-                        onPress={() => onSave(property.id)}
-                        className="absolute top-3 right-3"
-                    >
-                        <Heart
-                            size={20}
-                            color={isSaved ? '#EF4444' : '#9CA3AF'}
-                            fill={isSaved ? '#EF4444' : 'none'}
-                            strokeWidth={2}
-                        />
-                    </TouchableOpacity>
+                    <View className="absolute top-3 right-3">
+                        <FavoriteButton propertyId={property.id} size={20} />
+                    </View>
                 </View>
             </View>
 

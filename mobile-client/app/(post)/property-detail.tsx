@@ -24,7 +24,7 @@ import {
 } from '@/store/slices/booking.slice'
 import Toast from 'react-native-toast-message'
 import { createConversation } from '@/store/slices/conversation.slice'
-import { fetchSimilarPropertiesThunk, getPropertyDetailThunk } from '@/store/slices/estate.slice'
+import { fetchSimilarPropertiesThunk, getPropertyDetailThunk, addFavoriteThunk, removeFavoriteThunk, getFavoriteStatusThunk } from '@/store/slices/estate.slice'
 import { PropertyDetailApiData } from '@/types/property.type'
 import GooeyRefreshScrollView from '@/components/common/GooeyRefreshScrollView'
 
@@ -39,6 +39,8 @@ const PropertyDetail = () => {
   const { myBookings, ownerBookings, loading: bookingLoading, message } = useAppSelector(state => state.booking)
   const { data: propertySimilar } = useAppSelector(state => state.estate.similar)
   const { user } = useAppSelector(state => state.auth)
+  const favoriteStatusMap = useAppSelector(state => state.estate.favoriteStatusMap)
+  const favoriteActionLoading = useAppSelector(state => state.estate.favoriteActionLoading)
 
   const isOwner = propertyDetail?.user.id === user?.id
   
@@ -48,8 +50,9 @@ const PropertyDetail = () => {
   const [showVideoModal, setShowVideoModal] = useState(false)
   const [selectedVideo, setSelectedVideo] = useState<MediaItem | null>(null)
   const [refreshing, setRefreshing] = useState(false)
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [favoriteLoading, setFavoriteLoading] = useState(false)
+
+  const isFavorite = !!favoriteStatusMap[propertyId as string]
+  const favoriteLoading = favoriteActionLoading
 
   const mockImages = propertyDetail?.images?.map((img, index) => ({
     id: index + 1,
@@ -131,6 +134,7 @@ const PropertyDetail = () => {
       console.log("jk");
       
       dispatch(getPropertyDetailThunk(propertyId as string))
+      dispatch(getFavoriteStatusThunk(propertyId as string))
     }
   }, [propertyId, dispatch])
 
@@ -184,14 +188,10 @@ const PropertyDetail = () => {
   }
 
   const handleToggleFavorite = async () => {
-    setFavoriteLoading(true)
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      setIsFavorite(!isFavorite)
-    } catch (error) {
-      Alert.alert('Lỗi', 'Không thể cập nhật yêu thích')
-    } finally {
-      setFavoriteLoading(false)
+    if (isFavorite) {
+      dispatch(removeFavoriteThunk(propertyId as string))
+    } else {
+      dispatch(addFavoriteThunk(propertyId as string))
     }
   }
 

@@ -11,7 +11,7 @@ const HeaderBanner: React.FC = () => {
     const user = useAppSelector((state) => state.auth.user);
     const userName = user?.fullName || "Bạn";
     const handleFavorite = () => {
-        console.log('Danh sách yêu thích');
+        router.push('/(profile)/favorites');
     };
 
     const handleNotification = () => {

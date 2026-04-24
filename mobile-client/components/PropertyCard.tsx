@@ -1,21 +1,19 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import type { FeaturedPropertyItem } from "@/types/property.type";
+import FavoriteButton from "@/components/FavoriteButton";
 
 interface PropertyCardProps {
   property: FeaturedPropertyItem;
   onPress?: () => void;
-  onFavoritePress?: () => void;
-  isFavorited?: boolean;
 }
 
 const PropertyCard: React.FC<PropertyCardProps> = ({
   property,
   onPress,
-  onFavoritePress,
-  isFavorited = false,
 }) => {
   const {
+    id,
     title,
     pricePerMonth,
     areaSqm,
@@ -37,7 +35,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.85}
-      className="bg-white dark:bg-secondary-dark rounded-2xl overflow-hidden shadow-sm mb-4 mr-4"
+      className="bg-white dark:bg-secondary-dark rounded-2xl overflow-hidden shadow-sm mb-4 mr-4 w-64"
     >
       {/* Image */}
       <View className="relative h-40 bg-gray-200">
@@ -55,16 +53,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         </View>
 
         {/* Favorite */}
-        <TouchableOpacity
-          onPress={onFavoritePress}
-          className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full items-center justify-center"
-        >
-          <Ionicons
-            name={isFavorited ? "heart" : "heart-outline"}
-            size={18}
-            color={isFavorited ? "#EF4444" : "#6B7280"}
-          />
-        </TouchableOpacity>
+        <View className="absolute top-3 right-3">
+          <FavoriteButton propertyId={id} size={18} />
+        </View>
 
         {/* Price */}
         <View className="absolute bottom-3 right-3 bg-red-500 px-3 py-1 rounded-lg">
@@ -79,7 +70,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         {/* Title */}
         <Text
           numberOfLines={2}
-          className="text-base font-semibold text-gray-900 dark:text-foreground-dark mb-1"
+          className="text-base font-semibold text-gray-900 dark:text-foreground-dark mb-1 h-12"
         >
           {title || "Cho thuê bất động sản"}
         </Text>

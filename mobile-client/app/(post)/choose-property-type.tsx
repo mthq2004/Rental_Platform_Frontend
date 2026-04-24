@@ -7,6 +7,8 @@ import {
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import AuthGuard from '@/components/AuthGuard';
+import { useAppSelector } from '@/store/hook';
+import { Toast } from '@/components/Notification';
 
 enum PropertyType {
   apartment = 'apartment',
@@ -50,8 +52,22 @@ const propertyConfigs = [
 
 const ChoosePropertyType = () => {
   const [selectedType, setSelectedType] = useState<PropertyType | null>(null);
+  const { user } = useAppSelector((s) => s.auth);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+  const showToast = (msg: string, type = 'error') => setToast({ visible: true, message: msg, type });
+  const hideToast = () => setToast(prev => ({ ...prev, visible: false }));
 
   const handleNext = (type: PropertyType) => {
+    // KYC Guard
+    if (user?.kycStatus !== 'approved' && user?.kycStatus !== 'verified') {
+      showToast('Vui lòng xác thực danh tính (eKYC) trước khi đăng tin', 'error');
+      setTimeout(() => {
+        router.push('/(profile)/ekyc' as any);
+      }, 1500);
+      return;
+    }
+
     router.replace({
       pathname: '/(post)/create-post',
       params: {
@@ -59,7 +75,6 @@ const ChoosePropertyType = () => {
         mode: 'create',
       },
     });
-
   }
 
   return (
@@ -119,6 +134,7 @@ const ChoosePropertyType = () => {
 
 
       </SafeAreaView>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} duration={3000} onHide={hideToast} />
     </AuthGuard>
   );
 };

@@ -69,9 +69,7 @@ const Home = () => {
     });
   };
 
-  const handleFavoritePress = (id: string) => {
-    console.log('Favorite pressed:', id);
-  };
+
 
   useEffect(() => {
     if (isAuth) {
@@ -107,13 +105,16 @@ const Home = () => {
   }
 
   return (
-    <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 bg-gray-50 dark:bg-background-dark relative">
+    <SafeAreaView
+      edges={['left', 'right']}
+      className="flex-1 bg-gray-50 dark:bg-background-dark"
+    >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#19191a' : '#f9fafb'} />
       <ScrollView
-        className="flex-1"
+        className="flex-1 bg-gray-50 dark:bg-background-dark"
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
-        contentContainerStyle={{ paddingBottom: 0 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
       >
         <HeaderBanner />
         <SearchFilter />
@@ -135,14 +136,13 @@ const Home = () => {
                 key={item.id}
                 property={item}
                 onPress={() => handlePropertyPress(item.id)}
-                onFavoritePress={() => handleFavoritePress(item.id)}
               />
             ))}
           </ScrollView>
           {
             hasMore && (
               <TouchableOpacity className='mt-2 border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 pt-4 pb-4 px-4 rounded-3xl mx-4 justify-center items-center' onPress={() => handleLoadMore()}>
-                <Text className="text-center text-gray-700 dark:text-gray-200 font-bold">Xem thêm {total - properties.length} bất động sản khác</Text>
+                <Text className="text-center text-gray-700 dark:text-gray-200 font-bold">Xem thêm</Text>
               </TouchableOpacity>
             )
           }

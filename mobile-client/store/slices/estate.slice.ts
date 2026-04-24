@@ -94,6 +94,56 @@ export const getListProperty = createAsyncThunk(
   }
 );
 
+// ─── Favorites ────────────────────────────────────────────────────────────────
+
+export const getFavoritePropertiesThunk = createAsyncThunk(
+  "estate/getFavoriteProperties",
+  async ({ page = 1, limit = 20 }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.get(`/estate/properties/favorites?page=${page}&limit=${limit}`);
+      return res.data.data as { items: PropertyListItem[]; meta: any };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Lấy danh sách yêu thích thất bại");
+    }
+  }
+);
+
+export const getFavoriteStatusThunk = createAsyncThunk(
+  "estate/getFavoriteStatus",
+  async (propertyId: string, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.get(`/estate/properties/${propertyId}/favorite-status`);
+      return res.data as { propertyId: string; isFavorited: boolean };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Kiểm tra trạng thái yêu thích thất bại");
+    }
+  }
+);
+
+export const addFavoriteThunk = createAsyncThunk(
+  "estate/addFavorite",
+  async (propertyId: string, { rejectWithValue }) => {
+    try {
+      await apiClient.post(`/estate/properties/${propertyId}/favorite`);
+      return { propertyId, isFavorited: true };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Thêm yêu thích thất bại");
+    }
+  }
+);
+
+export const removeFavoriteThunk = createAsyncThunk(
+  "estate/removeFavorite",
+  async (propertyId: string, { rejectWithValue }) => {
+    try {
+      await apiClient.put(`/estate/properties/${propertyId}/unfavorite`);
+      return { propertyId, isFavorited: false };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Bỏ yêu thích thất bại");
+    }
+  }
+);
+
 // ─── State ────────────────────────────────────────────────────────────────────
 
 interface EstateState {
@@ -123,6 +173,14 @@ interface EstateState {
     total: number;
     error: string | null;
   };
+  favorites: {
+    loading: boolean;
+    items: PropertyListItem[];
+    meta: any;
+    error: string | null;
+  };
+  favoriteStatusMap: Record<string, boolean>;
+  favoriteActionLoading: boolean;
 }
 
 const initialState: EstateState = {
@@ -130,6 +188,9 @@ const initialState: EstateState = {
   similar: { loading: false, data: [], error: null },
   detail: { loading: false, data: null, error: null },
   featured: { loading: false, data: [], nextCursor: null, hasMore: false, total: 0, error: null },
+  favorites: { loading: false, items: [], meta: null, error: null },
+  favoriteStatusMap: {},
+  favoriteActionLoading: false,
 };
 
 // ─── Slice ────────────────────────────────────────────────────────────────────
@@ -229,6 +290,60 @@ export const estateSlice = createSlice({
         state.featured.loading = false;
         state.featured.error = (action.payload as string) || "Lấy tin nổi bật thất bại";
       });
+
+    // ─── Favorites ──────────────────────────────────────────────────────────
+    builder
+      .addCase(getFavoritePropertiesThunk.pending, (state) => {
+        state.favorites.loading = true;
+        state.favorites.error = null;
+      })
+      .addCase(getFavoritePropertiesThunk.fulfilled, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.items = action.payload.items || [];
+        state.favorites.meta = action.payload.meta;
+      })
+      .addCase(getFavoritePropertiesThunk.rejected, (state, action) => {
+        state.favorites.loading = false;
+        state.favorites.error = (action.payload as string) || "Lấy danh sách yêu thích thất bại";
+        state.favorites.items = [];
+      });
+
+    builder
+      .addCase(getFavoriteStatusThunk.pending, (state) => {
+        state.favoriteActionLoading = true;
+      })
+      .addCase(getFavoriteStatusThunk.fulfilled, (state, action) => {
+        state.favoriteActionLoading = false;
+        state.favoriteStatusMap[action.payload.propertyId] = action.payload.isFavorited;
+      })
+      .addCase(getFavoriteStatusThunk.rejected, (state) => {
+        state.favoriteActionLoading = false;
+      });
+
+    builder
+      .addCase(addFavoriteThunk.pending, (state) => {
+        state.favoriteActionLoading = true;
+      })
+      .addCase(addFavoriteThunk.fulfilled, (state, action) => {
+        state.favoriteActionLoading = false;
+        state.favoriteStatusMap[action.payload.propertyId] = true;
+      })
+      .addCase(addFavoriteThunk.rejected, (state) => {
+        state.favoriteActionLoading = false;
+      });
+
+    builder
+      .addCase(removeFavoriteThunk.pending, (state) => {
+        state.favoriteActionLoading = true;
+      })
+      .addCase(removeFavoriteThunk.fulfilled, (state, action) => {
+        state.favoriteActionLoading = false;
+        state.favoriteStatusMap[action.payload.propertyId] = false;
+        state.favorites.items = state.favorites.items.filter(i => i.id !== action.payload.propertyId);
+      })
+      .addCase(removeFavoriteThunk.rejected, (state) => {
+        state.favoriteActionLoading = false;
+      });
   },
 });
 
@@ -241,3 +356,5 @@ export const selectSearchState = (state: { estate: EstateState }) => state.estat
 export const selectSimilarState = (state: { estate: EstateState }) => state.estate.similar;
 export const selectDetailState = (state: { estate: EstateState }) => state.estate.detail;
 export const selectFeaturedState = (state: { estate: EstateState }) => state.estate.featured;
+export const selectFavoritesState = (state: { estate: EstateState }) => state.estate.favorites;
+export const selectFavoriteStatusMap = (state: { estate: EstateState }) => state.estate.favoriteStatusMap;
