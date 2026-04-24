@@ -73,9 +73,18 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("focus", onWindowFocus);
 
+    // Periodic check every 5 minutes to detect token expiry while page is active
+    const intervalId = setInterval(() => {
+      void checkSession();
+    }, 5 * 60 * 1000);
+
+    // Check immediately on mount if token already exists
+    void checkSession();
+
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("focus", onWindowFocus);
+      clearInterval(intervalId);
     };
   }, []);
 

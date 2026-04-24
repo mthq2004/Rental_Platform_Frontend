@@ -116,8 +116,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
     <div className="flex flex-wrap items-center gap-2 mt-4" ref={dropdownRef}>
       {/* Filter icon button */}
       <button
-        className="flex items-center gap-1.5 border border-gray-300 px-4 py-2 rounded-lg 
-          bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium"
+        className="flex items-center gap-1.5 border border-gray-300 px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium"
       >
         <FilterOutlined />
         Lọc
@@ -125,8 +124,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
 
       {/* Verified toggle */}
       <div
-        className="flex items-center gap-2 border border-gray-300 px-3 py-1.5 rounded-lg 
-          bg-white text-sm"
+        className="flex items-center gap-2 border border-gray-300 px-3 py-1.5 rounded-lg bg-white text-sm"
       >
         <SafetyCertificateOutlined className="text-blue-500" />
         <span className="text-gray-700">Tin xác thực</span>
@@ -137,9 +135,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       <div className="relative">
         <button
           onClick={() => toggleDropdown("propertyType")}
-          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white 
-            hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium
-            ${openDropdown === "propertyType" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
+          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium ${openDropdown === "propertyType" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
         >
           <HomeOutlined />
           {getTypeLabel()}
@@ -155,8 +151,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
                   onFilterChange({ propertyType: type.value });
                   setOpenDropdown(null);
                 }}
-                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between
-                  ${filters.propertyType === type.value ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
+                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.propertyType === type.value ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
               >
                 {type.label}
                 {filters.propertyType === type.value && (
@@ -172,9 +167,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       <div className="relative">
         <button
           onClick={() => toggleDropdown("price")}
-          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white 
-            hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium
-            ${openDropdown === "price" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
+          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium ${openDropdown === "price" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
         >
           <DollarOutlined />
           {getPriceLabel()}
@@ -193,11 +186,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
                   });
                   setOpenDropdown(null);
                 }}
-                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between
-                  ${filters.priceMin === range.min && filters.priceMax === range.max
-                    ? "text-blue-500 font-medium bg-blue-50/50"
-                    : "text-gray-700"
-                  }`}
+                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.priceMin === range.min && filters.priceMax === range.max ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
               >
                 {range.label}
                 {filters.priceMin === range.min &&
@@ -214,9 +203,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       <div className="relative">
         <button
           onClick={() => toggleDropdown("area")}
-          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white 
-            hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium
-            ${openDropdown === "area" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
+          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium ${openDropdown === "area" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
         >
           <ColumnWidthOutlined />
           {getAreaLabel()}
@@ -235,11 +222,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
                   });
                   setOpenDropdown(null);
                 }}
-                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between
-                  ${filters.areaMin === range.min && filters.areaMax === range.max
-                    ? "text-blue-500 font-medium bg-blue-50/50"
-                    : "text-gray-700"
-                  }`}
+                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.areaMin === range.min && filters.areaMax === range.max ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
               >
                 {range.label}
                 {filters.areaMin === range.min &&
@@ -266,8 +249,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
               areaMax: null,
             })
           }
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 
-            transition-colors ml-1"
+          className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 transition-colors ml-1"
         >
           <CloseOutlined className="text-xs" />
           Xóa bộ lọc
@@ -278,9 +260,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
       <div className="relative ml-auto">
         <button
           onClick={() => toggleDropdown("sort")}
-          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white 
-            hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium
-            ${openDropdown === "sort" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
+          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium ${openDropdown === "sort" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
         >
           <SortAscendingOutlined />
           {getSortLabel()}
@@ -296,8 +276,7 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
                   onFilterChange({ sortBy: opt.value });
                   setOpenDropdown(null);
                 }}
-                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between
-                  ${filters.sortBy === opt.value ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
+                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.sortBy === opt.value ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
               >
                 {opt.label}
                 {filters.sortBy === opt.value && (

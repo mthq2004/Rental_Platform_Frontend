@@ -5,6 +5,7 @@ import NextTopLoader from "nextjs-toploader";
 import GoogleAuthProviderWrapper from "@/components/auth/GoogleAuthProvider";
 import AntdConfigProvider from "@/components/common/AntdConfigProvider";
 import ClientWrapper from "@/components/layout/ClientWrapper";
+import ClickEffect from "@/components/common/ClickEffect";
 
 export const metadata: Metadata = {
   title: "Rental Platform",
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <AntdRegistry>
           <AntdConfigProvider>
+            <ClickEffect />
             <NextTopLoader
               color="#5750F1"
               showSpinner={false}

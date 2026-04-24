@@ -46,18 +46,14 @@ export default function SearchHeader({ keyword, onSearch }: SearchHeaderProps) {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Nhập khu vực, dự án, tên đường..."
-              className="w-full border border-gray-300 rounded-lg pl-11 pr-4 py-2.5 text-sm
-                outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100
-                transition-all placeholder:text-gray-400"
+              className="w-full border border-gray-300 rounded-lg pl-11 pr-4 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-gray-400"
             />
           </div>
 
           {/* Search button */}
           <button
             onClick={handleSearch}
-            className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700
-              text-white px-6 py-2.5 rounded-lg font-medium text-sm
-              transition-colors flex items-center gap-2 shrink-0"
+            className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 shrink-0"
           >
             <SearchOutlined />
             Tìm kiếm
@@ -65,9 +61,7 @@ export default function SearchHeader({ keyword, onSearch }: SearchHeaderProps) {
 
           {/* Map button */}
           <button
-            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800
-              text-white px-5 py-2.5 rounded-lg font-medium text-sm
-              transition-colors items-center gap-2 shrink-0 md:inline-flex hidden"
+            className="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors items-center gap-2 shrink-0 md:inline-flex hidden"
           >
             <EnvironmentOutlined />
             Xem bản đồ
