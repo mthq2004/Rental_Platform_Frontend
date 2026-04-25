@@ -20,6 +20,7 @@ import {
   SafetyCertificateOutlined,
   EditOutlined,
   UploadOutlined,
+  SendOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
@@ -105,13 +106,10 @@ const PAYMENT_METHOD_OPTIONS: MethodOption[] = [
 ];
 
 const TERMINATION_REASON_LABELS: Record<TerminationReason, string> = {
-  lease_end: "Hết hạn hợp đồng",
   unilateral_termination: "Đơn phương chấm dứt",
   mutual_agreement: "Hai bên thỏa thuận",
   breach_of_contract: "Vi phạm hợp đồng (sử dụng sai mục đích, làm hư hỏng)",
-  non_payment: "Không thanh toán (quá hạn)",
   force_majeure: "Bất khả kháng",
-  other: "Khác",
 };
 
 const TERMINATION_REASON_OPTIONS = Object.entries(TERMINATION_REASON_LABELS).map(
@@ -127,10 +125,6 @@ const getTerminationPolicyHint = (reason?: TerminationReason) => {
 
   if (reason === "breach_of_contract") {
     return "Bên vi phạm chịu mất tiền cọc và có thể phải trả thêm phí chấm dứt (nếu có).";
-  }
-
-  if (reason === "non_payment") {
-    return "Không thanh toán: tiền cọc bị tịch thu để bù công nợ.";
   }
 
   if (reason === "force_majeure" || reason === "mutual_agreement") {

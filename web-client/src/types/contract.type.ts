@@ -153,13 +153,10 @@ export interface Payment {
 
 // Termination Types
 export type TerminationReason =
-  'lease_end'
   | 'unilateral_termination'
   | 'mutual_agreement'
   | 'breach_of_contract'
-  | 'non_payment'
-  | 'force_majeure'
-  | 'other';
+  | 'force_majeure';
 
 export interface TerminationRequest {
   terminationRequestId: string;
