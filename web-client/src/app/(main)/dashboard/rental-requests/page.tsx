@@ -537,9 +537,8 @@ export default function RentalRequestsPage() {
               key: "my",
               label: (
                 <span
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition ${
-                    activeTab === "my" ? "bg-[#EEF2FF] text-[#4F46E5]" : "text-[#6B7280]"
-                  }`}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition ${activeTab === "my" ? "bg-[#EEF2FF] text-[#4F46E5]" : "text-[#6B7280]"
+                    }`}
                 >
                   <SendOutlined />
                   Yêu cầu của tôi
@@ -551,9 +550,8 @@ export default function RentalRequestsPage() {
               key: "received",
               label: (
                 <span
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition ${
-                    activeTab === "received" ? "bg-[#EEF2FF] text-[#4F46E5]" : "text-[#6B7280]"
-                  }`}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium transition ${activeTab === "received" ? "bg-[#EEF2FF] text-[#4F46E5]" : "text-[#6B7280]"
+                    }`}
                 >
                   <FileTextOutlined />
                   Yêu cầu nhận được
@@ -606,291 +604,251 @@ export default function RentalRequestsPage() {
             <div className="space-y-4">
               {activeTab === "my"
                 ? pagedData.map((record) => (
-                    <div
-                      key={record.requestId}
-                      className="group rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-[#C7D2FE] hover:bg-[#F9FAFB] hover:shadow-md"
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="flex flex-1 flex-col gap-4 sm:flex-row">
-                          <div className="flex items-start gap-4">
-                            <div className="h-16 w-16 overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F3F4F6]">
-                              {getPropertyImage(record) ? (
-                                <img
-                                  src={getPropertyImage(record)}
-                                  alt={getPropertyLabel(record)}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-[#9CA3AF]">
-                                  <HomeOutlined />
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="space-y-2">
-                              <div>
-                                <div className="text-base font-semibold text-[#111827]">
-                                  {getPropertyLabel(record)}
-                                </div>
-                                <div className="flex items-center gap-2 text-xs text-[#6B7280]">
-                                  <EnvironmentOutlined />
-                                  <span>{getPropertyAddress(record) || "Chưa cập nhật địa chỉ"}</span>
-                                </div>
-                              </div>
-
-                              <div className="text-xs text-[#6B7280]">
-                                <span className="font-medium text-[#4B5563]">Mã yêu cầu:</span> {record.requestCode}
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-2">
-                                {statusBadge(record.status)}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex-1">
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                                <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Giá đề xuất</div>
-                                <div className="text-sm font-semibold text-[#4F46E5]">{formatCurrency(record.proposedRent)}</div>
-                              </div>
-                              <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                                <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Thời hạn thuê</div>
-                                <div className="flex items-center gap-2 text-sm text-[#111827]">
-                                  <CalendarOutlined className="text-[#06B6D4]" />
-                                  {formatDate(record.startDate)} → {formatDate(record.endDate)}
-                                </div>
-                              </div>
-                              <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                                <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Hạn đặt cọc</div>
-                                <div className="text-sm text-[#111827]">
-                                  {record.holdingDepositExpiresAt ? formatDateTime(record.holdingDepositExpiresAt) : "—"}
-                                </div>
-                              </div>
-                              <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                                <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Ngày tạo</div>
-                                <div className="text-sm text-[#111827]">{formatDate(record.createdAt)}</div>
-                              </div>
-                            </div>
-                          </div>
+                  // Thay thế toàn bộ nội dung bên trong pagedData.map((record) => (...))
+                  <div
+                    key={record.requestId}
+                    className="group rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-sm transition hover:border-[#C7D2FE] hover:shadow-md"
+                  >
+                    {/* Header: ảnh + tên property + badge trạng thái */}
+                    <div className="flex items-start gap-3">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F3F4F6]">
+                        {getPropertyImage(record) ? (
+                          <img src={getPropertyImage(record)} alt={getPropertyLabel(record)} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[#9CA3AF]"><HomeOutlined /></div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-semibold text-[#111827]">{getPropertyLabel(record)}</div>
+                        <div className="mt-0.5 flex items-center gap-1 text-xs text-[#6B7280]">
+                          <EnvironmentOutlined />
+                          <span className="truncate">{getPropertyAddress(record) || "Chưa cập nhật địa chỉ"}</span>
                         </div>
-
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:flex-col lg:items-stretch">
-                          <Button
-                            type="default"
-                            size="middle"
-                            className="rounded-lg border-[#E2E8F0] text-[#111827]"
-                            onClick={() => handleViewDetail(record)}
-                          >
-                            Xem chi tiết
-                          </Button>
-
-                          {(record.status === "approved" || record.status === "holding_deposit_open") && (
-                            <Button
-                              type="primary"
-                              size="middle"
-                              className="rounded-lg"
-                              style={{ background: "#4F46E5", borderColor: "#4F46E5" }}
-                              onClick={() => handleOpenPayModal(record)}
-                            >
-                              Đặt cọc
-                            </Button>
-                          )}
-
-                          {(record.status === "pending" || record.status === "under_review") && (
-                            <Button
-                              danger
-                              size="middle"
-                              className="rounded-lg"
-                              onClick={() => handleCancel(record.requestId)}
-                            >
-                              Hủy yêu cầu
-                            </Button>
-                          )}
+                        <div className="mt-1 text-xs text-[#6B7280]">
+                          <span className="font-medium text-[#4B5563]">Mã yêu cầu:</span> {record.requestCode}
                         </div>
+                        <div className="mt-2">{statusBadge(record.status)}</div>
                       </div>
                     </div>
-                  ))
+
+                    {/* Meta grid — luôn nằm dưới, full width */}
+                    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.1em] text-[#94A3B8]">Giá đề xuất</div>
+                        <div className="mt-1 text-sm font-semibold text-[#4F46E5]">{formatCurrency(record.proposedRent)}</div>
+                      </div>
+                      <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.1em] text-[#94A3B8]">Thời hạn thuê</div>
+                        <div className="mt-1 text-xs text-[#111827]">{formatDate(record.startDate)} → {formatDate(record.endDate)}</div>
+                      </div>
+                      <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.1em] text-[#94A3B8]">Hạn đặt cọc</div>
+                        <div className="mt-1 text-xs text-[#111827]">{record.holdingDepositExpiresAt ? formatDateTime(record.holdingDepositExpiresAt) : "—"}</div>
+                      </div>
+                      <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
+                        <div className="text-[10px] uppercase tracking-[0.1em] text-[#94A3B8]">Ngày tạo</div>
+                        <div className="mt-1 text-xs text-[#111827]">{formatDate(record.createdAt)}</div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button size="middle" className="rounded-lg border-[#E2E8F0]" onClick={() => handleViewDetail(record)}>
+                        Xem chi tiết
+                      </Button>
+                      {(record.status === "approved" || record.status === "holding_deposit_open") && (
+                        <Button type="primary" size="middle" className="rounded-lg" style={{ background: "#4F46E5", borderColor: "#4F46E5" }} onClick={() => handleOpenPayModal(record)}>
+                          Đặt cọc
+                        </Button>
+                      )}
+                      {(record.status === "pending" || record.status === "under_review") && (
+                        <Button danger size="middle" className="rounded-lg" onClick={() => handleCancel(record.requestId)}>
+                          Hủy yêu cầu
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))
                 : pagedOwnerGroups.map((group) => {
-                    const groupLabel = group.property?.title || group.propertyId || "—";
-                    const groupAddress = group.property?.address || "";
-                    const groupImage =
-                      group.property?.imageUrl ||
-                      group.requests.find((req) => req.property?.imageUrl)?.property?.imageUrl ||
-                      "";
+                  const groupLabel = group.property?.title || group.propertyId || "—";
+                  const groupAddress = group.property?.address || "";
+                  const groupImage =
+                    group.property?.imageUrl ||
+                    group.requests.find((req) => req.property?.imageUrl)?.property?.imageUrl ||
+                    "";
 
-                    const statusOrder: RentalRequestStatus[] = [
-                      "contract_created",
-                      "holding_deposit_locked",
-                      "holding_deposit_paid",
-                      "holding_deposit_open",
-                      "under_review",
-                      "pending",
-                    ];
-                    const topStatus =
-                      statusOrder.find((status) => group.requests.some((req) => req.status === status)) ||
-                      group.requests[0]?.status;
+                  const statusOrder: RentalRequestStatus[] = [
+                    "contract_created",
+                    "holding_deposit_locked",
+                    "holding_deposit_paid",
+                    "holding_deposit_open",
+                    "under_review",
+                    "pending",
+                  ];
+                  const topStatus =
+                    statusOrder.find((status) => group.requests.some((req) => req.status === status)) ||
+                    group.requests[0]?.status;
 
-                    return (
-                      <div key={group.propertyId} className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                          <div className="flex items-start gap-4">
-                            <div className="h-16 w-16 overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F3F4F6]">
-                              {groupImage ? (
-                                <img
-                                  src={groupImage}
-                                  alt={groupLabel}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-[#9CA3AF]">
-                                  <HomeOutlined />
-                                </div>
-                              )}
+                  return (
+                    <div key={group.propertyId} className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="flex items-start gap-4">
+                          <div className="h-16 w-16 overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#F3F4F6]">
+                            {groupImage ? (
+                              <img
+                                src={groupImage}
+                                alt={groupLabel}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[#9CA3AF]">
+                                <HomeOutlined />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-2">
+                            <div>
+                              <div className="text-base font-semibold text-[#111827]">{groupLabel}</div>
+                              <div className="flex items-center gap-2 text-xs text-[#6B7280]">
+                                <EnvironmentOutlined />
+                                <span>{groupAddress || "Chưa cập nhật địa chỉ"}</span>
+                              </div>
                             </div>
-
-                            <div className="space-y-2">
-                              <div>
-                                <div className="text-base font-semibold text-[#111827]">{groupLabel}</div>
-                                <div className="flex items-center gap-2 text-xs text-[#6B7280]">
-                                  <EnvironmentOutlined />
-                                  <span>{groupAddress || "Chưa cập nhật địa chỉ"}</span>
-                                </div>
-                              </div>
-                              <div className="flex flex-wrap items-center gap-2">
-                                {topStatus ? statusBadge(topStatus) : null}
-                                <span className="inline-flex items-center rounded-full bg-[#F1F5F9] px-2.5 py-1 text-[11px] font-semibold text-[#475569]">
-                                  {group.requests.length} yêu cầu
-                                </span>
-                              </div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {topStatus ? statusBadge(topStatus) : null}
+                              <span className="inline-flex items-center rounded-full bg-[#F1F5F9] px-2.5 py-1 text-[11px] font-semibold text-[#475569]">
+                                {group.requests.length} yêu cầu
+                              </span>
                             </div>
                           </div>
                         </div>
+                      </div>
 
-                        <div className="mt-4 space-y-3">
-                          {group.requests.map((record) => (
-                            <div
-                              key={record.requestId}
-                              className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3"
-                            >
-                              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                                <div className="flex flex-1 flex-col gap-3 sm:flex-row">
-                                  <div className="pt-1">
-                                    <Checkbox
-                                      checked={selectedRowKeys.includes(record.requestId)}
-                                      disabled={!['pending', 'under_review'].includes(record.status)}
-                                      onChange={(event) => {
-                                        const checked = event.target.checked;
-                                        setSelectedRowKeys((prev) =>
-                                          checked
-                                            ? [...prev, record.requestId]
-                                            : prev.filter((id) => id !== record.requestId)
-                                        );
-                                      }}
-                                    />
+                      <div className="mt-4 space-y-3">
+                        {group.requests.map((record) => (
+                          <div
+                            key={record.requestId}
+                            className="rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-3"
+                          >
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                              <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+                                <div className="pt-1">
+                                  <Checkbox
+                                    checked={selectedRowKeys.includes(record.requestId)}
+                                    disabled={!['pending', 'under_review'].includes(record.status)}
+                                    onChange={(event) => {
+                                      const checked = event.target.checked;
+                                      setSelectedRowKeys((prev) =>
+                                        checked
+                                          ? [...prev, record.requestId]
+                                          : prev.filter((id) => id !== record.requestId)
+                                      );
+                                    }}
+                                  />
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="text-xs text-[#6B7280]">
+                                    <span className="font-medium text-[#4B5563]">Mã yêu cầu:</span> {record.requestCode}
                                   </div>
-
-                                  <div className="space-y-2">
-                                    <div className="text-xs text-[#6B7280]">
-                                      <span className="font-medium text-[#4B5563]">Mã yêu cầu:</span> {record.requestCode}
-                                    </div>
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      {statusBadge(record.status)}
-                                    </div>
-                                  </div>
-
-                                  <div className="flex-1">
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                      <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                                        <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Giá đề xuất</div>
-                                        <div className="text-sm font-semibold text-[#4F46E5]">{formatCurrency(record.proposedRent)}</div>
-                                      </div>
-                                      <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                                        <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Thời hạn thuê</div>
-                                        <div className="flex items-center gap-2 text-sm text-[#111827]">
-                                          <CalendarOutlined className="text-[#06B6D4]" />
-                                          {formatDate(record.startDate)} → {formatDate(record.endDate)}
-                                        </div>
-                                      </div>
-                                      <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                                        <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Hạn đặt cọc</div>
-                                        <div className="text-sm text-[#111827]">
-                                          {record.holdingDepositExpiresAt ? formatDateTime(record.holdingDepositExpiresAt) : "—"}
-                                        </div>
-                                      </div>
-                                      <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                                        <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Ngày tạo</div>
-                                        <div className="text-sm text-[#111827]">{formatDate(record.createdAt)}</div>
-                                      </div>
-                                    </div>
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    {statusBadge(record.status)}
                                   </div>
                                 </div>
 
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:flex-col lg:items-stretch">
-                                  <Button
-                                    type="default"
-                                    size="middle"
-                                    className="rounded-lg border-[#E2E8F0] text-[#111827]"
-                                    onClick={() => handleViewDetail(record)}
-                                  >
-                                    Xem chi tiết
-                                  </Button>
+                                <div className="flex-1">
+                                  <div className="grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
+                                      <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Giá đề xuất</div>
+                                      <div className="text-sm font-semibold text-[#4F46E5]">{formatCurrency(record.proposedRent)}</div>
+                                    </div>
+                                    <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
+                                      <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Thời hạn thuê</div>
+                                      <div className="flex items-center gap-2 text-sm text-[#111827]">
+                                        <CalendarOutlined className="text-[#06B6D4]" />
+                                        {formatDate(record.startDate)} → {formatDate(record.endDate)}
+                                      </div>
+                                    </div>
+                                    <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
+                                      <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Hạn đặt cọc</div>
+                                      <div className="text-sm text-[#111827]">
+                                        {record.holdingDepositExpiresAt ? formatDateTime(record.holdingDepositExpiresAt) : "—"}
+                                      </div>
+                                    </div>
+                                    <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
+                                      <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Ngày tạo</div>
+                                      <div className="text-sm text-[#111827]">{formatDate(record.createdAt)}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
 
-                                  {record.status === "holding_deposit_paid" && (
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:flex-col lg:items-stretch">
+                                <Button
+                                  type="default"
+                                  size="middle"
+                                  className="rounded-lg border-[#E2E8F0] text-[#111827]"
+                                  onClick={() => handleViewDetail(record)}
+                                >
+                                  Xem chi tiết
+                                </Button>
+
+                                {record.status === "holding_deposit_paid" && (
+                                  <Button
+                                    type="primary"
+                                    size="middle"
+                                    className="rounded-lg"
+                                    style={{ background: "#4F46E5", borderColor: "#4F46E5" }}
+                                    onClick={() => router.push(`/template-contracts?requestId=${record.requestId}`)}
+                                  >
+                                    Tạo hợp đồng
+                                  </Button>
+                                )}
+
+                                {record.status === "contract_created" && (
+                                  <Button
+                                    size="middle"
+                                    className="rounded-lg"
+                                    onClick={() => router.push(`/template-contracts/${record.contract?.templateId}?requestId=${record.requestId}`)}
+                                  >
+                                    Chỉnh sửa HĐ
+                                  </Button>
+                                )}
+
+                                {(record.status === "pending" || record.status === "under_review") && (
+                                  <div className="flex gap-2">
                                     <Button
                                       type="primary"
                                       size="middle"
                                       className="rounded-lg"
                                       style={{ background: "#4F46E5", borderColor: "#4F46E5" }}
-                                      onClick={() => router.push(`/template-contracts?requestId=${record.requestId}`)}
+                                      onClick={() => confirmOpenHoldingDeposit([record.requestId])}
+                                      loading={actionLoading}
                                     >
-                                      Tạo hợp đồng
+                                      Mở đặt cọc
                                     </Button>
-                                  )}
-
-                                  {record.status === "contract_created" && (
                                     <Button
                                       size="middle"
+                                      danger
                                       className="rounded-lg"
-                                      onClick={() => router.push(`/template-contracts/${record.contract?.templateId}?requestId=${record.requestId}`)}
+                                      onClick={() => {
+                                        setSelectedRequest(record);
+                                        setDetailOpen(true);
+                                      }}
                                     >
-                                      Chỉnh sửa HĐ
+                                      Từ chối
                                     </Button>
-                                  )}
-
-                                  {(record.status === "pending" || record.status === "under_review") && (
-                                    <div className="flex gap-2">
-                                      <Button
-                                        type="primary"
-                                        size="middle"
-                                        className="rounded-lg"
-                                        style={{ background: "#4F46E5", borderColor: "#4F46E5" }}
-                                        onClick={() => confirmOpenHoldingDeposit([record.requestId])}
-                                        loading={actionLoading}
-                                      >
-                                        Mở đặt cọc
-                                      </Button>
-                                      <Button
-                                        size="middle"
-                                        danger
-                                        className="rounded-lg"
-                                        onClick={() => {
-                                          setSelectedRequest(record);
-                                          setDetailOpen(true);
-                                        }}
-                                      >
-                                        Từ chối
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  );
+                })}
             </div>
           )}
 

@@ -1,8 +1,27 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import socketService from '@/services/chat.socket';
 import { useAppSelector } from '@/store/hook';
-import { Alert, Vibration } from 'react-native';
+import { Alert, Vibration, NativeModules } from 'react-native';
 import { useSocket } from '@/contexts/ChatSocketContext';
+
+// Safe import — WebRTC may not be available in Expo Go
+let mediaDevices: any = null;
+let RNMediaStream: any = null;
+let RTCPeerConnection: any = null;
+let RTCIceCandidate: any = null;
+let RTCSessionDescription: any = null;
+try {
+  if (NativeModules.WebRTCModule) {
+    const webrtc = require('react-native-webrtc');
+    mediaDevices = webrtc.mediaDevices;
+    RNMediaStream = webrtc.MediaStream;
+    RTCPeerConnection = webrtc.RTCPeerConnection;
+    RTCIceCandidate = webrtc.RTCIceCandidate;
+    RTCSessionDescription = webrtc.RTCSessionDescription;
+  }
+} catch {
+  // WebRTC not available
+}
 
 export type CallType = 'VOICE' | 'VIDEO';
 export type CallStatus = 'idle' | 'incoming' | 'outgoing' | 'active';
@@ -36,6 +55,8 @@ type CallContextValue = {
   isMicMuted: boolean;
   isSpeakerOn: boolean;
   isVideoOff: boolean;
+  localStream: any;
+  remoteStream: any;
   startCall: (payload: StartCallPayload) => Promise<void>;
   acceptCall: () => void;
   rejectCall: () => void;
@@ -70,6 +91,14 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [callState, setCallState] = useState<CallState>({ status: 'idle', callId: null, callType: null, isCaller: false });
 
+  // WebRTC & Media stream refs
+  const peerRef = useRef<any>(null);
+  const pendingRemoteDescriptionRef = useRef<any>(null);
+  const pendingIceRef = useRef<any[]>([]);
+  const localStreamRef = useRef<any>(null);
+  const [localStream, setLocalStream] = useState<any>(null);
+  const [remoteStream, setRemoteStream] = useState<any>(null);
+
   useEffect(() => { callStateRef.current = callState; }, [callState]);
 
   const getParticipant = (conversationId?: string, fallbackId?: string) => {
@@ -84,12 +113,83 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (notify && activeCallId) {
       socketService.emit('call:end', { callId: activeCallId, reason: 'ended' });
     }
+    
+    // Cleanup WebRTC
+    peerRef.current?.close();
+    peerRef.current = null;
+    pendingRemoteDescriptionRef.current = null;
+    pendingIceRef.current = [];
+
+    // Stop all media tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t: any) => t.stop());
+      localStreamRef.current = null;
+      setLocalStream(null);
+    }
+    
+    setRemoteStream(null);
     callStartedAtRef.current = null;
     setCallDurationSec(0);
     setIsMicMuted(false);
     setIsSpeakerOn(false);
     setIsVideoOff(false);
     setCallState({ status: 'idle', callId: null, callType: null, isCaller: false });
+  };
+
+  const ensureLocalStream = async (type: CallType) => {
+    if (localStreamRef.current) return localStreamRef.current;
+    if (!mediaDevices) return null; // WebRTC not available
+    const isVideo = type === 'VIDEO';
+    const stream = await mediaDevices.getUserMedia({
+      audio: true,
+      video: isVideo ? { facingMode: 'user', width: 640, height: 480 } : false,
+    });
+    localStreamRef.current = stream;
+    setLocalStream(stream);
+    return stream;
+  };
+
+  const createPeerConnection = (callId: string) => {
+    if (peerRef.current) return peerRef.current;
+    if (!RTCPeerConnection) return null; // WebRTC not available
+
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+    });
+
+    pc.onicecandidate = (event: any) => {
+      if (event.candidate) {
+        socketService.emit('call:ice', { callId, candidate: event.candidate });
+      }
+    };
+
+    pc.ontrack = (event: any) => {
+      const [stream] = event.streams;
+      if (stream) {
+        setRemoteStream(stream);
+      }
+    };
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track: any) => {
+        pc.addTrack(track, localStreamRef.current);
+      });
+    }
+
+    peerRef.current = pc;
+
+    if (pendingRemoteDescriptionRef.current) {
+      pc.setRemoteDescription(pendingRemoteDescriptionRef.current).then(() => {
+        pendingRemoteDescriptionRef.current = null;
+      });
+    }
+
+    pendingIceRef.current.forEach((candidate) => {
+      pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+    });
+    pendingIceRef.current = [];
+
+    return pc;
   };
 
   const startCall = async (payload: StartCallPayload) => {
@@ -109,11 +209,19 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     socketService.emit('call:invite', { conversationId: payload.conversationId, calleeId: payload.calleeId, callType: payload.callType });
   };
 
-  const acceptCall = () => {
+  const acceptCall = async () => {
     const current = callStateRef.current;
     if (!current.callId || !current.callType) return;
-    socketService.emit('call:accept', { callId: current.callId });
-    setCallState((prev) => ({ ...prev, status: 'active' }));
+    try {
+      await ensureLocalStream(current.callType);
+      createPeerConnection(current.callId);
+      socketService.emit('call:accept', { callId: current.callId });
+      setCallState((prev) => ({ ...prev, status: 'active' }));
+    } catch (err) {
+      Alert.alert('Lỗi', 'Không thể truy cập camera/mic');
+      socketService.emit('call:reject', { callId: current.callId, reason: 'media_denied' });
+      cleanupCall();
+    }
   };
 
   const rejectCall = () => {
@@ -131,9 +239,40 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const endCall = () => cleanupCall(true);
-  const toggleMic = () => setIsMicMuted((v) => !v);
+
+  const toggleMic = () => {
+    setIsMicMuted((prev) => {
+      const next = !prev;
+      // Control actual audio tracks
+      if (localStreamRef.current) {
+        localStreamRef.current.getAudioTracks().forEach((track: any) => {
+          track.enabled = !next; // muted=true means track.enabled=false
+        });
+      }
+      // Notify remote
+      const callId = callStateRef.current.callId;
+      if (callId) socketService.emit('call:toggle-mic', { callId, muted: next });
+      return next;
+    });
+  };
+
   const toggleSpeaker = () => setIsSpeakerOn((v) => !v);
-  const toggleVideo = () => setIsVideoOff((v) => !v);
+
+  const toggleVideo = () => {
+    setIsVideoOff((prev) => {
+      const next = !prev;
+      // Control actual video tracks
+      if (localStreamRef.current) {
+        localStreamRef.current.getVideoTracks().forEach((track: any) => {
+          track.enabled = !next; // videoOff=true means track.enabled=false
+        });
+      }
+      // Notify remote
+      const callId = callStateRef.current.callId;
+      if (callId) socketService.emit('call:toggle-video', { callId, videoOff: next });
+      return next;
+    });
+  };
 
   // Duration timer
   useEffect(() => {
@@ -167,16 +306,69 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const participant = existing.participant || getParticipant(p.conversationId, p.toUserId);
       setCallState({ status: 'outgoing', callId: p.callId, callType: p.callType, isCaller: true, conversationId: p.conversationId, participant });
     };
-    const onAccepted = (p: any) => {
+    const onAccepted = async (p: any) => {
       const current = callStateRef.current;
       if (!current.isCaller) return;
       if (current.callId && current.callId !== p.callId) return;
-      setCallState((prev) => ({ ...prev, callId: p.callId, status: 'active' }));
+      try {
+        await ensureLocalStream(current.callType!);
+        const pc = createPeerConnection(p.callId);
+        if (pc) {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          socketService.emit("call:offer", { callId: p.callId, sdp: offer });
+        }
+        setCallState((prev) => ({ ...prev, callId: p.callId, status: 'active' }));
+      } catch (err) {
+        cleanupCall();
+      }
     };
     const onRejected = (p: any) => { const cid = callStateRef.current.callId; if (cid && cid !== p.callId) return; cleanupCall(); };
     const onCanceled = (p: any) => { const cid = callStateRef.current.callId; if (cid && cid !== p.callId) return; cleanupCall(); };
     const onMissed = (p: any) => { const cid = callStateRef.current.callId; if (cid && cid !== p.callId) return; cleanupCall(); };
     const onEnded = (p: any) => { const cid = callStateRef.current.callId; if (cid && cid !== p.callId) return; cleanupCall(); };
+    
+    // WebRTC Signaling Events
+    const onOffer = async (p: any) => {
+      const current = callStateRef.current;
+      if (current.callId !== p.callId || current.isCaller) return;
+      if (!peerRef.current) pendingRemoteDescriptionRef.current = p.sdp;
+      
+      try {
+        await ensureLocalStream(current.callType || 'VOICE');
+        const pc = createPeerConnection(p.callId);
+        if (pc && pc.signalingState === 'stable' && !pc.remoteDescription) {
+          await pc.setRemoteDescription(p.sdp);
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socketService.emit("call:answer", { callId: p.callId, sdp: answer });
+        }
+      } catch (err) {
+        cleanupCall();
+      }
+    };
+
+    const onAnswer = async (p: any) => {
+      const current = callStateRef.current;
+      if (current.callId !== p.callId || !current.isCaller) return;
+      if (peerRef.current) {
+        await peerRef.current.setRemoteDescription(p.sdp).catch(() => {});
+      }
+    };
+
+    const onIce = async (p: any) => {
+      if (callStateRef.current.callId !== p.callId) return;
+      if (!peerRef.current) {
+        pendingIceRef.current.push(p.candidate);
+        return;
+      }
+      try {
+        if (RTCIceCandidate) {
+          await peerRef.current.addIceCandidate(new RTCIceCandidate(p.candidate));
+        }
+      } catch (err) {}
+    };
+
     const onError = (p: any) => { Alert.alert('Lỗi cuộc gọi', p?.message || 'Có lỗi xảy ra'); cleanupCall(); };
 
     socketService.on('call:incoming', onIncoming);
@@ -186,6 +378,9 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
     socketService.on('call:canceled', onCanceled);
     socketService.on('call:missed', onMissed);
     socketService.on('call:ended', onEnded);
+    socketService.on('call:offer', onOffer);
+    socketService.on('call:answer', onAnswer);
+    socketService.on('call:ice', onIce);
     socketService.on('call:error', onError);
 
     return () => {
@@ -196,13 +391,16 @@ export const CallProvider: React.FC<{ children: React.ReactNode }> = ({ children
       socketService.off('call:canceled', onCanceled);
       socketService.off('call:missed', onMissed);
       socketService.off('call:ended', onEnded);
+      socketService.off('call:offer', onOffer);
+      socketService.off('call:answer', onAnswer);
+      socketService.off('call:ice', onIce);
       socketService.off('call:error', onError);
     };
   }, [isConnected]);
 
   return (
     <CallContext.Provider value={{
-      callState, callDurationSec, isMicMuted, isSpeakerOn, isVideoOff,
+      callState, callDurationSec, isMicMuted, isSpeakerOn, isVideoOff, localStream, remoteStream,
       startCall, acceptCall, rejectCall, cancelCall, endCall,
       toggleMic, toggleSpeaker, toggleVideo,
     }}>

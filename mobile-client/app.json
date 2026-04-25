@@ -56,6 +56,14 @@
           "cameraPermission": "Ứng dụng cần quyền camera để thực hiện cuộc gọi video",
           "microphonePermission": "Ứng dụng cần quyền microphone để thực hiện cuộc gọi"
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Ứng dụng cần quyền truy cập camera để thực hiện cuộc gọi video.",
+          "microphonePermission": "Ứng dụng cần quyền truy cập micro để thu âm thanh khi gọi.",
+          "recordAudioAndroid": true
+        }
       ]
     ],
     "experiments": {

@@ -1,9 +1,32 @@
-import { Text, View, Image, TouchableWithoutFeedback, Dimensions } from 'react-native';
+import { Text, View, Image, TouchableWithoutFeedback, TouchableOpacity, Dimensions, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Message } from '@/types/message.type';
 import MessageContextMenu from './MessageContextMenu';
+import ImageGalleryViewer from './ImageGalleryViewer';
 import { Angry, Frown, Heart, Laugh, ThumbsUp } from 'lucide-react-native';
+
+// ─── File icon helper ──────────────────────────────────────────────────────
+const getFileIcon = (fileName?: string | null): { name: string; color: string } => {
+  const ext = (fileName ?? '').split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'pdf':
+      return { name: 'document-text', color: '#EF4444' };
+    case 'doc': case 'docx':
+      return { name: 'document-text', color: '#3B82F6' };
+    case 'xls': case 'xlsx':
+      return { name: 'document-text', color: '#10B981' };
+    case 'ppt': case 'pptx':
+      return { name: 'document-text', color: '#F97316' };
+    case 'zip': case 'rar': case '7z':
+      return { name: 'archive', color: '#8B5CF6' };
+    case 'mp3': case 'wav': case 'flac':
+      return { name: 'musical-notes', color: '#EC4899' };
+    default:
+      return { name: 'document-attach', color: '#6B7280' };
+  }
+};
+
 interface ChatMessageProps {
   message: Message;
   isMe: boolean;
@@ -66,6 +89,10 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
   const MAX_WIDTH = screenWidth * 0.65; // 65% màn hình
   const MAX_HEIGHT = 300; // giới hạn chiều cao
 
+  // State for image gallery
+  const [galleryVisible, setGalleryVisible] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+
   switch (message.messageType) {
     case 'TEXT':
       return (
@@ -74,34 +101,132 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
         </Text>
       );
 
-    case "IMAGE":
+    case "IMAGE": {
       if (!message.fileUrl) return null;
 
-      const originalWidth = message.width ?? 200;
-      const originalHeight = message.height ?? 200;
-
-      const ratio = originalWidth / originalHeight;
-
-      let displayWidth = MAX_WIDTH;
-      let displayHeight = MAX_WIDTH / ratio;
-
-      // nếu ảnh quá cao
-      if (displayHeight > MAX_HEIGHT) {
-        displayHeight = MAX_HEIGHT;
-        displayWidth = MAX_HEIGHT * ratio;
+      // Parse multiple images: content may have comma-separated URLs or single fileUrl
+      const allImages: { uri: string }[] = [];
+      
+      // Check if content has multiple URLs (comma or newline separated)
+      if (message.content && message.content.includes(',')) {
+        message.content.split(',').map(u => u.trim()).filter(Boolean).forEach(uri => {
+          allImages.push({ uri });
+        });
+      }
+      
+      // Always include fileUrl
+      if (!allImages.find(img => img.uri === message.fileUrl)) {
+        allImages.unshift({ uri: message.fileUrl });
       }
 
+      const imageCount = allImages.length;
+      const GRID_SIZE = Math.min(MAX_WIDTH, 240);
+      const GAP = 3;
+
+      // Single image
+      if (imageCount === 1) {
+        const originalWidth = message.width ?? 200;
+        const originalHeight = message.height ?? 200;
+        const ratio = originalWidth / originalHeight;
+        let displayWidth = MAX_WIDTH;
+        let displayHeight = MAX_WIDTH / ratio;
+        if (displayHeight > MAX_HEIGHT) {
+          displayHeight = MAX_HEIGHT;
+          displayWidth = MAX_HEIGHT * ratio;
+        }
+
+        return (
+          <>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => { setGalleryIndex(0); setGalleryVisible(true); }}
+            >
+              <Image
+                source={{ uri: allImages[0].uri }}
+                style={{ width: displayWidth, height: displayHeight }}
+                className="rounded-2xl"
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+            <ImageGalleryViewer
+              visible={galleryVisible}
+              images={allImages}
+              initialIndex={galleryIndex}
+              onClose={() => setGalleryVisible(false)}
+            />
+          </>
+        );
+      }
+
+      // Multiple images: Grid layout
+      const displayImages = allImages.slice(0, 3);
+      const remaining = imageCount - 3;
+
+      const cellSize = imageCount === 2
+        ? (GRID_SIZE - GAP) / 2
+        : (GRID_SIZE - GAP) / 2;
+
       return (
-        <Image
-          source={{ uri: message.fileUrl }}
-          style={{
-            width: displayWidth,
-            height: displayHeight,
-          }}
-          className="rounded-2xl"
-          resizeMode="cover"
-        />
+        <>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => { setGalleryIndex(0); setGalleryVisible(true); }}
+          >
+            <View style={{
+              width: GRID_SIZE,
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: GAP,
+              borderRadius: 14,
+              overflow: 'hidden',
+            }}>
+              {displayImages.map((img, idx) => {
+                // First image takes full width if 3 images
+                const isFirstInThree = idx === 0 && imageCount >= 3;
+                const w = isFirstInThree ? GRID_SIZE : cellSize;
+                const h = isFirstInThree ? cellSize * 1.2 : cellSize;
+                const isLast = idx === displayImages.length - 1 && remaining > 0;
+
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    activeOpacity={0.85}
+                    onPress={() => { setGalleryIndex(idx); setGalleryVisible(true); }}
+                  >
+                    <View style={{ width: w, height: h, position: 'relative' }}>
+                      <Image
+                        source={{ uri: img.uri }}
+                        style={{ width: w, height: h }}
+                        resizeMode="cover"
+                      />
+                      {isLast && (
+                        <View style={{
+                          position: 'absolute', inset: 0,
+                          backgroundColor: 'rgba(0,0,0,0.5)',
+                          alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Text style={{
+                            color: '#fff', fontSize: 22, fontWeight: '700',
+                          }}>
+                            +{remaining}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </TouchableOpacity>
+          <ImageGalleryViewer
+            visible={galleryVisible}
+            images={allImages}
+            initialIndex={galleryIndex}
+            onClose={() => setGalleryVisible(false)}
+          />
+        </>
       );
+    }
 
     case 'VIDEO':
       if (!message.thumbnailUrl) return null;
@@ -129,17 +254,27 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
         </View>
       );
 
-    case 'FILE':
+    case 'FILE': {
+      const fileIcon = getFileIcon(message.fileName);
+      const handleDownload = () => {
+        if (message.fileUrl) {
+          Linking.openURL(message.fileUrl).catch(() => {
+            Alert.alert('Lỗi', 'Không thể mở tệp');
+          });
+        }
+      };
+
       return (
         <View
           className={`flex-row items-center rounded-xl px-3 py-2.5 gap-3 ${isMe ? 'bg-blue-400/25' : 'bg-gray-100 dark:bg-gray-700'
             }`}
+          style={{ minWidth: 200 }}
         >
           <View
-            className={`w-9 h-9 rounded-lg items-center justify-center ${isMe ? 'bg-blue-400/30' : 'bg-white dark:bg-gray-600'
-              }`}
+            style={{ backgroundColor: fileIcon.color + '18' }}
+            className="w-10 h-10 rounded-lg items-center justify-center"
           >
-            <Text className="text-lg">📄</Text>
+            <Ionicons name={fileIcon.name as any} size={22} color={fileIcon.color} />
           </View>
 
           <View className="flex-1">
@@ -158,9 +293,19 @@ const MessageContent: React.FC<MessageContentProps> = ({ message, isMe }) => {
             )}
           </View>
 
-          <Text className={`text-base ${isMe ? 'text-blue-200' : 'text-gray-400'}`}>⬇</Text>
+          <TouchableOpacity
+            onPress={handleDownload}
+            style={{
+              width: 32, height: 32, borderRadius: 8,
+              backgroundColor: isMe ? 'rgba(255,255,255,0.15)' : 'rgba(59,130,246,0.1)',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="download-outline" size={18} color={isMe ? '#BFDBFE' : '#3B82F6'} />
+          </TouchableOpacity>
         </View>
       );
+    }
 
     case 'CALL_VOICE':
     case 'CALL_VIDEO':

@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, Image, StyleSheet, Modal,
-  Dimensions, Animated, Easing, StatusBar,
+  Dimensions, Animated, Easing, StatusBar, NativeModules,
 } from 'react-native';
 import { Ionicons, MaterialIcons, Feather } from '@expo/vector-icons';
-import { useCall } from '@/contexts/CallContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useCall } from '@/contexts/CallContext';
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+
+// Safe import — RTCView may not be available in Expo Go
+let RTCView: any = null;
+try {
+  if (NativeModules.WebRTCModule) {
+    RTCView = require('react-native-webrtc').RTCView;
+  }
+} catch {
+  // WebRTC not available
+}
 
 const { width: SW } = Dimensions.get('window');
 
@@ -20,7 +31,7 @@ const T = {
 const CallOverlay = () => {
   const {
     callState, callDurationSec,
-    isMicMuted, isSpeakerOn, isVideoOff,
+    isMicMuted, isSpeakerOn, isVideoOff, localStream, remoteStream,
     acceptCall, rejectCall, cancelCall, endCall,
     toggleMic, toggleSpeaker, toggleVideo,
   } = useCall();
@@ -31,6 +42,17 @@ const CallOverlay = () => {
   const pulseAnim = useRef(new Animated.Value(0.8)).current;
   const pulse2 = useRef(new Animated.Value(0.6)).current;
   const pulse3 = useRef(new Animated.Value(0.4)).current;
+
+  // Camera permissions for Expo Go fallback
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [micPermission, requestMicPermission] = useMicrophonePermissions();
+
+  useEffect(() => {
+    if (callState.status !== 'idle') {
+      if (!cameraPermission?.granted) requestCameraPermission();
+      if (!micPermission?.granted) requestMicPermission();
+    }
+  }, [callState.status]);
 
   useEffect(() => {
     if (callState.status === 'incoming' || callState.status === 'outgoing') {
@@ -136,7 +158,16 @@ const CallOverlay = () => {
     <Modal transparent animationType="fade" visible statusBarTranslucent>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       <View style={StyleSheet.absoluteFill}>
-        <LinearGradient colors={[T.navy0, T.navy1, T.navy2]} locations={[0, 0.45, 1]} start={{ x: 0.3, y: 0 }} end={{ x: 0.7, y: 1 }} style={StyleSheet.absoluteFill} />
+        {/* Background or Remote Video */}
+        {isActive && isVideo && remoteStream && !!RTCView ? (
+          <RTCView
+            streamURL={typeof remoteStream.toURL === 'function' ? remoteStream.toURL() : ''}
+            style={StyleSheet.absoluteFill}
+            objectFit="cover"
+          />
+        ) : (
+          <LinearGradient colors={[T.navy0, T.navy1, T.navy2]} locations={[0, 0.45, 1]} start={{ x: 0.3, y: 0 }} end={{ x: 0.7, y: 1 }} style={StyleSheet.absoluteFill} />
+        )}
 
         {/* ── Top bar ── */}
         <View style={[st.topBar, { paddingTop: insets.top + 12 }]}>
@@ -195,6 +226,30 @@ const CallOverlay = () => {
             </View>
           )}
         </View>
+
+        {/* ── Local video preview (PiP) ── */}
+        {isActive && isVideo && !isVideoOff && (
+          <View style={{
+            position: 'absolute', top: insets.top + 60, right: 16,
+            width: 120, height: 160, borderRadius: 12,
+            overflow: 'hidden', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)',
+            backgroundColor: T.navy0,
+          }}>
+            {!!RTCView && localStream ? (
+              <RTCView
+                streamURL={typeof localStream.toURL === 'function' ? localStream.toURL() : ''}
+                style={{ flex: 1 }}
+                objectFit="cover"
+                mirror
+              />
+            ) : cameraPermission?.granted ? (
+              <CameraView 
+                style={{ flex: 1 }} 
+                facing="front" 
+              />
+            ) : null}
+          </View>
+        )}
 
         {/* ── Bottom controls ── */}
         <View style={[st.bottom, { paddingBottom: insets.bottom + 24 }]}>

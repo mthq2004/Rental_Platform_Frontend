@@ -8,7 +8,6 @@ import {
   Skeleton,
   Statistic,
   Segmented,
-  Tag,
   Typography,
 } from "antd";
 import {
@@ -28,7 +27,6 @@ import {
   EnvironmentOutlined,
   SafetyOutlined,
   ReloadOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import type { KeyValueMetric } from "../../types/analytics.type";
 import { useAppDispatch, useAppSelector } from "../../stores/hooks";

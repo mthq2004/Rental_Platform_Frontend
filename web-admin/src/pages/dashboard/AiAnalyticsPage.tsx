@@ -22,7 +22,6 @@ import {
   BarChart,
   Bar,
   CartesianGrid,
-  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,

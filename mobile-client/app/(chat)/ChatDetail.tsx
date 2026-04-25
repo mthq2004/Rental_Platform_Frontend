@@ -43,7 +43,8 @@ const ChatDetail = () => {
   const { user } = useAppSelector(state => state.auth)
   const { startCall } = useCall();
   const [replyingMessage, setReplyingMessage] = useState<Message | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [hasNewMessageWhileScrolled, setHasNewMessageWhileScrolled] = useState(false);
   const prevMessagesLength = useRef(messages.length);
@@ -114,23 +115,24 @@ const ChatDetail = () => {
     if (!user?.id) return;
 
     try {
-      if (selectedImage) {
-        const uploadData = await uploadToCloudinary({
-          uri: selectedImage,
-          fileName: "image.jpg",
-          mimeType: "image/jpeg",
-          resourceType: "image",
-        })
+      if (selectedImages.length > 0) {
+        setIsUploading(true);
+        const uploadedUrls: string[] = [];
+        for (const uri of selectedImages) {
+          const uploadData = await uploadToCloudinary({
+            uri,
+            fileName: "image.jpg",
+            mimeType: "image/jpeg",
+            resourceType: "image",
+          });
+          uploadedUrls.push(uploadData.fileUrl);
+        }
 
         dispatch(sendMessage({
           conversationId: conversation.id,
           messageType: "IMAGE",
-          fileUrl: uploadData.fileUrl,
-          fileName: uploadData.fileName,
-          fileSize: uploadData.fileSize,
-          mimeType: uploadData.mimeType,
-          width: uploadData.width,
-          height: uploadData.height,
+          fileUrl: uploadedUrls[0],
+          content: uploadedUrls.join(','),
           replyToId: replyingMessage?.id,
         }))
       }
@@ -143,12 +145,14 @@ const ChatDetail = () => {
         }))
       }
 
-      setSelectedImage(null)
+      setSelectedImages([])
       setReplyingMessage(null)
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true })
 
     } catch (error) {
       console.log("Send message error:", error)
+    } finally {
+      setIsUploading(false);
     }
   }
 
@@ -179,11 +183,13 @@ const ChatDetail = () => {
   const handleSendImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
       quality: 0.7,
     });
 
     if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+      const uris = result.assets.map(a => a.uri);
+      setSelectedImages(prev => [...prev, ...uris]);
     }
   }
 
@@ -391,15 +397,34 @@ const ChatDetail = () => {
             </View>
           )}
 
-          {selectedImage && (
+          {selectedImages.length > 0 && (
             <View className="mx-4 mb-2">
-              <Image
-                source={{ uri: selectedImage }}
-                className="w-24 h-24 rounded-lg"
-              />
-              <TouchableOpacity onPress={() => setSelectedImage(null)}>
-                <Ionicons name="close" size={18} />
-              </TouchableOpacity>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {selectedImages.map((uri, index) => (
+                  <View key={index} className="mr-3 relative mt-2">
+                    <Image
+                      source={{ uri }}
+                      className="w-20 h-20 rounded-lg"
+                    />
+                    <TouchableOpacity 
+                      onPress={() => setSelectedImages(prev => prev.filter((_, i) => i !== index))}
+                      className="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-sm"
+                    >
+                      <Ionicons name="close-circle" size={24} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                {/* Add more button */}
+                <TouchableOpacity 
+                  onPress={handleSendImage}
+                  className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 items-center justify-center bg-gray-50 mr-2 mt-2"
+                >
+                  <Ionicons name="add" size={30} color="#9ca3af" />
+                </TouchableOpacity>
+              </ScrollView>
+              {isUploading && (
+                <Text className="text-xs text-blue-500 mt-1 ml-1">Đang tải ảnh lên...</Text>
+              )}
             </View>
           )}
 
@@ -409,7 +434,7 @@ const ChatDetail = () => {
               onSendImage={handleSendImage}
               onSendLocation={handleSendLocation}
               onShowAttachments={handleShowAttachments}
-              canSend={!!selectedImage}
+              canSend={selectedImages.length > 0}
             />
           </View>
 

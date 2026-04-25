@@ -417,3 +417,125 @@ export function getOptimizedImageUrl(
 
     return url;
 }
+
+// ── S3 Upload (for non-image files like PDF, DOCX) ──────────────────
+
+export interface S3UploadResult {
+    url: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+}
+
+/**
+ * Get a presigned URL from chat-service for S3 upload.
+ * Uses the existing `getUploadUrl` utility which handles auth + response unwrapping.
+ */
+async function getS3PresignedUrl(fileName: string, fileType: string): Promise<{ uploadUrl: string; fileUrl: string }> {
+    const token = getAuthToken();
+    const res = await fetch(`${API_ENDPOINT}/api/chat/upload-file`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ fileName, fileType }),
+    });
+
+    if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        throw new Error(`Lấy URL upload thất bại: ${res.status} ${errText}`);
+    }
+
+    const json = await res.json();
+    // API response may be wrapped: { data: { uploadUrl, fileUrl } } or direct { uploadUrl, fileUrl }
+    const data = json.data || json;
+    if (!data.uploadUrl || !data.fileUrl) {
+        console.error("[S3 Upload] Unexpected response:", json);
+        throw new Error("Phản hồi từ server không hợp lệ khi lấy URL upload");
+    }
+    return { uploadUrl: data.uploadUrl, fileUrl: data.fileUrl };
+}
+
+/**
+ * Upload a single file to S3 using presigned URL
+ */
+export async function uploadFileToS3(file: File): Promise<S3UploadResult> {
+    // 1. Get presigned URL
+    const { uploadUrl, fileUrl } = await getS3PresignedUrl(file.name, file.type || "application/octet-stream");
+
+    // 2. Upload directly to S3
+    const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+            "Content-Type": file.type || "application/octet-stream",
+        },
+        body: file,
+    });
+
+    if (!uploadRes.ok) {
+        throw new Error(`Upload tệp lên S3 thất bại: ${uploadRes.status}`);
+    }
+
+    return {
+        url: fileUrl,
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        fileSize: file.size,
+    };
+}
+
+/**
+ * Upload multiple files to S3
+ */
+export async function uploadFilesToS3(files: File[]): Promise<S3UploadResult[]> {
+    return Promise.all(files.map((file) => uploadFileToS3(file)));
+}
+
+/**
+ * Helper: check if a File is an image type
+ */
+export function isFileImage(file: File): boolean {
+    return file.type.startsWith("image/");
+}
+
+/**
+ * Upload mixed files: images → Cloudinary, documents → S3
+ * Returns a unified array of attachment metadata.
+ */
+export async function uploadMixedFiles(
+    files: File[]
+): Promise<{ url: string; type: string; fileName?: string; fileSize?: number }[]> {
+    const imageFiles = files.filter((f) => isFileImage(f));
+    const docFiles = files.filter((f) => !isFileImage(f));
+
+    const results: { url: string; type: string; fileName?: string; fileSize?: number }[] = [];
+
+    // Upload images to Cloudinary
+    if (imageFiles.length > 0) {
+        const uploaded = await uploadImages(imageFiles);
+        for (let i = 0; i < uploaded.length; i++) {
+            results.push({
+                url: uploaded[i].secureUrl || uploaded[i].url,
+                type: "image",
+                fileName: imageFiles[i]?.name || uploaded[i].publicId || undefined,
+                fileSize: uploaded[i].bytes || imageFiles[i]?.size || undefined,
+            });
+        }
+    }
+
+    // Upload documents to S3
+    if (docFiles.length > 0) {
+        const uploaded = await uploadFilesToS3(docFiles);
+        for (const u of uploaded) {
+            results.push({
+                url: u.url,
+                type: "document",
+                fileName: u.fileName,
+                fileSize: u.fileSize,
+            });
+        }
+    }
+
+    return results;
+}

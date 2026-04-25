@@ -212,6 +212,18 @@ export interface ReportItem {
   createdAt: string;
   resolvedAt?: string;
   histories?: ReportHistory[];
+  attachments?: ReportAttachment[];
+  terminationRequestId?: string;
+}
+
+export interface ReportAttachment {
+  id: string;
+  reportId: string;
+  url: string;
+  type: string;
+  fileName?: string;
+  fileSize?: number;
+  createdAt: string;
 }
 
 // Status count

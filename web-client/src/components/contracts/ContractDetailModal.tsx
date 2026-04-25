@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { Modal, Tag, Button, Space, Timeline } from "antd";
+import React, { useState } from "react";
+import { Modal, Tag, Button, Space, Timeline, Divider } from "antd";
 import {
   FileTextOutlined,
   EditOutlined,
@@ -9,10 +9,13 @@ import {
   DownloadOutlined,
   CloseCircleOutlined,
   DollarOutlined,
+  ScissorOutlined,
 } from "@ant-design/icons";
 import Link from "next/link";
 import type { RentalContract, RentalContractStatus } from "@/types/contract.type";
 import { STATUS_CONFIG, formatDate, formatCurrency } from "./ContractStatusConfig";
+import TerminationRequestModal from "./TerminationRequestModal";
+import TerminationSection from "./TerminationSection";
 import dayjs from "dayjs";
 
 interface ContractDetailModalProps {
@@ -40,6 +43,8 @@ export default function ContractDetailModal({
   onActivate,
   onCancel,
 }: ContractDetailModalProps) {
+  const [terminationModalOpen, setTerminationModalOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   return (
     <Modal
       open={open}
@@ -139,6 +144,17 @@ export default function ContractDetailModal({
                       Thanh toán tiền thuê tháng đầu
                     </Button>
                   </Link>
+                )}
+
+                {contractDetail.status === "active" && (
+                  <Button
+                    size="small"
+                    danger
+                    icon={<ScissorOutlined />}
+                    onClick={() => setTerminationModalOpen(true)}
+                  >
+                    Yêu cầu chấm dứt
+                  </Button>
                 )}
 
                 {/* Cancel/Reject buttons */}
@@ -285,7 +301,32 @@ export default function ContractDetailModal({
                   })) || []}
                 />
               </div>
+
+              {/* Termination Section */}
+              {(contractDetail.status === "active" || contractDetail.status === "terminated" || contractDetail.status === "expired") && (
+                <div className="max-w-[210mm] mx-auto mb-10 px-8 py-6 bg-white border-t border-gray-100 rounded-b shadow-sm">
+                  <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
+                    <ScissorOutlined className="text-red-500" />
+                    Yêu cầu chấm dứt hợp đồng
+                  </h4>
+                  <TerminationSection
+                    key={refreshKey}
+                    rentalId={contractDetail.rentalId}
+                    userId={userId}
+                    ownerId={contractDetail.ownerId}
+                    tenantId={contractDetail.tenantId}
+                  />
+                </div>
+              )}
             </div>
+
+            {/* Termination Request Modal */}
+            <TerminationRequestModal
+              open={terminationModalOpen}
+              rentalId={contractDetail.rentalId}
+              onClose={() => setTerminationModalOpen(false)}
+              onSuccess={() => setRefreshKey((k) => k + 1)}
+            />
           </div>
         );
       })()}

@@ -12,20 +12,23 @@ import {
   Tag,
   Typography,
   message,
-  Switch,
 } from "antd";
 import {
   PlusOutlined,
   SearchOutlined,
   StarFilled,
-  StarOutlined,
   EyeOutlined,
   EditOutlined,
   DeleteOutlined,
+  ReadFilled,
+  FilterOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import http from "../../utils/api";
 import "../dashboard/dashboard-enterprise.css";
+import "../complaints/disputes.css";
+
+const { Title, Text } = Typography;
 
 interface NewsItem {
   newsId: string;
@@ -40,12 +43,6 @@ interface NewsItem {
   author?: { id: string; fullName: string } | null;
 }
 
-const statusColor: Record<NewsItem["status"], string> = {
-  draft: "default",
-  published: "green",
-  archived: "gold",
-};
-
 const statusLabel: Record<NewsItem["status"], string> = {
   draft: "Bản nháp",
   published: "Đã xuất bản",
@@ -57,7 +54,7 @@ const NewsListPage = () => {
   const [items, setItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit] = useState(10);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string | undefined>(undefined);
@@ -94,31 +91,6 @@ const NewsListPage = () => {
     fetchList();
   }, [fetchList]);
 
-  const onPublishToggle = async (item: NewsItem, nextPublished: boolean) => {
-    try {
-      if (nextPublished) {
-        await http.put(`/estate/news/admin/${item.newsId}/publish`);
-        message.success("Đã xuất bản tin tức");
-      } else {
-        await http.put(`/estate/news/admin/${item.newsId}/unpublish`);
-        message.success("Đã chuyển về bản nháp");
-      }
-      fetchList();
-    } catch {
-      message.error("Không thể cập nhật trạng thái");
-    }
-  };
-
-  const onFeatureToggle = async (item: NewsItem, next: boolean) => {
-    try {
-      await http.put(`/estate/news/admin/${item.newsId}/feature`, { isFeatured: next });
-      message.success("Đã cập nhật nổi bật");
-      fetchList();
-    } catch {
-      message.error("Không thể cập nhật nổi bật");
-    }
-  };
-
   const confirmDelete = (item: NewsItem) => {
     Modal.confirm({
       title: "Xóa tin tức",
@@ -141,13 +113,38 @@ const NewsListPage = () => {
   const columns = useMemo(
     () => [
       {
-        title: "Tiêu đề",
+        title: "Mã / Tiêu đề tin tức",
         dataIndex: "title",
         key: "title",
+        width: 300,
         render: (_: string, record: NewsItem) => (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontWeight: 600 }}>{record.title}</span>
-            <span style={{ color: "#6b7280", fontSize: 12 }}>/{record.slug}</span>
+          <div>
+            <div style={{ fontWeight: 600, color: "#111827", fontSize: 14 }}>{record.title}</div>
+            <div style={{ color: "#6b7280", fontSize: 12, marginTop: 4 }}>/{record.slug}</div>
+          </div>
+        ),
+      },
+      {
+        title: "Danh mục",
+        dataIndex: "category",
+        key: "category",
+        width: 160,
+        render: (value: string) => (
+          <Tag color="blue" style={{ borderRadius: 12, border: 0, fontWeight: 500 }}>
+            {value || "Chưa phân loại"}
+          </Tag>
+        ),
+      },
+      {
+        title: "Tác giả / Lượt xem",
+        key: "author_views",
+        width: 200,
+        render: (_: unknown, record: NewsItem) => (
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ fontSize: 13, color: "#4b5563", fontWeight: 500 }}>{record.author?.fullName || "—"}</div>
+            <div style={{ fontSize: 12, color: "#6b7280", display: "flex", alignItems: "center", gap: 4 }}>
+              <EyeOutlined /> {record.viewCount} lượt xem
+            </div>
           </div>
         ),
       },
@@ -156,83 +153,55 @@ const NewsListPage = () => {
         dataIndex: "status",
         key: "status",
         width: 140,
-        render: (value: NewsItem["status"]) => (
-          <Tag color={statusColor[value]}>{statusLabel[value]}</Tag>
-        ),
-      },
-      {
-        title: "Nổi bật",
-        dataIndex: "isFeatured",
-        key: "isFeatured",
-        width: 120,
-        render: (_: boolean, record: NewsItem) => (
-          <Space>
-            {record.isFeatured ? <StarFilled style={{ color: "#f59e0b" }} /> : <StarOutlined />}
-            <Switch
-              size="small"
-              checked={record.isFeatured}
-              onChange={(val) => onFeatureToggle(record, val)}
-            />
-          </Space>
-        ),
-      },
-      {
-        title: "Danh mục",
-        dataIndex: "category",
-        key: "category",
-        width: 160,
-        render: (value: string) => value || "—",
-      },
-      {
-        title: "Lượt xem",
-        dataIndex: "viewCount",
-        key: "viewCount",
-        width: 120,
-        render: (value: number) => (
-          <Space>
-            <EyeOutlined />
-            {value}
-          </Space>
-        ),
-      },
-      {
-        title: "Tác giả",
-        dataIndex: "author",
-        key: "author",
-        width: 160,
-        render: (value: NewsItem["author"]) => value?.fullName || "—",
-      },
-      {
-        title: "Xuất bản",
-        dataIndex: "publishedAt",
-        key: "publishedAt",
-        width: 160,
-        render: (value?: string | null) => value ? new Date(value).toLocaleDateString("vi-VN") : "—",
+        render: (value: NewsItem["status"], record: NewsItem) => {
+          const isPublished = value === "published";
+          const isArchived = value === "archived";
+          
+          let bg = "#f3f4f6";
+          let color = "#374151";
+          let dot = "#6b7280";
+          
+          if (isPublished) {
+            bg = "#d1fae5"; color = "#065f46"; dot = "#10b981";
+          } else if (isArchived) {
+            bg = "#fef3c7"; color = "#92400e"; dot = "#f59e0b";
+          }
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: bg, padding: "4px 12px", borderRadius: 100 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: dot }} />
+                <span style={{ fontSize: 12, fontWeight: 600, color }}>{statusLabel[value]}</span>
+              </div>
+              {record.isFeatured && (
+                <Tag color="gold" style={{ border: 0, borderRadius: 12, margin: 0, fontSize: 11 }}>
+                  <StarFilled /> Nổi bật
+                </Tag>
+              )}
+            </div>
+          );
+        },
       },
       {
         title: "Hành động",
         key: "actions",
-        width: 200,
+        width: 150,
         render: (_: unknown, record: NewsItem) => (
-          <Space>
+          <Space size="middle">
             <Button
-              type="link"
+              type="primary"
+              ghost
               icon={<EditOutlined />}
+              style={{ background: "#eff6ff", borderColor: "transparent", color: "#2563eb", borderRadius: 6 }}
               onClick={() => navigate(`/dashboard/news/${record.newsId}`)}
-            >
-              Sửa
-            </Button>
+            />
             <Button
-              type="link"
-              icon={<DeleteOutlined />}
+              type="primary"
               danger
+              ghost
+              icon={<DeleteOutlined />}
+              style={{ background: "#fef2f2", borderColor: "transparent", color: "#ef4444", borderRadius: 6 }}
               onClick={() => confirmDelete(record)}
-            >
-              Xóa
-            </Button>
-            <Switch
-              checked={record.status === "published"}
-              onChange={(val) => onPublishToggle(record, val)}
             />
           </Space>
         ),
@@ -242,85 +211,99 @@ const NewsListPage = () => {
   );
 
   return (
-    <div style={{ padding: 24 }}>
-      <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
-        <Col flex="auto">
-          <Typography.Title level={3} style={{ margin: 0 }}>
-            Quản lý tin tức
-          </Typography.Title>
-          <Typography.Text type="secondary">
-            Quản trị toàn bộ nội dung tin tức, chiến dịch và chuyên mục.
-          </Typography.Text>
+    <div className="dispute-management-page">
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Title level={2} style={{ margin: 0, color: "#111827" }}>Quản lý tin tức</Title>
+          <Text style={{ color: "#6b7280", fontSize: 15 }}>Quản trị toàn bộ nội dung tin tức, chiến dịch và chuyên mục.</Text>
         </Col>
         <Col>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate("/dashboard/news/create")}
-          >
-            Tạo tin mới
-          </Button>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#dbeafe", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                 <ReadFilled style={{ color: "#2563eb", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: 0.5, textTransform: "uppercase" }}>Tổng bài viết</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: "#111827", lineHeight: 1.2 }}>{total}</div>
+              </div>
+            </div>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              size="large"
+              style={{ height: "auto", background: "#4f46e5", borderRadius: 8, fontWeight: 500 }}
+              onClick={() => navigate("/dashboard/news/create")}
+            >
+              Tạo bài viết
+            </Button>
+          </div>
         </Col>
       </Row>
 
-      <Card style={{ marginBottom: 16 }}>
-        <Row gutter={[12, 12]} align="middle">
+      <Card variant="borderless" className="dispute-filter-card" style={{ marginBottom: 24, borderRadius: 8, border: "1px solid #e5e7eb" }}>
+        <Row gutter={16} align="bottom">
           <Col xs={24} md={8}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 6 }}>Tìm kiếm bài viết</div>
             <Input
-              prefix={<SearchOutlined />}
-              placeholder="Tìm theo tiêu đề hoặc tóm tắt"
+              prefix={<SearchOutlined style={{ color: "#9ca3af" }} />}
+              placeholder="VD: Cẩm nang bất động sản..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              allowClear
+              onPressEnter={fetchList}
+              size="large"
             />
           </Col>
-          <Col xs={24} md={5}>
+          <Col xs={12} md={5}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 6 }}>Trạng thái</div>
             <Select
+              style={{ width: "100%" }}
+              size="large"
+              placeholder="Tất cả trạng thái"
               value={status}
               onChange={(val) => setStatus(val)}
               allowClear
-              placeholder="Trạng thái"
-              style={{ width: "100%" }}
               options={[
-                { value: "draft", label: "Bản nháp" },
                 { value: "published", label: "Đã xuất bản" },
+                { value: "draft", label: "Bản nháp" },
                 { value: "archived", label: "Lưu trữ" },
               ]}
             />
           </Col>
-          <Col xs={24} md={6}>
+          <Col xs={12} md={7}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 6 }}>Danh mục</div>
             <Input
-              placeholder="Danh mục"
+              placeholder="Nhập tên danh mục"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              allowClear
+              onPressEnter={fetchList}
+              size="large"
             />
           </Col>
-          <Col xs={24} md={5}>
-            <Button type="default" onClick={() => fetchList()}>
-              Lọc dữ liệu
-            </Button>
+          <Col xs={24} md={4} style={{ textAlign: "right" }}>
+             <Button size="large" onClick={fetchList} icon={<FilterOutlined />} style={{ color: "#4f46e5", borderColor: "#c7d2fe", background: "#e0e7ff", width: "100%" }}>
+               Lọc dữ liệu
+             </Button>
           </Col>
         </Row>
       </Card>
 
-      <Card>
+      <Card variant="borderless" className="dispute-table-card" style={{ borderRadius: 8, border: "1px solid #e5e7eb", padding: 0, overflow: "hidden" }}>
         <Table
-          rowKey="newsId"
-          loading={loading}
-          dataSource={items}
           columns={columns}
-          pagination={{
-            current: page,
-            pageSize: limit,
-            total,
-            showSizeChanger: true,
-            onChange: (nextPage, nextSize) => {
-              setPage(nextPage);
-              setLimit(nextSize || 10);
-            },
-          }}
+          dataSource={items}
+          rowKey="newsId"
+          pagination={false}
+          loading={loading}
+          className="custom-dispute-table"
         />
+        <div style={{ padding: "16px 24px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f9fafb" }}>
+          <Text style={{ color: "#4b5563", fontSize: 13 }}>Đang hiển thị {items.length} / {total} mục</Text>
+          <Space>
+             <Button disabled={page === 1} onClick={() => setPage(page - 1)}>Trước</Button>
+             <Button disabled={items.length < limit} onClick={() => setPage(page + 1)}>Tiếp</Button>
+          </Space>
+        </div>
       </Card>
     </div>
   );

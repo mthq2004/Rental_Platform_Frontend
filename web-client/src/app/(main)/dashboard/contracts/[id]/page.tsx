@@ -2,7 +2,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Alert, App, Avatar, Button, Card, Col, DatePicker, Descriptions, Divider, Empty, Form, Input, InputNumber, Modal, Progress, Radio, Row, Select, Space, Spin, Tag, Timeline, Typography } from "antd";
+import { Alert, App, Avatar, Button, Card, Col, DatePicker, Descriptions, Divider, Empty, Form, Input, InputNumber, Modal, Progress, Radio, Row, Select, Space, Spin, Tag, Timeline, Typography, Upload } from "antd";
+import type { UploadFile } from "antd/es/upload/interface";
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -21,6 +22,8 @@ import {
   EditOutlined,
   UploadOutlined,
   SendOutlined,
+  FileImageOutlined,
+  FileOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
@@ -66,6 +69,9 @@ import type { PropertyDetailApiData } from "@/types/property.type";
 import { STATUS_CONFIG, formatCurrency, formatDate } from "@/components/contracts/ContractStatusConfig";
 import TopupMethodModal, { type MethodOption } from "@/components/wallet/TopupMethodModal";
 import InvoiceModal from "@/components/payments/InvoiceModal";
+import DisputeFormSection from "@/components/contracts/DisputeFormSection";
+import TerminationReviewSection from "@/components/contracts/TerminationReviewSection";
+import TerminationUpdateSection from "@/components/contracts/TerminationUpdateSection";
 import http from "@/utils/api";
 
 const { Text, Paragraph } = Typography;
@@ -729,15 +735,28 @@ export default function ContractDetailPage() {
 
   const handleOpenReview = (request: TerminationRequest) => {
     setSelectedTermination(request);
-    reviewForm.resetFields();
-    reviewForm.setFieldsValue({ status: "approved" });
-    setReviewOpen(true);
+    setActiveView("review");
   };
+
+  // View state for inline forms
+  const [activeView, setActiveView] = useState<"main" | "review" | "update" | "dispute">("main");
+  const [updateNextStatus, setUpdateNextStatus] = useState<"negotiating" | "resolved" | undefined>();
+  const [disputeTerminationRequestId, setDisputeTerminationRequestId] = useState<string | undefined>();
+  const [disputePrefill, setDisputePrefill] = useState<{ title?: string; description?: string; type?: string; } | undefined>();
 
   const handleSubmitReview = async () => {
     if (!selectedTermination) return;
     try {
       const values = await reviewForm.validateFields();
+
+      // If rejecting, require reason
+      if (values.status === "rejected") {
+        if (!values.reviewNote || values.reviewNote.trim() === "") {
+          message.error("Vui lòng nhập lý do từ chối");
+          return;
+        }
+      }
+
       await dispatch(
         reviewTerminationRequest({
           terminationId: selectedTermination.terminationRequestId,
@@ -749,6 +768,7 @@ export default function ContractDetailPage() {
       ).unwrap();
       message.success("Đã xử lý yêu cầu chấm dứt");
       setReviewOpen(false);
+      setActiveView("main");
       if (contract?.rentalId) {
         dispatch(getTerminationRequests(contract.rentalId));
         dispatch(getContractDetail(contract.rentalId));
@@ -759,40 +779,30 @@ export default function ContractDetailPage() {
     }
   };
 
-  const handleOpenReport = (prefill?: { title?: string; description?: string; type?: ReportType }) => {
+  const handleOpenReport = (prefill?: { title?: string; description?: string; type?: string; terminationRequestId?: string }) => {
     if (!contract) return;
-    reportForm.resetFields();
-    reportForm.setFieldsValue({
-      type: prefill?.type || "contract",
-      priority: "medium",
-      title: prefill?.title || `Tranh chấp hợp đồng ${contract.contractCode}`,
-      description: prefill?.description || "",
-    });
-    setReportOpen(true);
+    setDisputeTerminationRequestId(prefill?.terminationRequestId);
+    setDisputePrefill(prefill);
+    setActiveView("dispute");
   };
 
-  const handleSubmitReport = async () => {
+  const handleSubmitReportInline = async (payload: {
+    rentalId: string;
+    againstId: string;
+    terminationRequestId?: string;
+    type: string;
+    priority: string;
+    title: string;
+    description: string;
+    attachments?: { url: string; type: string; fileName?: string; fileSize?: number }[];
+  }) => {
     if (!contract) return;
-    const againstId = isOwnerSide ? contract.tenantId : contract.ownerId;
-    if (!againstId) return;
-
     try {
-      const values = await reportForm.validateFields();
-      await dispatch(
-        createReport({
-          rentalId: contract.rentalId,
-          againstId,
-          type: values.type,
-          priority: values.priority,
-          title: values.title,
-          description: values.description,
-        })
-      ).unwrap();
-      message.success("Đã gửi khiếu nại");
-      setReportOpen(false);
+      await dispatch(createReport(payload)).unwrap();
+      message.success("Đã gửi khiếu nại thành công");
+      setActiveView("main");
       dispatch(getReportsByContract(contract.rentalId));
     } catch (error: any) {
-      if (error?.errorFields) return;
       message.error(error || "Gửi khiếu nại thất bại");
     }
   };
@@ -849,12 +859,25 @@ export default function ContractDetailPage() {
 
   const handleOpenTerminationUpdate = (request: TerminationRequest, nextStatus?: TerminationRequest["status"]) => {
     setSelectedTermination(request);
-    terminationUpdateForm.resetFields();
-    terminationUpdateForm.setFieldsValue({
-      status: nextStatus || "negotiating",
-      resolution: "continue_contract",
-    });
-    setTerminationUpdateOpen(true);
+    setUpdateNextStatus(nextStatus as "negotiating" | "resolved");
+    setActiveView("update");
+  };
+
+  const handleSubmitTerminationUpdateInline = async (payload: { status: string; note: string; resolution?: string }) => {
+    if (!selectedTermination) return;
+    try {
+      await dispatch(
+        updateTerminationStatus({
+          terminationId: selectedTermination.terminationRequestId,
+          data: payload,
+        })
+      ).unwrap();
+      message.success("Cập nhật thành công");
+      setActiveView("main");
+      handleRefresh();
+    } catch (error: any) {
+      message.error(error.message || "Cập nhật thất bại");
+    }
   };
 
   const handleOpenTerminationDetail = (request: TerminationRequest) => {
@@ -866,6 +889,34 @@ export default function ContractDetailPage() {
     if (!selectedTermination) return;
     try {
       const values = await terminationUpdateForm.validateFields();
+
+      // If escalating to admin, redirect to dispute form to create proper Report with attachments
+      if (values.status === "admin_review") {
+        if (!values.note || values.note.trim() === "") {
+          message.error("Vui lòng nhập lý do gửi tranh chấp lên admin");
+          return;
+        }
+        // First update the termination status to admin_review
+        await dispatch(
+          updateTerminationStatus({
+            terminationId: selectedTermination.terminationRequestId,
+            data: {
+              status: values.status,
+              note: values.note,
+            },
+          })
+        ).unwrap();
+        setTerminationUpdateOpen(false);
+        // Then redirect to dispute form to create a formal report with evidence
+        setDisputeTerminationRequestId(selectedTermination.terminationRequestId);
+        setActiveView("dispute");
+        message.info("Vui lòng tạo khiếu nại chính thức với bằng chứng đính kèm");
+        if (contract?.rentalId) {
+          dispatch(getTerminationRequests(contract.rentalId));
+        }
+        return;
+      }
+
       await dispatch(
         updateTerminationStatus({
           terminationId: selectedTermination.terminationRequestId,
@@ -919,6 +970,62 @@ export default function ContractDetailPage() {
           Quay lại
         </Button>
         <Empty description="Không tìm thấy hợp đồng" />
+      </div>
+    );
+  } else if (activeView === "review" && selectedTermination) {
+    content = (
+      <div className="space-y-8 -m-6 p-6 pb-8 bg-white min-h-[80vh]">
+        <TerminationReviewSection
+          request={selectedTermination}
+          contractCode={contract.contractCode}
+          onReview={async (status, reviewNote) => {
+            await dispatch(
+              reviewTerminationRequest({
+                terminationId: selectedTermination.terminationRequestId,
+                data: { status, reviewNote },
+              })
+            ).unwrap();
+            message.success(status === "approved" ? "Đã chấp nhận chấm dứt hợp đồng" : "Đã từ chối yêu cầu");
+            setActiveView("main");
+            if (contract?.rentalId) {
+              dispatch(getTerminationRequests(contract.rentalId));
+              dispatch(getContractDetail(contract.rentalId));
+            }
+          }}
+          onBack={() => setActiveView("main")}
+          loading={terminationActionLoading}
+        />
+      </div>
+    );
+  } else if (activeView === "update" && selectedTermination && updateNextStatus) {
+    content = (
+      <div className="space-y-8 -m-6 p-6 pb-8 bg-white min-h-[80vh]">
+        <TerminationUpdateSection
+          request={selectedTermination}
+          contractCode={contract?.contractCode}
+          nextStatus={updateNextStatus}
+          onUpdate={handleSubmitTerminationUpdateInline}
+          onBack={() => setActiveView("main")}
+          loading={actionLoading}
+        />
+      </div>
+    );
+  } else if (activeView === "dispute" && contract) {
+    content = (
+      <div className="space-y-8 -m-6 p-6 pb-8 bg-white min-h-[80vh]">
+        <DisputeFormSection
+          rentalId={contract.rentalId}
+          contractCode={contract.contractCode}
+          ownerId={contract.ownerId}
+          tenantId={contract.tenantId}
+          userId={user?.id}
+          terminationRequestId={disputeTerminationRequestId}
+          prefill={disputePrefill}
+          onSubmit={handleSubmitReportInline}
+          onCancel={() => setActiveView("main")}
+          loading={reportActionLoading}
+          existingReports={reportItems}
+        />
       </div>
     );
   } else {
@@ -1225,10 +1332,51 @@ export default function ContractDetailPage() {
                           <Descriptions.Item label="Ngày chấm dứt dự kiến">{formatDate(latestTermination.requestedTerminationDate)}</Descriptions.Item>
                           <Descriptions.Item label="Phí chấm dứt sớm">{formatMoney(latestTermination.earlyTerminationFee || 0)}</Descriptions.Item>
                           <Descriptions.Item label="Ghi chú">{latestTermination.note || "—"}</Descriptions.Item>
-                          <Descriptions.Item label="Ghi chú phản hồi">{latestTermination.reviewNote || "—"}</Descriptions.Item>
+                          <Descriptions.Item label="Ghi chú phản hồi">
+                            {(() => {
+                              if (!latestTermination.reviewNote) return "—";
+                              const parts = latestTermination.reviewNote.split("--- TÀI LIỆU MINH CHỨNG ---");
+                              const pureNote = parts[0].trim();
+                              if (parts.length === 1) return pureNote;
+
+                              const linksStr = parts[1].trim();
+                              const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+                              const links = [];
+                              let match;
+                              while ((match = regex.exec(linksStr)) !== null) {
+                                links.push({ label: match[1], url: match[2] });
+                              }
+
+                              return (
+                                <div>
+                                  <div style={{ whiteSpace: "pre-wrap", marginBottom: 12 }}>{pureNote || "Không có ghi chú"}</div>
+                                  <div className="font-semibold text-xs text-slate-500 uppercase tracking-wider mb-2">Tài liệu minh chứng đính kèm:</div>
+                                  <div className="flex gap-2 flex-wrap">
+                                    {links.map((link, idx) => {
+                                      const isImage = /\.(jpe?g|png|gif|webp)$/i.test(link.url);
+                                      return (
+                                        <a key={idx} href={link.url} target="_blank" rel="noreferrer" className="block border border-slate-200 rounded-lg p-2 bg-white hover:border-blue-400 transition-colors w-24 h-24 flex flex-col items-center justify-center">
+                                          {isImage ? (
+                                            <div className="w-full h-full rounded bg-slate-50 overflow-hidden relative">
+                                              <img src={link.url} alt={link.label} className="w-full h-full object-cover" />
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <FileOutlined className="text-2xl text-blue-500 mb-1" />
+                                              <div className="text-[10px] text-slate-600 truncate w-full text-center" title={link.label}>{link.label}</div>
+                                            </>
+                                          )}
+                                        </a>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </Descriptions.Item>
                           {latestTermination.status === "resolved" && (
                             <Descriptions.Item label="Kết quả">
-                              {latestTermination.resolution === "terminate_contract" ? "Chấm dứt hợp đồng" : "Tiếp tục hợp đồng"}
+                              {latestTermination.resolution === "terminate_contract" ? "Chấp nhận chấm dứt (Hoàn tiền & Phạt)" : "Bác bỏ yêu cầu (Tiếp tục hợp đồng)"}
                             </Descriptions.Item>
                           )}
                           {latestTermination.resolvedAt && (
@@ -1248,7 +1396,7 @@ export default function ContractDetailPage() {
                               <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "negotiating")}>
                                 Bắt đầu thương lượng
                               </Button>
-                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "admin_review")}>
+                              <Button size="small" onClick={() => handleOpenReport({ terminationRequestId: latestTermination.terminationRequestId, type: 'contract', title: 'Tranh chấp chấm dứt hợp đồng', description: 'Yêu cầu xem xét chấm dứt hợp đồng đang bị tranh chấp.' })}>
                                 Gửi tranh chấp lên admin
                               </Button>
                             </>
@@ -1258,7 +1406,7 @@ export default function ContractDetailPage() {
                               <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
                                 Xác nhận đã giải quyết
                               </Button>
-                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "admin_review")}>
+                              <Button size="small" onClick={() => handleOpenReport({ terminationRequestId: latestTermination.terminationRequestId, type: 'contract', title: 'Tranh chấp chấm dứt hợp đồng', description: 'Yêu cầu xem xét chấm dứt hợp đồng đang bị tranh chấp.' })}>
                                 Gửi tranh chấp lên admin
                               </Button>
                             </>
@@ -1835,8 +1983,23 @@ export default function ContractDetailPage() {
               ]}
             />
           </Form.Item>
-          <Form.Item name="reviewNote" label="Ghi chú phản hồi">
-            <Input.TextArea rows={3} placeholder="Ghi chú cho đối tác" />
+
+          <Form.Item shouldUpdate>
+            {() => {
+              const status = reviewForm.getFieldValue("status");
+              return (
+                <Form.Item
+                  name="reviewNote"
+                  label={status === "rejected" ? "Lý do từ chối" : "Ghi chú phản hồi"}
+                  rules={status === "rejected" ? [{ required: true, message: "Vui lòng nhập lý do từ chối" }] : []}
+                >
+                  <Input.TextArea
+                    rows={3}
+                    placeholder={status === "rejected" ? "Nhập lý do từ chối (bắt buộc)" : "Ghi chú cho đối tác"}
+                  />
+                </Form.Item>
+              );
+            }}
           </Form.Item>
         </Form>
       </Modal>
@@ -1863,25 +2026,48 @@ export default function ContractDetailPage() {
           <Form.Item shouldUpdate>
             {() => {
               const status = terminationUpdateForm.getFieldValue("status");
-              if (status !== "resolved") return null;
+              if (status === "resolved") {
+                return (
+                  <Form.Item
+                    name="resolution"
+                    label="Kết quả"
+                    rules={[{ required: true, message: "Vui lòng chọn kết quả" }]}
+                  >
+                    <Select
+                      options={[
+                        { value: "continue_contract", label: "Tiếp tục hợp đồng" },
+                        { value: "terminate_contract", label: "Chấm dứt hợp đồng" },
+                      ]}
+                    />
+                  </Form.Item>
+                );
+              }
+              if (status === "admin_review") {
+                return (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700 mb-4">
+                    ⚠️ Sau khi cập nhật, bạn sẽ được chuyển đến form tạo khiếu nại chính thức với bằng chứng đính kèm để admin xem xét.
+                  </div>
+                );
+              }
+              return null;
+            }}
+          </Form.Item>
+          <Form.Item shouldUpdate>
+            {() => {
+              const status = terminationUpdateForm.getFieldValue("status");
               return (
                 <Form.Item
-                  name="resolution"
-                  label="Kết quả"
-                  rules={[{ required: true, message: "Vui lòng chọn kết quả" }]}
+                  name="note"
+                  label={status === "admin_review" ? "Lý do gửi tranh chấp" : "Ghi chú"}
+                  rules={status === "admin_review" ? [{ required: true, message: "Vui lòng nhập lý do" }] : []}
                 >
-                  <Select
-                    options={[
-                      { value: "continue_contract", label: "Tiếp tục hợp đồng" },
-                      { value: "terminate_contract", label: "Chấm dứt hợp đồng" },
-                    ]}
+                  <Input.TextArea
+                    rows={3}
+                    placeholder={status === "admin_review" ? "Nhập lý do gửi tranh chấp lên admin (bắt buộc)" : "Ghi chú bổ sung"}
                   />
                 </Form.Item>
               );
             }}
-          </Form.Item>
-          <Form.Item name="note" label="Ghi chú">
-            <Input.TextArea rows={3} placeholder="Ghi chú bổ sung" />
           </Form.Item>
         </Form>
       </Modal>
@@ -1922,53 +2108,63 @@ export default function ContractDetailPage() {
           </Descriptions>
         )}
       </Modal>
+      {/* Report modal replaced by inline DisputeFormSection */}
 
-      <Modal
-        open={reportOpen}
-        onCancel={() => setReportOpen(false)}
-        onOk={handleSubmitReport}
-        okText="Gửi khiếu nại"
-        cancelText="Đóng"
-        confirmLoading={reportActionLoading}
-        title="Tạo khiếu nại"
-      >
-        <Form form={reportForm} layout="vertical">
-          <Form.Item name="type" label="Loại khiếu nại" rules={[{ required: true, message: "Vui lòng chọn loại" }]}>
-            <Select options={Object.entries(REPORT_TYPE_LABELS).map(([value, label]) => ({ value, label }))} />
-          </Form.Item>
-          <Form.Item name="priority" label="Mức độ" rules={[{ required: true, message: "Vui lòng chọn mức độ" }]}>
-            <Select options={REPORT_PRIORITY_OPTIONS} />
-          </Form.Item>
-          <Form.Item name="title" label="Tiêu đề" rules={[{ required: true, message: "Vui lòng nhập tiêu đề" }]}> 
-            <Input placeholder="Ví dụ: Khiếu nại thanh toán" />
-          </Form.Item>
-          <Form.Item name="description" label="Mô tả" rules={[{ required: true, message: "Vui lòng nhập nội dung" }]}> 
-            <Input.TextArea rows={4} placeholder="Mô tả chi tiết vấn đề" />
-          </Form.Item>
-        </Form>
-      </Modal>
 
       <Modal
         open={reportDetailOpen}
         onCancel={() => setReportDetailOpen(false)}
         footer={<Button onClick={() => setReportDetailOpen(false)}>Đóng</Button>}
         title="Chi tiết khiếu nại"
+        width={600}
       >
         {reportDetailItem && (
-          <Descriptions column={1} size="small">
-            <Descriptions.Item label="Trạng thái">
-              {REPORT_STATUS_LABELS[reportDetailItem.status].label}
-            </Descriptions.Item>
-            <Descriptions.Item label="Tiêu đề">{reportDetailItem.title}</Descriptions.Item>
-            <Descriptions.Item label="Loại">{REPORT_TYPE_LABELS[reportDetailItem.type] || reportDetailItem.type}</Descriptions.Item>
-            <Descriptions.Item label="Mức độ">{reportDetailItem.priority}</Descriptions.Item>
-            <Descriptions.Item label="Nội dung">{reportDetailItem.description}</Descriptions.Item>
-            <Descriptions.Item label="Ghi chú admin">{reportDetailItem.adminNote || "—"}</Descriptions.Item>
-            <Descriptions.Item label="Ngày tạo">{formatDate(reportDetailItem.createdAt)}</Descriptions.Item>
-            {reportDetailItem.resolvedAt && (
-              <Descriptions.Item label="Ngày giải quyết">{formatDate(reportDetailItem.resolvedAt)}</Descriptions.Item>
+          <div className="space-y-4">
+            <Descriptions column={1} size="small">
+              <Descriptions.Item label="Trạng thái">
+                {REPORT_STATUS_LABELS[reportDetailItem.status].label}
+              </Descriptions.Item>
+              <Descriptions.Item label="Tiêu đề">{reportDetailItem.title}</Descriptions.Item>
+              <Descriptions.Item label="Loại">{REPORT_TYPE_LABELS[reportDetailItem.type] || reportDetailItem.type}</Descriptions.Item>
+              <Descriptions.Item label="Mức độ">{reportDetailItem.priority}</Descriptions.Item>
+              <Descriptions.Item label="Nội dung">{reportDetailItem.description}</Descriptions.Item>
+              <Descriptions.Item label="Ghi chú admin">{reportDetailItem.adminNote || "—"}</Descriptions.Item>
+              <Descriptions.Item label="Ngày tạo">{formatDate(reportDetailItem.createdAt)}</Descriptions.Item>
+              {reportDetailItem.resolvedAt && (
+                <Descriptions.Item label="Ngày giải quyết">{formatDate(reportDetailItem.resolvedAt)}</Descriptions.Item>
+              )}
+            </Descriptions>
+
+            {/* Attachments */}
+            {reportDetailItem.attachments && reportDetailItem.attachments.length > 0 && (
+              <Card size="small" className="!bg-slate-50 !border-slate-200 !rounded-xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <FileTextOutlined className="text-slate-500" />
+                  <Text className="text-sm font-semibold text-slate-700">
+                    Bằng chứng đính kèm ({reportDetailItem.attachments.length} tệp)
+                  </Text>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {reportDetailItem.attachments.map((att) => (
+                    <a key={att.id} href={att.url} target="_blank" rel="noreferrer" className="no-underline">
+                      {att.type === "image" ? (
+                        <img
+                          src={att.url}
+                          alt={att.fileName || "Ảnh"}
+                          className="w-20 h-20 object-cover rounded-lg border border-slate-200 hover:border-indigo-400 transition-colors"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:border-indigo-400 transition-colors">
+                          <span className="text-base">{(att.fileName || "").toLowerCase().endsWith(".pdf") ? "📄" : "📎"}</span>
+                          <span className="text-xs text-slate-600 max-w-[120px] truncate">{att.fileName || "Tệp đính kèm"}</span>
+                        </div>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </Card>
             )}
-          </Descriptions>
+          </div>
         )}
       </Modal>
 

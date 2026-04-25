@@ -461,10 +461,12 @@ export const createReport = createAsyncThunk(
   async (data: {
     rentalId: string;
     againstId: string;
+    terminationRequestId?: string;
     type: string;
     priority?: string;
     title: string;
     description: string;
+    attachments?: { url: string; type: string; fileName?: string; fileSize?: number }[];
   }, { rejectWithValue }) => {
     try {
       return await http.post("/contract/reports", data);

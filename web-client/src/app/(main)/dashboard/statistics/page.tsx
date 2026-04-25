@@ -42,7 +42,7 @@ export default function StatisticsPage() {
   const stats = useMemo(() => {
     const activeContracts = contracts.filter(c => c.status === "active");
     const totalMonthlyRent = activeContracts.reduce((sum, c) => sum + Number(c.monthlyRent || 0), 0);
-    const totalRevenue = payments.filter(p => p.status === "PAID").reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const totalRevenue = payments.filter(p => p.status === "paid").reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
     return {
       activeCount: activeContracts.length,
@@ -50,7 +50,7 @@ export default function StatisticsPage() {
       monthlyExpectedRent: totalMonthlyRent,
       totalRevenue: totalRevenue,
       paymentCount: payments.length,
-      paidCount: payments.filter(p => p.status === "PAID").length,
+      paidCount: payments.filter(p => p.status === "paid").length,
     };
   }, [contracts, payments]);
 

@@ -6,8 +6,6 @@ import {
   SafetyCertificateOutlined,
   UserOutlined,
   EditOutlined,
-  CheckCircleFilled,
-  CloseCircleFilled,
   LockOutlined,
 } from "@ant-design/icons";
 import {
@@ -324,25 +322,7 @@ const FieldLabel = ({ children }: { children: React.ReactNode }) => (
   </span>
 );
 
-const VerificationBadge = ({ ok, label }: { ok: boolean; label: string }) => (
-  <span
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 6,
-      borderRadius: 999,
-      border: ok ? "1px solid #bbf7d0" : "1px solid #fecaca",
-      background: ok ? "#f0fdf4" : "#fff1f2",
-      color: ok ? "#166534" : "#b91c1c",
-      fontSize: 12,
-      fontWeight: 600,
-      padding: "4px 10px",
-    }}
-  >
-    {ok ? <CheckCircleFilled style={{ fontSize: 11 }} /> : <CloseCircleFilled style={{ fontSize: 11 }} />}
-    {label}
-  </span>
-);
+
 
 /* ─── Styles ─── */
 
