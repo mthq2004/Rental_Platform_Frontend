@@ -24,6 +24,7 @@ import { Toast } from '@/components/Notification';
 import { router } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
+import { validatePhone, validatePhoneRealtime, validateFullNameRealtime } from '@/utils/validation';
 
 type Step = 'phone' | 'otp' | 'profile';
 
@@ -74,6 +75,8 @@ const RegisterFlow: React.FC = () => {
     password?: string;
     confirmPassword?: string;
   }>({});
+  const [phoneHint, setPhoneHint] = useState<string | null>(null);
+  const [nameHint, setNameHint] = useState<string | null>(null);
 
   const otpInputs = useRef<(TextInput | null)[]>([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -106,13 +109,14 @@ const RegisterFlow: React.FC = () => {
     }
   }, [currentStep, timer]);
 
-  const validatePhone = (): boolean => {
+  const validatePhoneStep = (): boolean => {
     if (!phoneNumber) {
       setErrors({ phone: 'Vui lòng nhập số điện thoại' });
       return false;
     }
-    if (phoneNumber.length < 10) {
-      setErrors({ phone: 'Số điện thoại phải có ít nhất 10 số' });
+    const phoneErr = validatePhone(phoneNumber);
+    if (phoneErr) {
+      setErrors({ phone: phoneErr });
       return false;
     }
     setErrors({});
@@ -121,7 +125,7 @@ const RegisterFlow: React.FC = () => {
 
   const handlePhoneSubmit = (): void => {
     Keyboard.dismiss();
-    if (!validatePhone()) return;
+    if (!validatePhoneStep()) return;
     dispatch(requestOtp(phoneNumber))
 
     setCurrentStep('otp');
@@ -301,16 +305,17 @@ const RegisterFlow: React.FC = () => {
         <View className="mb-6">
           <CustomInput
             label="Số điện thoại"
-            placeholder="Nhập số điện thoại"
+            placeholder="VD: 0912345678"
             value={phoneNumber}
             onChangeText={(text) => {
               setPhoneNumber(text);
+              setPhoneHint(validatePhoneRealtime(text));
               if (errors.phone) setErrors({ ...errors, phone: undefined });
             }}
             keyboardType="phone-pad"
             icon="call-outline"
-            error={errors.phone}
-            maxLength={10}
+            error={errors.phone || (phoneHint ?? undefined)}
+            maxLength={12}
           />
 
           <PrimaryButton
@@ -430,10 +435,11 @@ const RegisterFlow: React.FC = () => {
               value={fullName}
               onChangeText={(text) => {
                 setFullName(text);
+                setNameHint(validateFullNameRealtime(text));
                 if (errors.fullName) setErrors({ ...errors, fullName: undefined });
               }}
               icon="person-outline"
-              error={errors.fullName}
+              error={errors.fullName || (nameHint ?? undefined)}
             />
 
             <CustomInput

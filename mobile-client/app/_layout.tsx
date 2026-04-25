@@ -11,6 +11,7 @@ import { ChatSocketProvider } from "@/contexts/ChatSocketContext";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { CallProvider } from "@/contexts/CallContext";
 import CallOverlay from "@/components/chat/CallOverlay";
+import { GlobalToast } from '@/components/Notification';
 
 export default function RootLayout() {
   return (
@@ -25,6 +26,7 @@ export default function RootLayout() {
                   <Stack.Screen name="(auth)" />
                 </Stack>
                 <CallOverlay />
+                <GlobalToast />
               </GestureHandlerRootView>
             </CallProvider>
           </ChatSocketProvider>

@@ -110,7 +110,6 @@ const FilterSearch: React.FC = () => {
   );
 
   const [searchText, setSearchText] = useState(keyword ?? '');
-  const [savedProperties, setSavedProperties] = useState<Set<string>>(new Set());
 
   const parsedLocation = useMemo(() => parseLocationParams(location), [location]);
 
@@ -259,17 +258,7 @@ const FilterSearch: React.FC = () => {
     ).finally(() => setRefreshing(false));
   };
 
-  const handleSaveProperty = useCallback((id: string) => {
-    setSavedProperties((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  }, []);
+
 
   const handleMessage = useCallback(
     (id: string) => {
@@ -485,10 +474,8 @@ const FilterSearch: React.FC = () => {
               <PropertyCard
                 key={property.id}
                 property={property}
-                onSave={handleSaveProperty}
                 onMessage={handleMessage}
                 onPress={handlePropertyPress}
-                isSaved={savedProperties.has(property.id)}
               />
             ))}
 

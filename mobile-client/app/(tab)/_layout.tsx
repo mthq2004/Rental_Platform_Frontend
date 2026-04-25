@@ -1,158 +1,56 @@
-import { router, Tabs } from 'expo-router';
-import { View, StyleSheet, Platform } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { COLORS, useThemeColors } from '@/utils/colors';
+import { Tabs, router } from 'expo-router';
+import { useThemeColors } from '@/utils/colors';
 import { useColorScheme } from 'nativewind';
+import CustomTabBar from '@/components/CustomTabBar';
+import { useState } from 'react';
+import { Toast } from '@/components/Notification';
+import { useAppSelector } from '@/store/hook';
 
 export default function TabLayout() {
   const { colorScheme } = useColorScheme();
   const colors = useThemeColors();
-  const isDark = colorScheme === 'dark';
+  const { isAuth } = useAppSelector(state => state.auth);
+
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+  const showAuthError = (redirectTo?: string) => {
+    setToast({ visible: true, message: 'Vui lòng đăng nhập để sử dụng tính năng này', type: 'error' });
+    setTimeout(() => {
+      router.push({
+        pathname: '/(auth)/login',
+        params: redirectTo ? { redirect_to: redirectTo } : undefined,
+      });
+    }, 1500);
+  };
+
+  const hideToast = () => setToast(prev => ({ ...prev, visible: false }));
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colors.current.text,
-        tabBarInactiveTintColor: colors.current.textInactive,
-        tabBarStyle: {
-          backgroundColor: colors.current.background,
-          borderTopWidth: 1,
-          borderTopColor: colors.current.border,
-          height: Platform.OS === 'ios' ? 88 : 65,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
-          paddingTop: 8,
-          elevation: 0,
-          shadowColor: isDark ? '#000' : '#000',
-          shadowOffset: { width: 0, height: -1 },
-          shadowOpacity: isDark ? 0.3 : 0.05,
-          shadowRadius: 3,
-        },
-        sceneStyle: {
-          backgroundColor: colors.current.background,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '400',
-          marginTop: 2,
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Trang chủ',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name="home"
-                size={24}
-                color={focused ? COLORS.primary : color}
-              />
-            </View>
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="(protected)/my-post"
-        options={{
-          title: 'Quản lý tin',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.iconContainer}>
-              <MaterialCommunityIcons
-                name="bookmark-outline"
-                size={24}
-                color={focused ? COLORS.primary : color}
-              />
-            </View>
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="(protected)/create-post"
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            router.push('/(post)/choose-property-type');
+    <>
+      <Tabs
+        tabBar={(props) => <CustomTabBar {...props} onAuthFail={showAuthError} />}
+        screenOptions={{
+          headerShown: false,
+          sceneStyle: {
+            backgroundColor: colors.current.background,
           },
+          tabBarShowLabel: false,
+          tabBarStyle: { position: 'absolute' },
         }}
-        options={{
-          title: 'Đăng tin',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.postButtonContainer}>
-              <View style={[
-                styles.postButton,
-                { borderColor: colors.current.background }
-              ]}>
-                <Ionicons name="add" size={28} color="#FFFFFF" />
-              </View>
-            </View>
-          ),
-          tabBarLabel: 'Đăng tin',
-        }}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="(protected)/my-post" />
+        <Tabs.Screen name="(protected)/create-post" />
+        <Tabs.Screen name="(protected)/chat" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        duration={3000}
+        onHide={hideToast}
       />
-
-      <Tabs.Screen
-        name="(protected)/chat"
-        options={{
-          title: 'Chat',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name="chatbubble-ellipses-outline"
-                size={24}
-                color={focused ? COLORS.primary : color}
-              />
-            </View>
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Tài khoản',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name="person-circle-outline"
-                size={24}
-                color={focused ? COLORS.primary : color}
-              />
-            </View>
-          ),
-        }}
-      />
-    </Tabs>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  iconContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  postButtonContainer: {
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-    top: -20,
-  },
-  postButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 28,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    borderWidth: 4,
-    zIndex: 1,
-  },
-});
