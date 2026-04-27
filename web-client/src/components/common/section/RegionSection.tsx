@@ -1,7 +1,10 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import provinceService from "@/services/province.service";
+import propertyService from "@/services/property.service";
 import { Province } from "@/types/province.type";
+import type { PropertyCountByCity, PropertyType } from "@/types/property.type";
 
 // Mapping tỉnh thành với hình ảnh mặc định
 const provinceImages: Record<string, string> = {
@@ -21,13 +24,15 @@ interface DisplayProvince extends Province {
 }
 
 const RegionSection = () => {
-  const [activeTab, setActiveTab] = useState<"rent">("rent");
-  const [activeCategory, setActiveCategory] = useState<string>("apartment");
+  const router = useRouter();
+  const [activeCategory, setActiveCategory] = useState<PropertyType>("apartment");
   const [provinces, setProvinces] = useState<DisplayProvince[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [countError, setCountError] = useState<string | null>(null);
+  const [countByCity, setCountByCity] = useState<Record<string, number>>({});
 
-  const categories = [
+  const categories: Array<{ key: PropertyType; label: string }> = [
     { key: "apartment", label: "Căn hộ/Chung cư" },
     { key: "house", label: "Nhà ở" },
     { key: "office", label: "Văn phòng, Mặt bằng kinh doanh" },
@@ -48,7 +53,7 @@ const RegionSection = () => {
           .filter((p): p is Province => p !== undefined)
           .map((p) => ({
             ...p,
-            postCount: getDefaultPostCount(p.code),
+            postCount: 0,
           }));
 
         setProvinces(priorityProvinces);
@@ -106,16 +111,58 @@ const RegionSection = () => {
     fetchProvinces();
   }, []);
 
-  // Lấy số lượng tin đăng mặc định theo mã tỉnh
-  const getDefaultPostCount = (code: number): number => {
-    const postCounts: Record<number, number> = {
-      79: 3585, // HCM
-      1: 1229, // Hà Nội
-      48: 653, // Đà Nẵng
-      92: 90, // Cần Thơ
-      74: 1072, // Bình Dương
+  const normalizeCity = (value: string) => {
+    return value
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase()
+      .replace(/^(thanh pho|thành phố|tp\.?|tinh|tỉnh)\s+/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  const buildCountMap = (items: PropertyCountByCity[]) => {
+    const map: Record<string, number> = {};
+    items.forEach((item) => {
+      const key = normalizeCity(item.city);
+      map[key] = item.numberProperty;
+    });
+    return map;
+  };
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        setCountError(null);
+        const counts = await propertyService.getPropertyCountByCity(activeCategory);
+        setCountByCity(buildCountMap(counts));
+      } catch (err) {
+        console.error("Error fetching property counts:", err);
+        setCountError("Không thể tải số lượng theo khu vực");
+        setCountByCity({});
+      }
     };
-    return postCounts[code] || 0;
+
+    fetchCounts();
+  }, [activeCategory]);
+
+  const displayProvinces = useMemo(() => {
+    return provinces.map((province) => {
+      const key = normalizeCity(province.name);
+      return {
+        ...province,
+        postCount: countByCity[key] ?? 0,
+      };
+    });
+  }, [provinces, countByCity]);
+
+  const handleRegionClick = (province: DisplayProvince) => {
+    const params = new URLSearchParams();
+    params.set("city", province.name);
+    if (activeCategory) {
+      params.set("propertyType", activeCategory);
+    }
+    router.push(`/search?${params.toString()}`);
   };
 
   // Hàm lấy hình ảnh cho tỉnh thành
@@ -202,32 +249,42 @@ const RegionSection = () => {
             </div>
           )}
 
+          {countError && !loading && (
+            <div className="text-center pb-4">
+              <p className="text-red-500 text-sm">{countError}</p>
+            </div>
+          )}
+
           {/* Regions Grid */}
-          {!loading && provinces.length > 0 && (
+          {!loading && displayProvinces.length > 0 && (
             <div className="grid grid-cols-4 grid-rows-2 gap-4 h-[400px]">
               {/* Large card - spans 2 columns and 2 rows */}
-              {provinces[0] && (
-                <div className="col-span-2 row-span-2 relative rounded-xl overflow-hidden group cursor-pointer">
+              {displayProvinces[0] && (
+                <div
+                  className="col-span-2 row-span-2 relative rounded-xl overflow-hidden group cursor-pointer"
+                  onClick={() => handleRegionClick(displayProvinces[0])}
+                >
                   <img
-                    src={getProvinceImage(provinces[0])}
-                    alt={provinces[0].name}
+                    src={getProvinceImage(displayProvinces[0])}
+                    alt={displayProvinces[0].name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute bottom-4 left-4 text-white">
-                    <h3 className="text-2xl font-bold">{provinces[0].name}</h3>
+                    <h3 className="text-2xl font-bold">{displayProvinces[0].name}</h3>
                     <p className="text-sm text-red-300">
-                      {formatPostCount(provinces[0].postCount)}
+                      {formatPostCount(displayProvinces[0].postCount)}
                     </p>
                   </div>
                 </div>
               )}
 
               {/* Medium cards */}
-              {provinces.slice(1, 3).map((province) => (
+              {displayProvinces.slice(1, 3).map((province) => (
                 <div
                   key={province.code}
                   className="relative rounded-xl overflow-hidden group cursor-pointer"
+                  onClick={() => handleRegionClick(province)}
                 >
                   <img
                     src={getProvinceImage(province)}
@@ -245,10 +302,11 @@ const RegionSection = () => {
               ))}
 
               {/* Small cards */}
-              {provinces.slice(3, 5).map((province) => (
+              {displayProvinces.slice(3, 5).map((province) => (
                 <div
                   key={province.code}
                   className="relative rounded-xl overflow-hidden group cursor-pointer"
+                  onClick={() => handleRegionClick(province)}
                 >
                   <img
                     src={getProvinceImage(province)}

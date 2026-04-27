@@ -131,6 +131,11 @@ export interface PropertyListItem {
   vipLevel?: string;
 }
 
+export interface PropertyCountByCity {
+  city: string;
+  numberProperty: number;
+}
+
 export interface SearchPropertyParams {
   keyword?: string;
   propertyType?: string;

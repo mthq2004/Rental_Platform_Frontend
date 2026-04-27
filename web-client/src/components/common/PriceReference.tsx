@@ -3,17 +3,21 @@ import React, { useState, useEffect } from "react";
 import { Button, Select, Spin } from "antd";
 import provinceService from "@/services/province.service";
 import { Province } from "@/types/province.type";
+import { useRouter } from "next/navigation";
 
 const PriceReference = () => {
   const [activeCategory, setActiveCategory] = useState<string>("apartment");
   const [selectedProvince, setSelectedProvince] = useState<number>(79);
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [loadingProvinces, setLoadingProvinces] = useState(false);
+  const route = useRouter();
 
   const categories = [
     { key: "apartment", label: "Căn hộ / Chung cư" },
     { key: "house", label: "Nhà ở" },
     { key: "land", label: "Đất" },
+    { key: "office", label: "Văn phòng" },
+    { key: "room", label: "Phòng trọ" },
   ];
 
   // Fetch provinces from API
@@ -105,6 +109,9 @@ const PriceReference = () => {
                 type="primary"
                 size="large"
                 className="bg-blue-500 hover:bg-blue-600 border-none rounded-lg px-8 font-semibold"
+                onClick={() => {
+                  route.push("/analysis");
+                }}
               >
                 Xem giá ngay
               </Button>

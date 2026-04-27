@@ -13,17 +13,17 @@ const UtilityTools = () => {
     {
       image: "/assets/image/bieu-do-gia.png",
       title: "Biểu đồ giá",
-      href: "/bieu-do-gia",
+      href: "/analysis",
     },
     {
       image: "/assets/image/vay-mua-nha.png",
       title: "Tính tiền thuê",
-      href: "/tinh-tien-thue",
+      href: "/analysis",
     },
     {
       image: "/assets/image/kinh-nghiem.png",
       title: "Kinh nghiệm",
-      href: "/kinh-nghiem",
+      href: "/news",
     },
   ];
 
