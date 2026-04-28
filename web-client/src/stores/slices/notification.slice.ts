@@ -12,6 +12,7 @@ export interface Notification {
     metadata?: Record<string, any>;
     actionUrl?: string;
     priority?: string;
+    icon?: string;
 }
 
 interface NotificationState {
