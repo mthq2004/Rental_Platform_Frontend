@@ -448,7 +448,7 @@ export default function CreatePostForm() {
         onClose={() => setShowAddressModal(false)}
         onConfirm={(data) => {
           setAddressData(data);
-          updateFormData("address", data.fullAddress);
+          updateFormData("address", data.streetAddress);
           updateFormData("city", data.city);
           updateFormData("district", data.district);
           updateFormData("ward", data.ward);

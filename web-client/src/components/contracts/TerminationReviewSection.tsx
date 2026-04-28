@@ -28,8 +28,12 @@ import {
 import type { TerminationRequest } from "@/types/contract.type";
 import dayjs from "dayjs";
 import { uploadMixedFiles } from "@/services/upload.service";
+import { FiCalendar } from "react-icons/fi";
+import "dayjs/locale/vi";
 
 const { Text, Title, Paragraph } = Typography;
+
+dayjs.locale("vi");
 
 const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
 
@@ -135,7 +139,7 @@ export default function TerminationReviewSection({
             .map((f) => f.originFileObj as File);
           if (files.length > 0) {
             const uploaded = await uploadMixedFiles(files);
-            const urls = uploaded.map((att, i) => `[Bằng chứng ${i+1}](${att.url})`).join('\n');
+            const urls = uploaded.map((att, i) => `[Bằng chứng ${i + 1}](${att.url})`).join('\n');
             finalNote += `\n\n--- TÀI LIỆU MINH CHỨNG ---\n${urls}`;
           }
         } catch (uploadErr: any) {
@@ -214,13 +218,23 @@ export default function TerminationReviewSection({
             </div>
 
             {/* Termination Date */}
-            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 mb-4">
-              <Text className="text-[10px] text-slate-500 uppercase tracking-wider block mb-1">
-                📅 Ngày chấm dứt đề xuất
-              </Text>
-              <Text className="text-base font-bold text-red-600">
-                {dayjs(request.requestedTerminationDate).format("DD Tháng MM, YYYY")}
-              </Text>
+            <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 mb-4 shadow-sm">
+
+              {/* Icon */}
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
+                <FiCalendar className="text-red-600 text-lg" />
+              </div>
+
+              {/* Content */}
+              <div className="flex flex-col">
+                <span className="text-[11px] text-slate-500 uppercase tracking-wide">
+                  Ngày chấm dứt đề xuất
+                </span>
+
+                <span className="text-base font-semibold text-red-600">
+                  {dayjs(request.requestedTerminationDate).format("DD [tháng] M, YYYY")}
+                </span>
+              </div>
             </div>
 
             {/* Reason */}
@@ -257,7 +271,7 @@ export default function TerminationReviewSection({
                 description={
                   <Text className="text-xs text-blue-700">
                     Dựa trên hợp đồng, phí chấm dứt sớm có thể lên tới{" "}
-                    <strong>{money.format(Number(request.earlyTerminationFee))}</strong>. 
+                    <strong>{money.format(Number(request.earlyTerminationFee))}</strong>.
                     Số tiền chính xác sẽ được xác nhận khi xử lý.
                   </Text>
                 }
@@ -293,11 +307,10 @@ export default function TerminationReviewSection({
             >
               {/* Approve */}
               <div
-                className={`rounded-xl border-2 px-4 py-3 cursor-pointer transition-all ${
-                  decision === "approved"
-                    ? "border-green-400 bg-green-50"
-                    : "border-slate-200 bg-white hover:border-green-200"
-                }`}
+                className={`rounded-xl border-2 px-4 py-3 cursor-pointer transition-all ${decision === "approved"
+                  ? "border-green-400 bg-green-50"
+                  : "border-slate-200 bg-white hover:border-green-200"
+                  }`}
                 onClick={() => setDecision("approved")}
               >
                 <Radio value="approved" className="w-full">
@@ -315,11 +328,10 @@ export default function TerminationReviewSection({
 
               {/* Negotiate */}
               <div
-                className={`rounded-xl border-2 px-4 py-3 cursor-pointer transition-all ${
-                  decision === null
-                    ? "border-slate-200 bg-white hover:border-blue-200"
-                    : "border-slate-200 bg-white"
-                }`}
+                className={`rounded-xl border-2 px-4 py-3 cursor-pointer transition-all ${decision === null
+                  ? "border-slate-200 bg-white hover:border-blue-200"
+                  : "border-slate-200 bg-white"
+                  }`}
               >
                 <div className="flex items-center gap-2 opacity-60 px-6">
                   <SwapOutlined className="text-blue-500" />
@@ -334,11 +346,10 @@ export default function TerminationReviewSection({
 
               {/* Reject */}
               <div
-                className={`rounded-xl border-2 px-4 py-3 cursor-pointer transition-all ${
-                  decision === "rejected"
-                    ? "border-red-400 bg-red-50"
-                    : "border-slate-200 bg-white hover:border-red-200"
-                }`}
+                className={`rounded-xl border-2 px-4 py-3 cursor-pointer transition-all ${decision === "rejected"
+                  ? "border-red-400 bg-red-50"
+                  : "border-slate-200 bg-white hover:border-red-200"
+                  }`}
                 onClick={() => setDecision("rejected")}
               >
                 <Radio value="rejected" className="w-full">
@@ -373,7 +384,7 @@ export default function TerminationReviewSection({
                     showCount
                   />
                 </div>
-                
+
                 <div className="mt-4">
                   <Text className="text-sm font-semibold text-red-700 block mb-2">
                     Hình ảnh / Tài liệu minh chứng <span className="text-red-500">*</span>
@@ -441,20 +452,19 @@ export default function TerminationReviewSection({
               onClick={handleSubmit}
               loading={submitting || loading}
               disabled={!decision}
-              className={`!rounded-xl !h-12 !mt-6 !font-semibold ${
-                decision === "rejected"
-                  ? "!bg-red-600 hover:!bg-red-700 !border-red-600"
-                  : decision === "approved"
+              className={`!rounded-xl !h-12 !mt-6 !font-semibold ${decision === "rejected"
+                ? "!bg-red-600 hover:!bg-red-700 !border-red-600"
+                : decision === "approved"
                   ? "!bg-green-600 hover:!bg-green-700 !border-green-600"
                   : ""
-              }`}
+                }`}
               icon={decision === "rejected" ? <CloseCircleOutlined /> : decision === "approved" ? <CheckCircleOutlined /> : undefined}
             >
               {decision === "rejected"
                 ? "Gửi quyết định Từ chối"
                 : decision === "approved"
-                ? "Gửi quyết định Đồng ý"
-                : "Chọn quyết định"}
+                  ? "Gửi quyết định Đồng ý"
+                  : "Chọn quyết định"}
             </Button>
           </Card>
         </div>

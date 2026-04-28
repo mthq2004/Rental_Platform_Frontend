@@ -18,8 +18,8 @@ export default function TermsPage() {
         <Divider />
 
         <Paragraph className="!text-gray-600 !leading-relaxed">
-          Chào mừng bạn đến với nền tảng cho thuê bất động sản trực tuyến Group33 Real Estate (&quot;Nền tảng&quot;). 
-          Vui lòng đọc kỹ các điều khoản sử dụng dưới đây trước khi sử dụng dịch vụ của chúng tôi. 
+          Chào mừng bạn đến với nền tảng cho thuê bất động sản trực tuyến Group33 Real Estate (&quot;Nền tảng&quot;).
+          Vui lòng đọc kỹ các điều khoản sử dụng dưới đây trước khi sử dụng dịch vụ của chúng tôi.
           Bằng việc truy cập và sử dụng Nền tảng, bạn đồng ý tuân thủ và bị ràng buộc bởi các điều khoản này.
         </Paragraph>
 
@@ -79,7 +79,7 @@ export default function TermsPage() {
         <Paragraph className="!text-gray-600 !leading-relaxed">
           <ul className="list-disc pl-6 space-y-2">
             <li>Nền tảng cung cấp hệ thống ví điện tử nội bộ để thực hiện các giao dịch thanh toán. Tiền cọc sẽ được giữ trong tài khoản Escrow của Nền tảng cho đến khi hợp đồng được kích hoạt.</li>
-            <li>Các phương thức thanh toán được hỗ trợ: chuyển khoản ngân hàng, MoMo, VNPay, ZaloPay, và các phương thức khác.</li>
+            <li>Các phương thức thanh toán được hỗ trợ: MoMo, VNPay và các phương thức khác.</li>
             <li>Nền tảng có thể thu phí dịch vụ theo tỷ lệ phần trăm trên mỗi giao dịch. Mức phí cụ thể sẽ được thông báo rõ ràng trước khi giao dịch.</li>
             <li>Người dùng có thể rút tiền từ ví về tài khoản ngân hàng. Yêu cầu rút tiền sẽ được xử lý trong vòng 1-3 ngày làm việc.</li>
           </ul>
@@ -126,14 +126,14 @@ export default function TermsPage() {
 
         <Title level={3}>11. Quyền sở hữu trí tuệ</Title>
         <Paragraph className="!text-gray-600 !leading-relaxed">
-          Tất cả nội dung, thiết kế, logo, phần mềm và công nghệ trên Nền tảng thuộc quyền sở hữu của Group33 hoặc các bên cấp phép. 
+          Tất cả nội dung, thiết kế, logo, phần mềm và công nghệ trên Nền tảng thuộc quyền sở hữu của Group33 hoặc các bên cấp phép.
           Người dùng không được sao chép, phân phối hoặc sử dụng bất kỳ tài sản trí tuệ nào mà không có sự đồng ý bằng văn bản.
         </Paragraph>
 
         <Title level={3}>12. Thay đổi điều khoản</Title>
         <Paragraph className="!text-gray-600 !leading-relaxed">
-          Nền tảng có quyền cập nhật, sửa đổi các điều khoản sử dụng này bất kỳ lúc nào. 
-          Những thay đổi quan trọng sẽ được thông báo qua email hoặc thông báo trên Nền tảng. 
+          Nền tảng có quyền cập nhật, sửa đổi các điều khoản sử dụng này bất kỳ lúc nào.
+          Những thay đổi quan trọng sẽ được thông báo qua email hoặc thông báo trên Nền tảng.
           Việc tiếp tục sử dụng Nền tảng sau khi thay đổi được đăng tải đồng nghĩa với việc bạn chấp nhận các điều khoản mới.
         </Paragraph>
 

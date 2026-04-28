@@ -136,39 +136,38 @@ export default function ImageGallery({ images, videos = [], title }: ImageGaller
         </div>
 
         {/* Thumbnail strip */}
-        <div className="relative mt-3">
+        <div className="relative mt-2">
           <div
             ref={thumbnailRef}
-            className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide"
+            className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide"
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {media.map((item, idx) => (
               <button
                 key={item.id}
                 onClick={() => setCurrentIndex(idx)}
-                className={`relative w-20 h-16 shrink-0 rounded-lg overflow-hidden border-2 transition-all
-                  ${idx === currentIndex
-                    ? "border-blue-500 shadow-md scale-105"
-                    : "border-transparent hover:border-gray-300 opacity-70 hover:opacity-100"
+                className={`relative shrink-0 rounded-md overflow-hidden transition-all duration-150
+      ${idx === currentIndex
+                    ? "opacity-100 z-10 scale-[1.02]" // Thêm z-10 để nó nổi lên trên và scale nhẹ
+                    : "opacity-50 hover:opacity-80"
                   }`}
+                style={{
+                  width: 88,
+                  height: 60,
+                  // Dùng box-shadow inset thay cho ring để không bao giờ bị overflow cắt mất
+                  boxShadow: idx === currentIndex ? 'inset 0 0 0 3px #3b82f6' : 'none'
+                }}
               >
+                {/* Nội dung img/video bên trong giữ nguyên */}
                 {item.kind === "video" ? (
                   <>
-                    <img
-                      src={item.thumbnail || "/assets/image/property-1.jpg"}
-                      alt={`Video ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                      <PlayCircleOutlined className="text-white text-2xl" />
+                    <img src={item.thumbnail || item.uri} className="w-full h-full object-cover bg-gray-800" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                      <PlayCircleOutlined className="text-white text-lg" />
                     </div>
                   </>
                 ) : (
-                  <img
-                    src={item.uri}
-                    alt={`Thumbnail ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={item.uri} className="w-full h-full object-cover" />
                 )}
               </button>
             ))}
@@ -176,17 +175,30 @@ export default function ImageGallery({ images, videos = [], title }: ImageGaller
 
           {/* Thumbnail scroll arrows */}
           {total > 7 && (
-            <button
-              onClick={() => {
-                if (thumbnailRef.current) {
-                  thumbnailRef.current.scrollBy({ left: 200, behavior: "smooth" });
-                }
-              }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 w-8 h-8 bg-white shadow-md 
-                rounded-full flex items-center justify-center hover:bg-gray-50 z-10"
-            >
-              <RightOutlined className="text-xs text-gray-600" />
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  if (thumbnailRef.current) {
+                    thumbnailRef.current.scrollBy({ left: -200, behavior: "smooth" });
+                  }
+                }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/90 shadow
+                  rounded-full flex items-center justify-center hover:bg-white z-10"
+              >
+                <LeftOutlined className="text-[10px] text-gray-600" />
+              </button>
+              <button
+                onClick={() => {
+                  if (thumbnailRef.current) {
+                    thumbnailRef.current.scrollBy({ left: 200, behavior: "smooth" });
+                  }
+                }}
+                className="absolute right-0 top-1/2 -translate-y-1/2 w-7 h-7 bg-white/90 shadow
+                  rounded-full flex items-center justify-center hover:bg-white z-10"
+              >
+                <RightOutlined className="text-[10px] text-gray-600" />
+              </button>
+            </>
           )}
         </div>
       </div>

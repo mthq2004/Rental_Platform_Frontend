@@ -197,9 +197,12 @@ export default function PropertyTabs({ property }: PropertyTabsProps) {
         {activeTab === "description" && (
           <div className="p-6">
             <h3 className="font-semibold text-gray-900 mb-3">Mô tả chi tiết</h3>
-            <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-              {property.description}
-            </div>
+            <div
+              className="text-sm text-gray-700 leading-relaxed prose prose-sm max-w-none
+                prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5
+                prose-headings:text-gray-900 prose-a:text-blue-600"
+              dangerouslySetInnerHTML={{ __html: property.description }}
+            />
           </div>
         )}
 
@@ -207,29 +210,42 @@ export default function PropertyTabs({ property }: PropertyTabsProps) {
         {activeTab === "map" && (
           <div className="p-6">
             <h3 className="font-semibold text-gray-900 mb-3">Xem trên bản đồ</h3>
-            {property.latitude && property.longitude ? (
-              <div className="rounded-xl overflow-hidden border border-gray-200">
-                <iframe
-                  title="Property Map"
-                  width="100%"
-                  height="350"
-                  style={{ border: 0 }}
-                  loading="lazy"
-                  src={`https://www.google.com/maps?q=${property.latitude},${property.longitude}&z=15&output=embed`}
-                />
-              </div>
-            ) : (
-              <div className="h-[350px] bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
-                <div className="text-center">
-                  <EnvironmentOutlined className="text-4xl mb-2" />
-                  <p>Không có dữ liệu bản đồ</p>
+            {(() => {
+              const hasCoords = property.latitude && property.longitude
+                && property.latitude !== 0 && property.longitude !== 0;
+              const addressQuery = [property.address, property.ward, property.district, property.city]
+                .filter(Boolean).join(", ");
+              const mapSrc = hasCoords
+                ? `https://maps.google.com/maps?q=${property.latitude},${property.longitude}&z=16&ie=UTF8&iwloc=&output=embed`
+                : addressQuery
+                  ? `https://maps.google.com/maps?q=${encodeURIComponent(addressQuery)}&z=16&ie=UTF8&iwloc=&output=embed`
+                  : null;
+
+              return mapSrc ? (
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <iframe
+                    title="Property Map"
+                    width="100%"
+                    height="350"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={mapSrc}
+                  />
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="h-[350px] bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <EnvironmentOutlined className="text-4xl mb-2" />
+                    <p>Không có dữ liệu bản đồ</p>
+                  </div>
+                </div>
+              );
+            })()}
 
             <p className="text-sm text-gray-500 mt-3">
               <EnvironmentOutlined className="text-blue-500 mr-1" />
-              {property.address}, {property.ward}, {property.district}, {property.city}
+              {[property.address, property.ward, property.district, property.city].filter(Boolean).join(", ")}
             </p>
           </div>
         )}

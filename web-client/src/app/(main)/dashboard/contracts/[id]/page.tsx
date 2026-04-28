@@ -106,8 +106,6 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
 const PAYMENT_METHOD_OPTIONS: MethodOption[] = [
   { value: "momo", label: "MoMo", description: "Thanh toán nhanh bằng ứng dụng MoMo." },
   { value: "vnpay", label: "VNPay", description: "Chuyển sang cổng thanh toán VNPay." },
-  { value: "zalopay", label: "ZaloPay", description: "Thanh toán bằng ví ZaloPay." },
-  { value: "bank_transfer", label: "Chuyển khoản ngân hàng", description: "Hiển thị thông tin chuyển khoản ngân hàng." },
   { value: "other", label: "Ví nội bộ của bạn", description: "Thanh toán bằng số dư ví nội bộ trong hệ thống." },
 ];
 
@@ -1032,868 +1030,868 @@ export default function ContractDetailPage() {
     const sidebarImage = getPropertyImage(property);
     content = (
       <div className="space-y-8 -m-6 p-6 pb-8 bg-white">
-      <div
-        className="relative rounded-[28px] px-8 py-8 text-white shadow-xl overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #0B1B3B 0%, #102454 50%, #1B3A7A 100%)" }}
-      >
-        {/* Subtle background texture */}
         <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: "radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 20%, #fff 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
+          className="relative rounded-[28px] px-8 py-8 text-white shadow-xl overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #0B1B3B 0%, #102454 50%, #1B3A7A 100%)" }}
+        >
+          {/* Subtle background texture */}
+          <div
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage: "radial-gradient(circle at 20% 50%, #fff 1px, transparent 1px), radial-gradient(circle at 80% 20%, #fff 1px, transparent 1px)",
+              backgroundSize: "60px 60px",
+            }}
+          />
 
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-3">
-            <Button
-              ghost
-              icon={<ArrowLeftOutlined />}
-              onClick={() => router.back()}
-              className="border-white/20 text-white hover:border-white/40 hover:text-white"
-            >
-              Quay lại danh sách
-            </Button>
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-[11px] font-semibold tracking-widest uppercase text-white/90">
-                <FileTextOutlined className="text-[10px]" />
-                Contract Detail
+          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-3">
+              <Button
+                ghost
+                icon={<ArrowLeftOutlined />}
+                onClick={() => router.back()}
+                className="border-white/20 text-white hover:border-white/40 hover:text-white"
+              >
+                Quay lại danh sách
+              </Button>
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/20 px-3 py-1 text-[11px] font-semibold tracking-widest uppercase text-white/90">
+                  <FileTextOutlined className="text-[10px]" />
+                  Contract Detail
+                </div>
+                <h1 className="mt-3 text-3xl font-semibold tracking-tight">{contract.contractCode}</h1>
+                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
+                  Trang chi tiết hợp đồng, theo dõi tiến trình ký kết, kích hoạt và thanh toán theo dữ liệu thực từ hệ thống.
+                </p>
               </div>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight">{contract.contractCode}</h1>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
-                Trang chi tiết hợp đồng, theo dõi tiến trình ký kết, kích hoạt và thanh toán theo dữ liệu thực từ hệ thống.
-              </p>
             </div>
-          </div>
 
-          <Space wrap className="shrink-0">
-            {(contract.signedContractUrl || contract.contractPdfUrl) && (
-              <>
-                <Button
-                  icon={<DownloadOutlined />}
-                  href={contract.signedContractUrl || contract.contractPdfUrl || undefined}
-                  target="_blank"
-                  className="rounded-lg border-white/25 text-white bg-white/10 hover:bg-white/20 hover:border-white/40 shadow-none h-9 px-4"
-                >
-                  Tải PDF {contract.signedContractUrl ? '(có chữ ký số)' : '(không chữ ký số)'}
-                </Button>
-                {contract.signedContractUrl && contract.contractPdfUrl && (
+            <Space wrap className="shrink-0">
+              {(contract.signedContractUrl || contract.contractPdfUrl) && (
+                <>
                   <Button
                     icon={<DownloadOutlined />}
-                    href={contract.contractPdfUrl}
+                    href={contract.signedContractUrl || contract.contractPdfUrl || undefined}
                     target="_blank"
                     className="rounded-lg border-white/25 text-white bg-white/10 hover:bg-white/20 hover:border-white/40 shadow-none h-9 px-4"
                   >
-                    Tải PDF (không chữ ký số)
+                    Tải PDF {contract.signedContractUrl ? '(có chữ ký số)' : '(không chữ ký số)'}
                   </Button>
-                )}
-              </>
-            )}
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={handleRefresh}
-              loading={contractsLoading || paymentsLoading}
-              className="rounded-lg border-white/25 text-white bg-white/10 hover:bg-white/20 hover:border-white/40 shadow-none h-9 px-4"
-            >
-              Làm mới
-            </Button>
-            {contract.status === "pending_tenant" && isTenantSide && (
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                onClick={handleTenantSign}
-                loading={actionLoading}
-                className="rounded-lg h-9 px-4 shadow-none font-medium"
-                style={{ background: "#2563eb", borderColor: "#2563eb" }}
-              >
-                Ký hợp đồng
-              </Button>
-            )}
-            {contract.status === "draft" && isOwnerSide && (
-              <Button
-                type="primary"
-                icon={<FileTextOutlined />}
-                onClick={handleSendToTenant}
-                loading={actionLoading}
-                className="rounded-lg h-9 px-4 shadow-none font-medium"
-                style={{ background: "#2563eb", borderColor: "#2563eb" }}
-              >
-                Gửi ký
-              </Button>
-            )}
-            {contract.status === "pending_landlord" && isOwnerSide && (
-              <Button
-                type="primary"
-                icon={<EditOutlined />}
-                onClick={handleOwnerSign}
-                loading={actionLoading}
-                className="rounded-lg h-9 px-4 shadow-none font-medium"
-                style={{ background: "#2563eb", borderColor: "#2563eb" }}
-              >
-                Ký hợp đồng
-              </Button>
-            )}
-            {canPay && (
-              <Button
-                type="primary"
-                icon={<WalletOutlined />}
-                onClick={openPaymentModal}
-                loading={actionLoading}
-                className="rounded-lg h-9 px-4 shadow-none font-medium"
-                style={{ background: "#2563eb", borderColor: "#2563eb" }}
-              >
-                Thanh toán ngay
-              </Button>
-            )}
-          </Space>
-        </div>
-
-        <div className="relative mt-7 grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <div
-            className="rounded-xl px-5 py-4"
-            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
-          >
-            <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Trạng thái hợp đồng</p>
-            <div className="flex items-center gap-2">
-              <Tag color={contractStatus?.color || "default"} icon={contractStatus?.icon} className="m-0 border-0">
-                {contractStatus?.label || contract.status}
-              </Tag>
-            </div>
-          </div>
-          <div
-            className="rounded-xl px-5 py-4"
-            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
-          >
-            <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Thanh toán</p>
-            <div className="flex items-center gap-2">
-              <Tag color={paymentStatus.color} icon={paymentStatus.icon} className="m-0 border-0">
-                {paymentStatus.label}
-              </Tag>
-            </div>
-          </div>
-          <div
-            className="rounded-xl px-5 py-4"
-            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
-          >
-            <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Tiền thuê / tháng</p>
-            <p className="text-xl font-semibold text-white leading-none">{formatMoney(contract.monthlyRent)}</p>
-          </div>
-          <div
-            className="rounded-xl px-5 py-4"
-            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
-          >
-            <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Tiến độ hợp đồng</p>
-            <Progress percent={getContractProgress(contract)} showInfo={false} strokeColor="#60a5fa" railColor="rgba(255,255,255,0.15)" className="mt-1" />
-          </div>
-        </div>
-      </div>
-
-      <Row gutter={[24, 32]} align="top">
-        <Col xs={24} xl={16}>
-          <div className="space-y-8 pb-2">
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tổng quan hợp đồng</Text>
-                  <h2 className="mt-2 text-2xl font-semibold text-slate-900">{contract.contractCode}</h2>
-                  <Paragraph className="mb-0 mt-2 max-w-3xl text-slate-500">
-                    Hợp đồng thuê giữa {ownerDisplayName} và {tenantDisplayName}.
-                  </Paragraph>
-                </div>
-                <Space wrap>
-                  {contract.status === "draft" && isOwnerSide && (
-                    <Button danger icon={<ExclamationCircleOutlined />} onClick={handleCancel} loading={actionLoading}>
-                      Hủy hợp đồng
+                  {contract.signedContractUrl && contract.contractPdfUrl && (
+                    <Button
+                      icon={<DownloadOutlined />}
+                      href={contract.contractPdfUrl}
+                      target="_blank"
+                      className="rounded-lg border-white/25 text-white bg-white/10 hover:bg-white/20 hover:border-white/40 shadow-none h-9 px-4"
+                    >
+                      Tải PDF (không chữ ký số)
                     </Button>
                   )}
-                </Space>
+                </>
+              )}
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={handleRefresh}
+                loading={contractsLoading || paymentsLoading}
+                className="rounded-lg border-white/25 text-white bg-white/10 hover:bg-white/20 hover:border-white/40 shadow-none h-9 px-4"
+              >
+                Làm mới
+              </Button>
+              {contract.status === "pending_tenant" && isTenantSide && (
+                <Button
+                  type="primary"
+                  icon={<EditOutlined />}
+                  onClick={handleTenantSign}
+                  loading={actionLoading}
+                  className="rounded-lg h-9 px-4 shadow-none font-medium"
+                  style={{ background: "#2563eb", borderColor: "#2563eb" }}
+                >
+                  Ký hợp đồng
+                </Button>
+              )}
+              {contract.status === "draft" && isOwnerSide && (
+                <Button
+                  type="primary"
+                  icon={<FileTextOutlined />}
+                  onClick={handleSendToTenant}
+                  loading={actionLoading}
+                  className="rounded-lg h-9 px-4 shadow-none font-medium"
+                  style={{ background: "#2563eb", borderColor: "#2563eb" }}
+                >
+                  Gửi ký
+                </Button>
+              )}
+              {contract.status === "pending_landlord" && isOwnerSide && (
+                <Button
+                  type="primary"
+                  icon={<EditOutlined />}
+                  onClick={handleOwnerSign}
+                  loading={actionLoading}
+                  className="rounded-lg h-9 px-4 shadow-none font-medium"
+                  style={{ background: "#2563eb", borderColor: "#2563eb" }}
+                >
+                  Ký hợp đồng
+                </Button>
+              )}
+              {canPay && (
+                <Button
+                  type="primary"
+                  icon={<WalletOutlined />}
+                  onClick={openPaymentModal}
+                  loading={actionLoading}
+                  className="rounded-lg h-9 px-4 shadow-none font-medium"
+                  style={{ background: "#2563eb", borderColor: "#2563eb" }}
+                >
+                  Thanh toán ngay
+                </Button>
+              )}
+            </Space>
+          </div>
+
+          <div className="relative mt-7 grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div
+              className="rounded-xl px-5 py-4"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
+            >
+              <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Trạng thái hợp đồng</p>
+              <div className="flex items-center gap-2">
+                <Tag color={contractStatus?.color || "default"} icon={contractStatus?.icon} className="m-0 border-0">
+                  {contractStatus?.label || contract.status}
+                </Tag>
               </div>
-
-              <Divider />
-
-              <Descriptions column={{ xs: 1, sm: 2, xl: 2 }} bordered size="small">
-                <Descriptions.Item label="Bên cho thuê">{ownerDisplayName}</Descriptions.Item>
-                <Descriptions.Item label="Bên thuê">{tenantDisplayName}</Descriptions.Item>
-                <Descriptions.Item label="Ngày bắt đầu">{formatDate(contract.startDate)}</Descriptions.Item>
-                <Descriptions.Item label="Ngày kết thúc">{formatDate(contract.endDate)}</Descriptions.Item>
-                <Descriptions.Item label="Tiền đặt cọc">{formatMoney(contract.depositAmount)}</Descriptions.Item>
-                <Descriptions.Item label="Ngày thanh toán">Ngày {contract.paymentDueDay} hàng tháng</Descriptions.Item>
-                <Descriptions.Item label="Phí quản lý">{formatMoney(contract.managementFee || 0)}</Descriptions.Item>
-                <Descriptions.Item label="Phí giữ xe">{formatMoney(contract.parkingFee || 0)}</Descriptions.Item>
-                <Descriptions.Item label="Phí internet">{formatMoney(contract.internetFee || 0)}</Descriptions.Item>
-                <Descriptions.Item label="Phí trễ hạn">{formatMoney(contract.lateFeePerDay || 0)}</Descriptions.Item>
-              </Descriptions>
             </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử thanh toán</Text>
-                  <h3 className="mt-2 text-xl font-semibold text-slate-900">Các kỳ thanh toán của hợp đồng</h3>
-                </div>
-                <Tag color={paymentStatus.color} icon={paymentStatus.icon}>
+            <div
+              className="rounded-xl px-5 py-4"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
+            >
+              <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Thanh toán</p>
+              <div className="flex items-center gap-2">
+                <Tag color={paymentStatus.color} icon={paymentStatus.icon} className="m-0 border-0">
                   {paymentStatus.label}
                 </Tag>
               </div>
-
-              <div className="mt-5 rounded-2xl bg-slate-50 p-4">
-                <div className="flex items-center justify-between text-sm text-slate-500">
-                  <span>{paidCount}/{paymentItems.length || 0} kỳ đã thanh toán</span>
-                  <span>{paymentProgress}%</span>
-                </div>
-                <Progress percent={paymentProgress} strokeColor="#2563eb" className="mt-2" />
-              </div>
-
-              <div className="mt-6">
-                {paymentItems.length ? (
-                  <div className="space-y-3">
-                    {paymentItems.map((payment) => {
-                      const cfg = PAYMENT_STATUS_CONFIG[payment.status] || PAYMENT_STATUS_CONFIG.pending;
-                      return (
-                        <div key={payment.paymentId} className="rounded-2xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-blue-50/40">
-                          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <Text className="font-semibold text-slate-900">{payment.paymentCode}</Text>
-                                <Tag color={cfg.color} icon={cfg.icon} className="m-0">
-                                  {cfg.label}
-                                </Tag>
-                              </div>
-                              <div className="mt-1 text-sm text-slate-500">
-                                {PAYMENT_TYPE_LABELS[payment.paymentType] || payment.paymentType} · Hạn {formatDate(payment.dueDate)}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-sm text-slate-500">Tổng tiền</div>
-                              <div className="text-lg font-semibold text-slate-900">{formatMoney(payment.amount)}</div>
-                              <div className="text-sm text-emerald-600">Đã trả: {formatMoney(payment.paidAmount)}</div>
-                              <Button
-                                size="small"
-                                className="mt-2"
-                                icon={<FileTextOutlined />}
-                                onClick={() => handleOpenInvoice(payment)}
-                                loading={invoicePaymentsLoading}
-                              >
-                                Xem hóa đơn
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <Empty description="Chưa có dữ liệu thanh toán cho hợp đồng này" />
-                )}
-              </div>
             </div>
+            <div
+              className="rounded-xl px-5 py-4"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
+            >
+              <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Tiền thuê / tháng</p>
+              <p className="text-xl font-semibold text-white leading-none">{formatMoney(contract.monthlyRent)}</p>
+            </div>
+            <div
+              className="rounded-xl px-5 py-4"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
+            >
+              <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Tiến độ hợp đồng</p>
+              <Progress percent={getContractProgress(contract)} showInfo={false} strokeColor="#60a5fa" railColor="rgba(255,255,255,0.15)" className="mt-1" />
+            </div>
+          </div>
+        </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Chấm dứt hợp đồng</Text>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">Bảng điều khiển chấm dứt</h3>
-                  <Text className="text-sm text-slate-500">Theo dõi trạng thái, lịch sử và xử lý yêu cầu chấm dứt theo chuẩn nghiệp vụ.</Text>
+        <Row gutter={[24, 32]} align="top">
+          <Col xs={24} xl={16}>
+            <div className="space-y-8 pb-2">
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Tổng quan hợp đồng</Text>
+                    <h2 className="mt-2 text-2xl font-semibold text-slate-900">{contract.contractCode}</h2>
+                    <Paragraph className="mb-0 mt-2 max-w-3xl text-slate-500">
+                      Hợp đồng thuê giữa {ownerDisplayName} và {tenantDisplayName}.
+                    </Paragraph>
+                  </div>
+                  <Space wrap>
+                    {contract.status === "draft" && isOwnerSide && (
+                      <Button danger icon={<ExclamationCircleOutlined />} onClick={handleCancel} loading={actionLoading}>
+                        Hủy hợp đồng
+                      </Button>
+                    )}
+                  </Space>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {latestTermination && (
-                    <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color} className="m-0">
-                      {TERMINATION_STATUS_LABELS[latestTermination.status].label}
-                    </Tag>
-                  )}
-                  {canRequestTermination && (
-                    <Button type="primary" icon={<ExclamationCircleOutlined />} onClick={handleOpenTermination} loading={terminationActionLoading}>
-                      Gửi yêu cầu chấm dứt
-                    </Button>
-                  )}
-                </div>
+
+                <Divider />
+
+                <Descriptions column={{ xs: 1, sm: 2, xl: 2 }} bordered size="small">
+                  <Descriptions.Item label="Bên cho thuê">{ownerDisplayName}</Descriptions.Item>
+                  <Descriptions.Item label="Bên thuê">{tenantDisplayName}</Descriptions.Item>
+                  <Descriptions.Item label="Ngày bắt đầu">{formatDate(contract.startDate)}</Descriptions.Item>
+                  <Descriptions.Item label="Ngày kết thúc">{formatDate(contract.endDate)}</Descriptions.Item>
+                  <Descriptions.Item label="Tiền đặt cọc">{formatMoney(contract.depositAmount)}</Descriptions.Item>
+                  <Descriptions.Item label="Ngày thanh toán">Ngày {contract.paymentDueDay} hàng tháng</Descriptions.Item>
+                  <Descriptions.Item label="Phí quản lý">{formatMoney(contract.managementFee || 0)}</Descriptions.Item>
+                  <Descriptions.Item label="Phí giữ xe">{formatMoney(contract.parkingFee || 0)}</Descriptions.Item>
+                  <Descriptions.Item label="Phí internet">{formatMoney(contract.internetFee || 0)}</Descriptions.Item>
+                  <Descriptions.Item label="Phí trễ hạn">{formatMoney(contract.lateFeePerDay || 0)}</Descriptions.Item>
+                </Descriptions>
               </div>
 
-              <div className="mt-6">
-                {!terminationList.length && (
-                  <Empty description="Chưa có yêu cầu chấm dứt" />
-                )}
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử thanh toán</Text>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">Các kỳ thanh toán của hợp đồng</h3>
+                  </div>
+                  <Tag color={paymentStatus.color} icon={paymentStatus.icon}>
+                    {paymentStatus.label}
+                  </Tag>
+                </div>
 
-                {terminationList.length > 0 && (
-                  <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold text-slate-900">Yêu cầu gần nhất</div>
-                        {latestTermination && (
-                          <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color} className="m-0">
-                            {TERMINATION_STATUS_LABELS[latestTermination.status].label}
-                          </Tag>
-                        )}
-                      </div>
-                      {latestTermination && (
-                        <Descriptions column={1} size="small" className="mt-3">
-                          <Descriptions.Item label="Lý do">{TERMINATION_REASON_LABELS[latestTermination.reason] || latestTermination.reason}</Descriptions.Item>
-                          <Descriptions.Item label="Ngày chấm dứt dự kiến">{formatDate(latestTermination.requestedTerminationDate)}</Descriptions.Item>
-                          <Descriptions.Item label="Phí chấm dứt sớm">{formatMoney(latestTermination.earlyTerminationFee || 0)}</Descriptions.Item>
-                          <Descriptions.Item label="Ghi chú">{latestTermination.note || "—"}</Descriptions.Item>
-                          <Descriptions.Item label="Ghi chú phản hồi">
-                            {(() => {
-                              if (!latestTermination.reviewNote) return "—";
-                              const parts = latestTermination.reviewNote.split("--- TÀI LIỆU MINH CHỨNG ---");
-                              const pureNote = parts[0].trim();
-                              if (parts.length === 1) return pureNote;
+                <div className="mt-5 rounded-2xl bg-slate-50 p-4">
+                  <div className="flex items-center justify-between text-sm text-slate-500">
+                    <span>{paidCount}/{paymentItems.length || 0} kỳ đã thanh toán</span>
+                    <span>{paymentProgress}%</span>
+                  </div>
+                  <Progress percent={paymentProgress} strokeColor="#2563eb" className="mt-2" />
+                </div>
 
-                              const linksStr = parts[1].trim();
-                              const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
-                              const links = [];
-                              let match;
-                              while ((match = regex.exec(linksStr)) !== null) {
-                                links.push({ label: match[1], url: match[2] });
-                              }
-
-                              return (
-                                <div>
-                                  <div style={{ whiteSpace: "pre-wrap", marginBottom: 12 }}>{pureNote || "Không có ghi chú"}</div>
-                                  <div className="font-semibold text-xs text-slate-500 uppercase tracking-wider mb-2">Tài liệu minh chứng đính kèm:</div>
-                                  <div className="flex gap-2 flex-wrap">
-                                    {links.map((link, idx) => {
-                                      const isImage = /\.(jpe?g|png|gif|webp)$/i.test(link.url);
-                                      return (
-                                        <a key={idx} href={link.url} target="_blank" rel="noreferrer" className="block border border-slate-200 rounded-lg p-2 bg-white hover:border-blue-400 transition-colors w-24 h-24 flex flex-col items-center justify-center">
-                                          {isImage ? (
-                                            <div className="w-full h-full rounded bg-slate-50 overflow-hidden relative">
-                                              <img src={link.url} alt={link.label} className="w-full h-full object-cover" />
-                                            </div>
-                                          ) : (
-                                            <>
-                                              <FileOutlined className="text-2xl text-blue-500 mb-1" />
-                                              <div className="text-[10px] text-slate-600 truncate w-full text-center" title={link.label}>{link.label}</div>
-                                            </>
-                                          )}
-                                        </a>
-                                      );
-                                    })}
-                                  </div>
+                <div className="mt-6">
+                  {paymentItems.length ? (
+                    <div className="space-y-3">
+                      {paymentItems.map((payment) => {
+                        const cfg = PAYMENT_STATUS_CONFIG[payment.status] || PAYMENT_STATUS_CONFIG.pending;
+                        return (
+                          <div key={payment.paymentId} className="rounded-2xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-blue-50/40">
+                            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <Text className="font-semibold text-slate-900">{payment.paymentCode}</Text>
+                                  <Tag color={cfg.color} icon={cfg.icon} className="m-0">
+                                    {cfg.label}
+                                  </Tag>
                                 </div>
-                              );
-                            })()}
-                          </Descriptions.Item>
-                          {latestTermination.status === "resolved" && (
-                            <Descriptions.Item label="Kết quả">
-                              {latestTermination.resolution === "terminate_contract" ? "Chấp nhận chấm dứt (Hoàn tiền & Phạt)" : "Bác bỏ yêu cầu (Tiếp tục hợp đồng)"}
-                            </Descriptions.Item>
-                          )}
-                          {latestTermination.resolvedAt && (
-                            <Descriptions.Item label="Thời điểm giải quyết">{formatDate(latestTermination.resolvedAt)}</Descriptions.Item>
-                          )}
-                        </Descriptions>
-                      )}
-                      {latestTermination && ["pending", "rejected", "negotiating", "admin_review", "admin_processing"].includes(latestTermination.status) && (
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {latestTermination.status === "pending" && latestTermination.requestedBy !== user?.id && (
-                            <Button size="small" onClick={() => handleOpenReview(latestTermination)}>
-                              Xử lý yêu cầu
-                            </Button>
-                          )}
-                          {latestTermination.status === "rejected" && (
-                            <>
-                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "negotiating")}>
-                                Bắt đầu thương lượng
-                              </Button>
-                              <Button size="small" onClick={() => handleOpenReport({ terminationRequestId: latestTermination.terminationRequestId, type: 'contract', title: 'Tranh chấp chấm dứt hợp đồng', description: 'Yêu cầu xem xét chấm dứt hợp đồng đang bị tranh chấp.' })}>
-                                Gửi tranh chấp lên admin
-                              </Button>
-                            </>
-                          )}
-                          {latestTermination.status === "negotiating" && (
-                            <>
-                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
-                                Xác nhận đã giải quyết
-                              </Button>
-                              <Button size="small" onClick={() => handleOpenReport({ terminationRequestId: latestTermination.terminationRequestId, type: 'contract', title: 'Tranh chấp chấm dứt hợp đồng', description: 'Yêu cầu xem xét chấm dứt hợp đồng đang bị tranh chấp.' })}>
-                                Gửi tranh chấp lên admin
-                              </Button>
-                            </>
-                          )}
-                          {latestTermination.status === "admin_review" && user?.role === "ADMIN" && (
-                            <>
-                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "admin_processing")}>
-                                Bắt đầu xử lý
-                              </Button>
-                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
-                                Giải quyết xong
-                              </Button>
-                            </>
-                          )}
-                          {latestTermination.status === "admin_processing" && user?.role === "ADMIN" && (
-                            <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
-                              Giải quyết xong
-                            </Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold text-slate-900">Lịch sử yêu cầu</div>
-                        <Text className="text-xs text-slate-500">{terminationList.length - 1} yêu cầu trước</Text>
-                      </div>
-                      <div className="mt-4 space-y-3">
-                        {terminationList.slice(1).length === 0 && (
-                          <div className="text-xs text-slate-500">Chưa có lịch sử</div>
-                        )}
-                        {terminationList.slice(1).map((item) => (
-                          <div key={item.terminationRequestId} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-sm font-semibold text-slate-800">
-                                {TERMINATION_REASON_LABELS[item.reason] || item.reason}
+                                <div className="mt-1 text-sm text-slate-500">
+                                  {PAYMENT_TYPE_LABELS[payment.paymentType] || payment.paymentType} · Hạn {formatDate(payment.dueDate)}
+                                </div>
                               </div>
-                              <Tag color={TERMINATION_STATUS_LABELS[item.status].color} className="m-0">
-                                {TERMINATION_STATUS_LABELS[item.status].label}
-                              </Tag>
-                            </div>
-                            <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
-                              <span>{formatDate(item.createdAt)}</span>
-                              <Button size="small" onClick={() => handleOpenTerminationDetail(item)}>
-                                Xem chi tiết
-                              </Button>
+                              <div className="text-right">
+                                <div className="text-sm text-slate-500">Tổng tiền</div>
+                                <div className="text-lg font-semibold text-slate-900">{formatMoney(payment.amount)}</div>
+                                <div className="text-sm text-emerald-600">Đã trả: {formatMoney(payment.paidAmount)}</div>
+                                <Button
+                                  size="small"
+                                  className="mt-2"
+                                  icon={<FileTextOutlined />}
+                                  onClick={() => handleOpenInvoice(payment)}
+                                  loading={invoicePaymentsLoading}
+                                >
+                                  Xem hóa đơn
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {terminationLoading && <Text className="mt-4 block text-xs text-slate-400">Đang tải yêu cầu...</Text>}
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Khiếu nại</Text>
-                  <h3 className="mt-2 text-2xl font-semibold text-slate-900">Tranh chấp & xử lý admin</h3>
-                  <Text className="text-sm text-slate-500">Ghi nhận và theo dõi toàn bộ khiếu nại liên quan hợp đồng.</Text>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {latestReport && (
-                    <Tag color={REPORT_STATUS_LABELS[latestReport.status].color} className="m-0">
-                      {REPORT_STATUS_LABELS[latestReport.status].label}
-                    </Tag>
+                  ) : (
+                    <Empty description="Chưa có dữ liệu thanh toán cho hợp đồng này" />
                   )}
-                  <Button
-                    type="primary"
-                    onClick={() => handleOpenReport()}
-                    loading={reportActionLoading}
-                    disabled={isAdminReportBlocking || isTerminationAdminBlocking}
-                  >
-                    Tạo khiếu nại
-                  </Button>
                 </div>
               </div>
 
-              <div className="mt-6 space-y-4">
-                {latestTermination && ["admin_review", "admin_processing"].includes(latestTermination.status) && (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <Text strong>Tranh chấp chấm dứt hợp đồng</Text>
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Chấm dứt hợp đồng</Text>
+                    <h3 className="mt-2 text-2xl font-semibold text-slate-900">Bảng điều khiển chấm dứt</h3>
+                    <Text className="text-sm text-slate-500">Theo dõi trạng thái, lịch sử và xử lý yêu cầu chấm dứt theo chuẩn nghiệp vụ.</Text>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {latestTermination && (
                       <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color} className="m-0">
                         {TERMINATION_STATUS_LABELS[latestTermination.status].label}
                       </Tag>
-                    </div>
-                    <div className="mt-2 text-xs text-amber-700">
-                      Yêu cầu chấm dứt đang được admin xem xét và xử lý.
-                    </div>
+                    )}
+                    {canRequestTermination && (
+                      <Button type="primary" icon={<ExclamationCircleOutlined />} onClick={handleOpenTermination} loading={terminationActionLoading}>
+                        Gửi yêu cầu chấm dứt
+                      </Button>
+                    )}
                   </div>
-                )}
+                </div>
 
-                {!reportItems.length && !latestTermination && <Empty description="Chưa có khiếu nại" />}
+                <div className="mt-6">
+                  {!terminationList.length && (
+                    <Empty description="Chưa có yêu cầu chấm dứt" />
+                  )}
 
-                {reportItems.length > 0 && (
-                  <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold text-slate-900">Khiếu nại gần nhất</div>
-                        {latestReport && (
-                          <Tag color={REPORT_STATUS_LABELS[latestReport.status].color} className="m-0">
-                            {REPORT_STATUS_LABELS[latestReport.status].label}
-                          </Tag>
-                        )}
-                      </div>
-                      {latestReport && (
-                        <>
+                  {terminationList.length > 0 && (
+                    <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-semibold text-slate-900">Yêu cầu gần nhất</div>
+                          {latestTermination && (
+                            <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color} className="m-0">
+                              {TERMINATION_STATUS_LABELS[latestTermination.status].label}
+                            </Tag>
+                          )}
+                        </div>
+                        {latestTermination && (
                           <Descriptions column={1} size="small" className="mt-3">
-                            <Descriptions.Item label="Tiêu đề">{latestReport.title}</Descriptions.Item>
-                            <Descriptions.Item label="Loại">{REPORT_TYPE_LABELS[latestReport.type] || latestReport.type}</Descriptions.Item>
-                            <Descriptions.Item label="Mức độ">{latestReport.priority}</Descriptions.Item>
-                            <Descriptions.Item label="Nội dung">{latestReport.description}</Descriptions.Item>
-                            <Descriptions.Item label="Ghi chú admin">{latestReport.adminNote || "—"}</Descriptions.Item>
+                            <Descriptions.Item label="Lý do">{TERMINATION_REASON_LABELS[latestTermination.reason] || latestTermination.reason}</Descriptions.Item>
+                            <Descriptions.Item label="Ngày chấm dứt dự kiến">{formatDate(latestTermination.requestedTerminationDate)}</Descriptions.Item>
+                            <Descriptions.Item label="Phí chấm dứt sớm">{formatMoney(latestTermination.earlyTerminationFee || 0)}</Descriptions.Item>
+                            <Descriptions.Item label="Ghi chú">{latestTermination.note || "—"}</Descriptions.Item>
+                            <Descriptions.Item label="Ghi chú phản hồi">
+                              {(() => {
+                                if (!latestTermination.reviewNote) return "—";
+                                const parts = latestTermination.reviewNote.split("--- TÀI LIỆU MINH CHỨNG ---");
+                                const pureNote = parts[0].trim();
+                                if (parts.length === 1) return pureNote;
+
+                                const linksStr = parts[1].trim();
+                                const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+                                const links = [];
+                                let match;
+                                while ((match = regex.exec(linksStr)) !== null) {
+                                  links.push({ label: match[1], url: match[2] });
+                                }
+
+                                return (
+                                  <div>
+                                    <div style={{ whiteSpace: "pre-wrap", marginBottom: 12 }}>{pureNote || "Không có ghi chú"}</div>
+                                    <div className="font-semibold text-xs text-slate-500 uppercase tracking-wider mb-2">Tài liệu minh chứng đính kèm:</div>
+                                    <div className="flex gap-2 flex-wrap">
+                                      {links.map((link, idx) => {
+                                        const isImage = /\.(jpe?g|png|gif|webp)$/i.test(link.url);
+                                        return (
+                                          <a key={idx} href={link.url} target="_blank" rel="noreferrer" className="block border border-slate-200 rounded-lg p-2 bg-white hover:border-blue-400 transition-colors w-24 h-24 flex flex-col items-center justify-center">
+                                            {isImage ? (
+                                              <div className="w-full h-full rounded bg-slate-50 overflow-hidden relative">
+                                                <img src={link.url} alt={link.label} className="w-full h-full object-cover" />
+                                              </div>
+                                            ) : (
+                                              <>
+                                                <FileOutlined className="text-2xl text-blue-500 mb-1" />
+                                                <div className="text-[10px] text-slate-600 truncate w-full text-center" title={link.label}>{link.label}</div>
+                                              </>
+                                            )}
+                                          </a>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </Descriptions.Item>
+                            {latestTermination.status === "resolved" && (
+                              <Descriptions.Item label="Kết quả">
+                                {latestTermination.resolution === "terminate_contract" ? "Chấp nhận chấm dứt (Hoàn tiền & Phạt)" : "Bác bỏ yêu cầu (Tiếp tục hợp đồng)"}
+                              </Descriptions.Item>
+                            )}
+                            {latestTermination.resolvedAt && (
+                              <Descriptions.Item label="Thời điểm giải quyết">{formatDate(latestTermination.resolvedAt)}</Descriptions.Item>
+                            )}
                           </Descriptions>
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {latestReport.status === "open" && latestReport.createdBy === user?.id && (
-                              <Button size="small" onClick={() => handleUpdateReportStatus(latestReport, "cancelled")}>
-                                Hủy khiếu nại
-                              </Button>
-                            )}
-                            {latestReport.status === "admin" && latestReport.createdBy === user?.id && (
-                              <Button size="small" disabled>
-                                Đang chờ admin xử lý
-                              </Button>
-                            )}
-                            {latestReport.status === "admin" && user?.role === "ADMIN" && (
-                              <Button size="small" onClick={() => handleUpdateReportStatus(latestReport, "resolved")}>
-                                Đã giải quyết
-                              </Button>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm font-semibold text-slate-900">Lịch sử khiếu nại</div>
-                        <Text className="text-xs text-slate-500">{reportItems.length - 1} khiếu nại trước</Text>
-                      </div>
-                      <div className="mt-4 space-y-3">
-                        {reportItems.slice(1).length === 0 && (
-                          <div className="text-xs text-slate-500">Chưa có lịch sử</div>
                         )}
-                        {reportItems.slice(1).map((report) => (
-                          <div key={report.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-sm font-semibold text-slate-800">
-                                {report.title}
-                              </div>
-                              <Tag color={REPORT_STATUS_LABELS[report.status].color} className="m-0">
-                                {REPORT_STATUS_LABELS[report.status].label}
-                              </Tag>
-                            </div>
-                            <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
-                              <span>{formatDate(report.createdAt)}</span>
-                              <Button size="small" onClick={() => handleOpenReportDetail(report)}>
-                                Xem chi tiết
+                        {latestTermination && ["pending", "rejected", "negotiating", "admin_review", "admin_processing"].includes(latestTermination.status) && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {latestTermination.status === "pending" && latestTermination.requestedBy !== user?.id && (
+                              <Button size="small" onClick={() => handleOpenReview(latestTermination)}>
+                                Xử lý yêu cầu
                               </Button>
-                            </div>
+                            )}
+                            {latestTermination.status === "rejected" && (
+                              <>
+                                <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "negotiating")}>
+                                  Bắt đầu thương lượng
+                                </Button>
+                                <Button size="small" onClick={() => handleOpenReport({ terminationRequestId: latestTermination.terminationRequestId, type: 'contract', title: 'Tranh chấp chấm dứt hợp đồng', description: 'Yêu cầu xem xét chấm dứt hợp đồng đang bị tranh chấp.' })}>
+                                  Gửi tranh chấp lên admin
+                                </Button>
+                              </>
+                            )}
+                            {latestTermination.status === "negotiating" && (
+                              <>
+                                <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
+                                  Xác nhận đã giải quyết
+                                </Button>
+                                <Button size="small" onClick={() => handleOpenReport({ terminationRequestId: latestTermination.terminationRequestId, type: 'contract', title: 'Tranh chấp chấm dứt hợp đồng', description: 'Yêu cầu xem xét chấm dứt hợp đồng đang bị tranh chấp.' })}>
+                                  Gửi tranh chấp lên admin
+                                </Button>
+                              </>
+                            )}
+                            {latestTermination.status === "admin_review" && user?.role === "ADMIN" && (
+                              <>
+                                <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "admin_processing")}>
+                                  Bắt đầu xử lý
+                                </Button>
+                                <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
+                                  Giải quyết xong
+                                </Button>
+                              </>
+                            )}
+                            {latestTermination.status === "admin_processing" && user?.role === "ADMIN" && (
+                              <Button size="small" onClick={() => handleOpenTerminationUpdate(latestTermination, "resolved")}>
+                                Giải quyết xong
+                              </Button>
+                            )}
                           </div>
-                        ))}
+                        )}
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-semibold text-slate-900">Lịch sử yêu cầu</div>
+                          <Text className="text-xs text-slate-500">{terminationList.length - 1} yêu cầu trước</Text>
+                        </div>
+                        <div className="mt-4 space-y-3">
+                          {terminationList.slice(1).length === 0 && (
+                            <div className="text-xs text-slate-500">Chưa có lịch sử</div>
+                          )}
+                          {terminationList.slice(1).map((item) => (
+                            <div key={item.terminationRequestId} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-sm font-semibold text-slate-800">
+                                  {TERMINATION_REASON_LABELS[item.reason] || item.reason}
+                                </div>
+                                <Tag color={TERMINATION_STATUS_LABELS[item.status].color} className="m-0">
+                                  {TERMINATION_STATUS_LABELS[item.status].label}
+                                </Tag>
+                              </div>
+                              <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                                <span>{formatDate(item.createdAt)}</span>
+                                <Button size="small" onClick={() => handleOpenTerminationDetail(item)}>
+                                  Xem chi tiết
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {reportsLoading && <Text className="mt-4 block text-xs text-slate-400">Đang tải khiếu nại...</Text>}
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử ký kết</Text>
-                  <h3 className="mt-2 text-xl font-semibold text-slate-900">Dòng thời gian xử lý hợp đồng</h3>
+                  )}
                 </div>
-                <Button onClick={() => setTimelineOpen(true)}>Xem lịch sử ký kết</Button>
-              </div>
-              <div className="mt-4 text-sm text-slate-500">
-                Xem toàn bộ lịch sử ký kết trong cửa sổ chi tiết.
-              </div>
-            </div>
 
-            {/* Trạng thái chữ ký số */}
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Chữ ký số</Text>
-              <h3 className="mt-2 text-xl font-semibold text-slate-900">Trạng thái chữ ký điện tử</h3>
-              <div className="mt-6 space-y-4">
-                <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${contract.ownerSignedAt ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'}`}>
-                      <CheckCircleOutlined style={{ fontSize: 20 }} />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-slate-800">Bên A - Chủ nhà</div>
-                      <div className="text-xs text-slate-500">{contract.owner?.name || contract.ownerId}</div>
-                    </div>
+                {terminationLoading && <Text className="mt-4 block text-xs text-slate-400">Đang tải yêu cầu...</Text>}
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Khiếu nại</Text>
+                    <h3 className="mt-2 text-2xl font-semibold text-slate-900">Tranh chấp & xử lý admin</h3>
+                    <Text className="text-sm text-slate-500">Ghi nhận và theo dõi toàn bộ khiếu nại liên quan hợp đồng.</Text>
                   </div>
-                  <div className="text-right">
-                    {contract.ownerSignedAt ? (
-                      <div>
-                        <Tag color="success" className="m-0">Đã ký số</Tag>
-                        <div className="mt-1 text-xs text-slate-400">{dayjs(contract.ownerSignedAt).format("HH:mm · DD/MM/YYYY")}</div>
-                      </div>
-                    ) : (
-                      <Tag color="default" className="m-0">Chưa ký</Tag>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {latestReport && (
+                      <Tag color={REPORT_STATUS_LABELS[latestReport.status].color} className="m-0">
+                        {REPORT_STATUS_LABELS[latestReport.status].label}
+                      </Tag>
                     )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-full ${contract.tenantSignedAt ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'}`}>
-                      <CheckCircleOutlined style={{ fontSize: 20 }} />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-slate-800">Bên B - Người thuê</div>
-                      <div className="text-xs text-slate-500">{contract.tenant?.name || contract.tenantId}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    {contract.tenantSignedAt ? (
-                      <div>
-                        <Tag color="success" className="m-0">Đã ký số</Tag>
-                        <div className="mt-1 text-xs text-slate-400">{dayjs(contract.tenantSignedAt).format("HH:mm · DD/MM/YYYY")}</div>
-                      </div>
-                    ) : (
-                      <Tag color="default" className="m-0">Chưa ký</Tag>
-                    )}
-                  </div>
-                </div>
-
-                {contract.blockchainTxHash && (
-                  <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
-                      <SafetyCertificateOutlined />
-                      Đã xác thực trên Blockchain
-                    </div>
-                    <div className="mt-2 break-all text-xs text-blue-600 font-mono">
-                      TX: {contract.blockchainTxHash}
-                    </div>
-                    {contract.blockchainNetwork && (
-                      <div className="mt-1 text-xs text-blue-500">
-                        Network: {contract.blockchainNetwork}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </Col>
-
-        <Col xs={24} xl={8}>
-          <div className="space-y-8">
-            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-              <div className="relative h-56 w-full bg-slate-100">
-                {sidebarImage ? (
-                  <img src={sidebarImage} alt={getPropertyTitle(property)} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
-                    <HomeOutlined style={{ fontSize: 56 }} />
-                  </div>
-                )}
-                <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur">
-                  APARTMENT
-                </div>
-              </div>
-              <div className="space-y-4 p-5">
-                <div>
-                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Bất động sản</Text>
-                  <h3 className="mt-2 text-xl font-semibold text-slate-900">{getPropertyTitle(property)}</h3>
-                  <div className="mt-2 flex items-start gap-2 text-sm text-slate-500">
-                    <EnvironmentOutlined className="mt-1" />
-                    <span>{getPropertyAddress(property)}</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <div className="text-xs text-slate-500">Diện tích</div>
-                    <div className="mt-1 font-semibold text-slate-900">{property?.areaSqm ? `${property.areaSqm} m²` : "—"}</div>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <div className="text-xs text-slate-500">Phòng ngủ</div>
-                    <div className="mt-1 font-semibold text-slate-900">{property?.bedrooms ?? "—"}</div>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <div className="text-xs text-slate-500">Phòng tắm</div>
-                    <div className="mt-1 font-semibold text-slate-900">{property?.bathrooms ?? "—"}</div>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <div className="text-xs text-slate-500">Giá thuê</div>
-                    <div className="mt-1 font-semibold text-slate-900">{property?.pricePerMonth ? formatMoney(property.pricePerMonth) : formatMoney(contract.monthlyRent)}</div>
-                  </div>
-                </div>
-
-                <Divider className="my-3" />
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 p-3">
-                    <Avatar size={44} src={tenantInfo?.avatarUrl || undefined}>
-                      {getInitials(tenantInfo?.fullName) || <UserOutlined />}
-                    </Avatar>
-                    <div>
-                      <div className="font-semibold text-slate-900">{tenantDisplayName}</div>
-                      <div className="text-sm text-slate-500">Bên thuê hiện tại</div>
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <span>{getUserPhone(tenantInfo, showTenantPhone)}</span>
-                      </div>
-                    </div>
-                    {isOwnerSide && (
-                      <Button
-                        size="small"
-                        icon={<MessageOutlined />}
-                        onClick={() => handleOpenChat(contract.tenantId)}
-                        className="ml-auto"
-                      >
-                        Liên hệ
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200 p-3">
-                    <Avatar size={44} src={ownerInfo?.avatarUrl || undefined}>
-                      {getInitials(ownerInfo?.fullName) || <HomeOutlined />}
-                    </Avatar>
-                    <div>
-                      <div className="font-semibold text-slate-900">{ownerDisplayName}</div>
-                      <div className="text-sm text-slate-500">Chủ nhà / Bên cho thuê</div>
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <span>{getUserPhone(ownerInfo, showOwnerPhone)}</span>
-                      </div>
-                    </div>
-                    {isTenantSide && (
-                      <Button
-                        size="small"
-                        icon={<MessageOutlined />}
-                        onClick={() => handleOpenChat(contract.ownerId)}
-                        className="ml-auto"
-                      >
-                        Liên hệ
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Thanh toán hiện tại</Text>
-              <h3 className="mt-2 text-xl font-semibold text-slate-900">{paymentStatus.label}</h3>
-
-              <div className="mt-5 rounded-2xl border border-slate-200 p-4">
-                {currentPayment ? (
-                  <>
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm text-slate-500">Kỳ thanh toán</div>
-                        <div className="font-semibold text-slate-900">{currentPayment.paymentCode}</div>
-                      </div>
-                      <Tag color={paymentStatus.color} icon={paymentStatus.icon}>{paymentStatus.label}</Tag>
-                    </div>
-                    <Divider className="my-4" />
-                    <Descriptions column={1} size="small">
-                      <Descriptions.Item label="Số tiền">{formatMoney(currentPayment.amount)}</Descriptions.Item>
-                      <Descriptions.Item label="Đã thanh toán">{formatMoney(currentPayment.paidAmount)}</Descriptions.Item>
-                      <Descriptions.Item label="Còn lại">{formatMoney(currentPayment.remainingAmount)}</Descriptions.Item>
-                      <Descriptions.Item label="Hạn thanh toán">{formatDate(currentPayment.dueDate)}</Descriptions.Item>
-                    </Descriptions>
-                    <div className="mt-4 flex flex-col gap-2">
-                      <Button block icon={<FileTextOutlined />} onClick={() => handleOpenInvoice(currentPayment)} loading={invoicePaymentsLoading}>
-                        Xem hóa đơn
-                      </Button>
-                      {canPay && (
-                        <Button type="primary" block icon={<WalletOutlined />} onClick={openPaymentModal} loading={actionLoading}>
-                          Thanh toán ngay
-                        </Button>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có kỳ thanh toán nào" />
-                )}
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Xác thực blockchain</Text>
-              <h3 className="mt-2 text-xl font-semibold text-slate-900">Kiểm tra thay đổi hợp đồng</h3>
-              <div className="mt-3 text-sm text-slate-500">
-                Tải lên bản PDF đã ký để đối chiếu với hash đã lưu trên blockchain.
-              </div>
-
-              {!contract.blockchainTxHash && (
-                <Alert
-                  type="info"
-                  showIcon
-                  className="mt-4 rounded-2xl"
-                  message="Hợp đồng chưa được ghi nhận lên blockchain."
-                />
-              )}
-
-              <div className="mt-4 space-y-3">
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-800">
-                        {verifyFile ? verifyFile.name : "Chưa chọn file"}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {verifyFile ? `${(verifyFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF đã ký, tối đa 15MB"}
-                      </div>
-                    </div>
-                    <Button icon={<UploadOutlined />} onClick={handleSelectVerifyFile}>
-                      Chọn file
+                    <Button
+                      type="primary"
+                      onClick={() => handleOpenReport()}
+                      loading={reportActionLoading}
+                      disabled={isAdminReportBlocking || isTerminationAdminBlocking}
+                    >
+                      Tạo khiếu nại
                     </Button>
                   </div>
                 </div>
 
-                <input
-                  ref={verifyInputRef}
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={handleVerifyFileChange}
-                />
-
-                <Button
-                  type="primary"
-                  block
-                  icon={<SafetyCertificateOutlined />}
-                  onClick={handleVerifyBlockchain}
-                  loading={verifyLoading}
-                  disabled={!verifyFile || !contract.blockchainTxHash}
-                >
-                  Xác thực với blockchain
-                </Button>
-
-                {verifyResult && (
-                  <div className={`rounded-2xl border px-4 py-3 ${verifyResult.ok ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}>
-                    <div className={`text-sm font-semibold ${verifyResult.ok ? "text-emerald-700" : "text-rose-700"}`}>
-                      {verifyResult.ok ? "Hợp đồng trùng khớp" : "Hợp đồng đã bị thay đổi"}
+                <div className="mt-6 space-y-4">
+                  {latestTermination && ["admin_review", "admin_processing"].includes(latestTermination.status) && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <Text strong>Tranh chấp chấm dứt hợp đồng</Text>
+                        <Tag color={TERMINATION_STATUS_LABELS[latestTermination.status].color} className="m-0">
+                          {TERMINATION_STATUS_LABELS[latestTermination.status].label}
+                        </Tag>
+                      </div>
+                      <div className="mt-2 text-xs text-amber-700">
+                        Yêu cầu chấm dứt đang được admin xem xét và xử lý.
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      {dayjs(verifyResult.checkedAt).format("HH:mm · DD/MM/YYYY")}
+                  )}
+
+                  {!reportItems.length && !latestTermination && <Empty description="Chưa có khiếu nại" />}
+
+                  {reportItems.length > 0 && (
+                    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-semibold text-slate-900">Khiếu nại gần nhất</div>
+                          {latestReport && (
+                            <Tag color={REPORT_STATUS_LABELS[latestReport.status].color} className="m-0">
+                              {REPORT_STATUS_LABELS[latestReport.status].label}
+                            </Tag>
+                          )}
+                        </div>
+                        {latestReport && (
+                          <>
+                            <Descriptions column={1} size="small" className="mt-3">
+                              <Descriptions.Item label="Tiêu đề">{latestReport.title}</Descriptions.Item>
+                              <Descriptions.Item label="Loại">{REPORT_TYPE_LABELS[latestReport.type] || latestReport.type}</Descriptions.Item>
+                              <Descriptions.Item label="Mức độ">{latestReport.priority}</Descriptions.Item>
+                              <Descriptions.Item label="Nội dung">{latestReport.description}</Descriptions.Item>
+                              <Descriptions.Item label="Ghi chú admin">{latestReport.adminNote || "—"}</Descriptions.Item>
+                            </Descriptions>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {latestReport.status === "open" && latestReport.createdBy === user?.id && (
+                                <Button size="small" onClick={() => handleUpdateReportStatus(latestReport, "cancelled")}>
+                                  Hủy khiếu nại
+                                </Button>
+                              )}
+                              {latestReport.status === "admin" && latestReport.createdBy === user?.id && (
+                                <Button size="small" disabled>
+                                  Đang chờ admin xử lý
+                                </Button>
+                              )}
+                              {latestReport.status === "admin" && user?.role === "ADMIN" && (
+                                <Button size="small" onClick={() => handleUpdateReportStatus(latestReport, "resolved")}>
+                                  Đã giải quyết
+                                </Button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm font-semibold text-slate-900">Lịch sử khiếu nại</div>
+                          <Text className="text-xs text-slate-500">{reportItems.length - 1} khiếu nại trước</Text>
+                        </div>
+                        <div className="mt-4 space-y-3">
+                          {reportItems.slice(1).length === 0 && (
+                            <div className="text-xs text-slate-500">Chưa có lịch sử</div>
+                          )}
+                          {reportItems.slice(1).map((report) => (
+                            <div key={report.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="text-sm font-semibold text-slate-800">
+                                  {report.title}
+                                </div>
+                                <Tag color={REPORT_STATUS_LABELS[report.status].color} className="m-0">
+                                  {REPORT_STATUS_LABELS[report.status].label}
+                                </Tag>
+                              </div>
+                              <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                                <span>{formatDate(report.createdAt)}</span>
+                                <Button size="small" onClick={() => handleOpenReportDetail(report)}>
+                                  Xem chi tiết
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {reportsLoading && <Text className="mt-4 block text-xs text-slate-400">Đang tải khiếu nại...</Text>}
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lịch sử ký kết</Text>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">Dòng thời gian xử lý hợp đồng</h3>
+                  </div>
+                  <Button onClick={() => setTimelineOpen(true)}>Xem lịch sử ký kết</Button>
+                </div>
+                <div className="mt-4 text-sm text-slate-500">
+                  Xem toàn bộ lịch sử ký kết trong cửa sổ chi tiết.
+                </div>
+              </div>
+
+              {/* Trạng thái chữ ký số */}
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Chữ ký số</Text>
+                <h3 className="mt-2 text-xl font-semibold text-slate-900">Trạng thái chữ ký điện tử</h3>
+                <div className="mt-6 space-y-4">
+                  <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${contract.ownerSignedAt ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'}`}>
+                        <CheckCircleOutlined style={{ fontSize: 20 }} />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-800">Bên A - Chủ nhà</div>
+                        <div className="text-xs text-slate-500">{contract.owner?.name || contract.ownerId}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {contract.ownerSignedAt ? (
+                        <div>
+                          <Tag color="success" className="m-0">Đã ký số</Tag>
+                          <div className="mt-1 text-xs text-slate-400">{dayjs(contract.ownerSignedAt).format("HH:mm · DD/MM/YYYY")}</div>
+                        </div>
+                      ) : (
+                        <Tag color="default" className="m-0">Chưa ký</Tag>
+                      )}
                     </div>
                   </div>
-                )}
 
-                {verifyError && (
-                  <Alert type="error" showIcon className="rounded-2xl" message={verifyError} />
-                )}
+                  <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-full ${contract.tenantSignedAt ? 'bg-green-100 text-green-600' : 'bg-slate-200 text-slate-400'}`}>
+                        <CheckCircleOutlined style={{ fontSize: 20 }} />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-800">Bên B - Người thuê</div>
+                        <div className="text-xs text-slate-500">{contract.tenant?.name || contract.tenantId}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      {contract.tenantSignedAt ? (
+                        <div>
+                          <Tag color="success" className="m-0">Đã ký số</Tag>
+                          <div className="mt-1 text-xs text-slate-400">{dayjs(contract.tenantSignedAt).format("HH:mm · DD/MM/YYYY")}</div>
+                        </div>
+                      ) : (
+                        <Tag color="default" className="m-0">Chưa ký</Tag>
+                      )}
+                    </div>
+                  </div>
+
+                  {contract.blockchainTxHash && (
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-blue-700">
+                        <SafetyCertificateOutlined />
+                        Đã xác thực trên Blockchain
+                      </div>
+                      <div className="mt-2 break-all text-xs text-blue-600 font-mono">
+                        TX: {contract.blockchainTxHash}
+                      </div>
+                      {contract.blockchainNetwork && (
+                        <div className="mt-1 text-xs text-blue-500">
+                          Network: {contract.blockchainNetwork}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+          </Col>
 
-            <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
-              <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Thông tin nhanh</Text>
-              <div className="mt-4 space-y-3 text-sm text-slate-600">
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span>Ngày ký</span>
-                  <span className="font-medium text-slate-900">{contract.signedDate ? formatDate(contract.signedDate) : "—"}</span>
+          <Col xs={24} xl={8}>
+            <div className="space-y-8">
+              <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+                <div className="relative h-56 w-full bg-slate-100">
+                  {sidebarImage ? (
+                    <img src={sidebarImage} alt={getPropertyTitle(property)} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 text-slate-400">
+                      <HomeOutlined style={{ fontSize: 56 }} />
+                    </div>
+                  )}
+                  <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur">
+                    APARTMENT
+                  </div>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span>Ngày tạo</span>
-                  <span className="font-medium text-slate-900">{formatDate(contract.createdAt)}</span>
+                <div className="space-y-4 p-5">
+                  <div>
+                    <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Bất động sản</Text>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">{getPropertyTitle(property)}</h3>
+                    <div className="mt-2 flex items-start gap-2 text-sm text-slate-500">
+                      <EnvironmentOutlined className="mt-1" />
+                      <span>{getPropertyAddress(property)}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-slate-50 p-3">
+                      <div className="text-xs text-slate-500">Diện tích</div>
+                      <div className="mt-1 font-semibold text-slate-900">{property?.areaSqm ? `${property.areaSqm} m²` : "—"}</div>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-3">
+                      <div className="text-xs text-slate-500">Phòng ngủ</div>
+                      <div className="mt-1 font-semibold text-slate-900">{property?.bedrooms ?? "—"}</div>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-3">
+                      <div className="text-xs text-slate-500">Phòng tắm</div>
+                      <div className="mt-1 font-semibold text-slate-900">{property?.bathrooms ?? "—"}</div>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-3">
+                      <div className="text-xs text-slate-500">Giá thuê</div>
+                      <div className="mt-1 font-semibold text-slate-900">{property?.pricePerMonth ? formatMoney(property.pricePerMonth) : formatMoney(contract.monthlyRent)}</div>
+                    </div>
+                  </div>
+
+                  <Divider className="my-3" />
+
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 p-3">
+                      <Avatar size={44} src={tenantInfo?.avatarUrl || undefined}>
+                        {getInitials(tenantInfo?.fullName) || <UserOutlined />}
+                      </Avatar>
+                      <div>
+                        <div className="font-semibold text-slate-900">{tenantDisplayName}</div>
+                        <div className="text-sm text-slate-500">Bên thuê hiện tại</div>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <span>{getUserPhone(tenantInfo, showTenantPhone)}</span>
+                        </div>
+                      </div>
+                      {isOwnerSide && (
+                        <Button
+                          size="small"
+                          icon={<MessageOutlined />}
+                          onClick={() => handleOpenChat(contract.tenantId)}
+                          className="ml-auto"
+                        >
+                          Liên hệ
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 p-3">
+                      <Avatar size={44} src={ownerInfo?.avatarUrl || undefined}>
+                        {getInitials(ownerInfo?.fullName) || <HomeOutlined />}
+                      </Avatar>
+                      <div>
+                        <div className="font-semibold text-slate-900">{ownerDisplayName}</div>
+                        <div className="text-sm text-slate-500">Chủ nhà / Bên cho thuê</div>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <span>{getUserPhone(ownerInfo, showOwnerPhone)}</span>
+                        </div>
+                      </div>
+                      {isTenantSide && (
+                        <Button
+                          size="small"
+                          icon={<MessageOutlined />}
+                          onClick={() => handleOpenChat(contract.ownerId)}
+                          className="ml-auto"
+                        >
+                          Liên hệ
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span>Cập nhật gần nhất</span>
-                  <span className="font-medium text-slate-900">{formatDate(contract.updatedAt)}</span>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Thanh toán hiện tại</Text>
+                <h3 className="mt-2 text-xl font-semibold text-slate-900">{paymentStatus.label}</h3>
+
+                <div className="mt-5 rounded-2xl border border-slate-200 p-4">
+                  {currentPayment ? (
+                    <>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm text-slate-500">Kỳ thanh toán</div>
+                          <div className="font-semibold text-slate-900">{currentPayment.paymentCode}</div>
+                        </div>
+                        <Tag color={paymentStatus.color} icon={paymentStatus.icon}>{paymentStatus.label}</Tag>
+                      </div>
+                      <Divider className="my-4" />
+                      <Descriptions column={1} size="small">
+                        <Descriptions.Item label="Số tiền">{formatMoney(currentPayment.amount)}</Descriptions.Item>
+                        <Descriptions.Item label="Đã thanh toán">{formatMoney(currentPayment.paidAmount)}</Descriptions.Item>
+                        <Descriptions.Item label="Còn lại">{formatMoney(currentPayment.remainingAmount)}</Descriptions.Item>
+                        <Descriptions.Item label="Hạn thanh toán">{formatDate(currentPayment.dueDate)}</Descriptions.Item>
+                      </Descriptions>
+                      <div className="mt-4 flex flex-col gap-2">
+                        <Button block icon={<FileTextOutlined />} onClick={() => handleOpenInvoice(currentPayment)} loading={invoicePaymentsLoading}>
+                          Xem hóa đơn
+                        </Button>
+                        {canPay && (
+                          <Button type="primary" block icon={<WalletOutlined />} onClick={openPaymentModal} loading={actionLoading}>
+                            Thanh toán ngay
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có kỳ thanh toán nào" />
+                  )}
                 </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span>Phí quản lý</span>
-                  <span className="font-medium text-slate-900">{formatMoney(contract.managementFee || 0)}</span>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Xác thực blockchain</Text>
+                <h3 className="mt-2 text-xl font-semibold text-slate-900">Kiểm tra thay đổi hợp đồng</h3>
+                <div className="mt-3 text-sm text-slate-500">
+                  Tải lên bản PDF đã ký để đối chiếu với hash đã lưu trên blockchain.
+                </div>
+
+                {!contract.blockchainTxHash && (
+                  <Alert
+                    type="info"
+                    showIcon
+                    className="mt-4 rounded-2xl"
+                    message="Hợp đồng chưa được ghi nhận lên blockchain."
+                  />
+                )}
+
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-800">
+                          {verifyFile ? verifyFile.name : "Chưa chọn file"}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {verifyFile ? `${(verifyFile.size / 1024 / 1024).toFixed(2)} MB` : "PDF đã ký, tối đa 15MB"}
+                        </div>
+                      </div>
+                      <Button icon={<UploadOutlined />} onClick={handleSelectVerifyFile}>
+                        Chọn file
+                      </Button>
+                    </div>
+                  </div>
+
+                  <input
+                    ref={verifyInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={handleVerifyFileChange}
+                  />
+
+                  <Button
+                    type="primary"
+                    block
+                    icon={<SafetyCertificateOutlined />}
+                    onClick={handleVerifyBlockchain}
+                    loading={verifyLoading}
+                    disabled={!verifyFile || !contract.blockchainTxHash}
+                  >
+                    Xác thực với blockchain
+                  </Button>
+
+                  {verifyResult && (
+                    <div className={`rounded-2xl border px-4 py-3 ${verifyResult.ok ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50"}`}>
+                      <div className={`text-sm font-semibold ${verifyResult.ok ? "text-emerald-700" : "text-rose-700"}`}>
+                        {verifyResult.ok ? "Hợp đồng trùng khớp" : "Hợp đồng đã bị thay đổi"}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {dayjs(verifyResult.checkedAt).format("HH:mm · DD/MM/YYYY")}
+                      </div>
+                    </div>
+                  )}
+
+                  {verifyError && (
+                    <Alert type="error" showIcon className="rounded-2xl" message={verifyError} />
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Thông tin nhanh</Text>
+                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Ngày ký</span>
+                    <span className="font-medium text-slate-900">{contract.signedDate ? formatDate(contract.signedDate) : "—"}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Ngày tạo</span>
+                    <span className="font-medium text-slate-900">{formatDate(contract.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Cập nhật gần nhất</span>
+                    <span className="font-medium text-slate-900">{formatDate(contract.updatedAt)}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                    <span>Phí quản lý</span>
+                    <span className="font-medium text-slate-900">{formatMoney(contract.managementFee || 0)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </Col>
-      </Row>
-    </div>
+          </Col>
+        </Row>
+      </div>
     );
   }
 
@@ -2246,16 +2244,16 @@ export default function ContractDetailPage() {
               type={
                 smartca.signStatus === "SIGNED" ? "success"
                   : ["REJECTED", "EXPIRED", "ERROR"].includes(smartca.signStatus) ? "error"
-                  : "info"
+                    : "info"
               }
               showIcon
               title={
                 <span className="font-medium text-sm">
                   {smartca.signStatus === "SIGNED" ? "Ký thành công"
                     : smartca.signStatus === "REJECTED" ? "Bạn đã từ chối ký hợp đồng"
-                    : smartca.signStatus === "EXPIRED" ? "Phiên ký đã hết hạn, vui lòng thử lại"
-                    : smartca.signStatus === "ERROR" ? smartca.error || "Có lỗi xảy ra khi ký SmartCA"
-                    : "Đang chờ xác nhận..."}
+                      : smartca.signStatus === "EXPIRED" ? "Phiên ký đã hết hạn, vui lòng thử lại"
+                        : smartca.signStatus === "ERROR" ? smartca.error || "Có lỗi xảy ra khi ký SmartCA"
+                          : "Đang chờ xác nhận..."}
                 </span>
               }
               description={

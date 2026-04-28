@@ -390,8 +390,6 @@ export default function RentalRequestsPage() {
   const HOLDING_PAYMENT_OPTIONS: MethodOption[] = [
     { value: "momo", label: "MoMo", description: "Thanh toán nhanh bằng ứng dụng MoMo." },
     { value: "vnpay", label: "VNPay", description: "Chuyển sang cổng thanh toán VNPay." },
-    { value: "zalopay", label: "ZaloPay", description: "Thanh toán bằng ví ZaloPay." },
-    { value: "bank_transfer", label: "Chuyển khoản ngân hàng", description: "Hiển thị thông tin chuyển khoản ngân hàng." },
     { value: "wallet", label: "Ví nội bộ", description: "Thanh toán nhanh bằng số dư ví nội bộ." },
   ];
 

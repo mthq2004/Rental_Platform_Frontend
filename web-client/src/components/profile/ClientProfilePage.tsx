@@ -82,10 +82,7 @@ type ProfileFormValues = {
   email?: string | null;
   phone?: string | null;
   gender?: string | null;
-  walletAddress?: string | null;
-  walletType?: "metamask" | "trust_wallet" | "coinbase" | "other" | null;
   dateOfBirth?: dayjs.Dayjs | null;
-  profileFullName?: string;
   idCardNumber?: string | null;
   currentAddress?: string | null;
   currentWard?: string | null;
@@ -94,7 +91,6 @@ type ProfileFormValues = {
   currentWardCode?: number;
   currentDistrictCode?: number;
   currentCityCode?: number;
-  occupation?: string | null;
   emergencyContactName?: string | null;
   emergencyContactPhone?: string | null;
 };
@@ -129,6 +125,7 @@ export default function ClientProfilePage() {
   const [emailCountdown, setEmailCountdown] = useState(0);
   const [pendingEmail, setPendingEmail] = useState("");
   const [emailVerified, setEmailVerified] = useState(false);
+  const [mapQuery, setMapQuery] = useState("");
 
   const currentPhone = Form.useWatch("phone", form);
   const currentEmail = Form.useWatch("email", form);
@@ -167,10 +164,7 @@ export default function ClientProfilePage() {
       email: user.email,
       phone: user.phone,
       gender: user.gender,
-      walletAddress: user.walletAddress,
-      walletType: user.walletType,
       dateOfBirth: user.dateOfBirth ? dayjs(user.dateOfBirth) : null,
-      profileFullName: user.profile?.fullName,
       idCardNumber: user.profile?.idCardNumber,
       currentAddress: user.profile?.currentAddress,
       currentWard: user.profile?.currentWard,
@@ -179,7 +173,6 @@ export default function ClientProfilePage() {
       currentWardCode: undefined,
       currentDistrictCode: undefined,
       currentCityCode: undefined,
-      occupation: user.profile?.occupation,
       emergencyContactName: user.profile?.emergencyContactName,
       emergencyContactPhone: user.profile?.emergencyContactPhone,
     });
@@ -260,10 +253,22 @@ export default function ClientProfilePage() {
     }
   }, [editing, form, message, user?.profile?.currentCity, user?.profile?.currentDistrict, user?.profile?.currentWard]);
 
+  const updateMapQuery = useCallback(() => {
+    const parts = [
+      form.getFieldValue("currentAddress"),
+      form.getFieldValue("currentWard"),
+      form.getFieldValue("currentDistrict"),
+      form.getFieldValue("currentCity"),
+    ].filter(Boolean);
+    setMapQuery(parts.join(", "));
+  }, [form]);
+
   useEffect(() => {
     if (!editing) return;
     bootstrapAddressOptions();
-  }, [bootstrapAddressOptions, editing]);
+    // Initialize map with existing address data
+    setTimeout(() => updateMapQuery(), 100);
+  }, [bootstrapAddressOptions, editing, updateMapQuery]);
 
   const handleProvinceChange = async (code: number) => {
     const province = provinces.find((item) => item.code === code);
@@ -279,6 +284,7 @@ export default function ClientProfilePage() {
 
     setDistricts([]);
     setWards([]);
+    updateMapQuery();
 
     try {
       setLocationLoading(true);
@@ -302,6 +308,7 @@ export default function ClientProfilePage() {
     });
 
     setWards([]);
+    updateMapQuery();
 
     try {
       setLocationLoading(true);
@@ -320,6 +327,7 @@ export default function ClientProfilePage() {
       currentWardCode: code,
       currentWard: ward?.name || null,
     });
+    updateMapQuery();
   };
 
   const handleSendOtp = async (phone: string) => {
@@ -526,22 +534,19 @@ export default function ClientProfilePage() {
     try {
       const payload = {
         fullName: values.fullName,
-        email: values.email,
+        email: values.email || null,
         phone: isPhoneChanged ? values.phone : user?.phone,
         gender: values.gender,
-        walletAddress: values.walletAddress || null,
-        walletType: values.walletType || null,
         dateOfBirth: values.dateOfBirth
           ? dayjs(values.dateOfBirth).format("YYYY-MM-DD")
           : undefined,
         profile: {
-          fullName: values.profileFullName || values.fullName,
+          fullName: values.fullName,
           idCardNumber: values.idCardNumber || null,
           currentAddress: values.currentAddress || null,
           currentWard: values.currentWard || null,
           currentDistrict: values.currentDistrict || null,
           currentCity: values.currentCity || null,
-          occupation: values.occupation || null,
           emergencyContactName: values.emergencyContactName || null,
           emergencyContactPhone: values.emergencyContactPhone || null,
         },
@@ -605,16 +610,12 @@ export default function ClientProfilePage() {
         email: user.email,
         phone: user.phone,
         gender: user.gender,
-        walletAddress: user.walletAddress,
-        walletType: user.walletType,
         dateOfBirth: user.dateOfBirth ? dayjs(user.dateOfBirth) : null,
-        profileFullName: user.profile?.fullName,
         idCardNumber: user.profile?.idCardNumber,
         currentAddress: user.profile?.currentAddress,
         currentWard: user.profile?.currentWard,
         currentDistrict: user.profile?.currentDistrict,
         currentCity: user.profile?.currentCity,
-        occupation: user.profile?.occupation,
         emergencyContactName: user.profile?.emergencyContactName,
         emergencyContactPhone: user.profile?.emergencyContactPhone,
       });
@@ -729,10 +730,10 @@ export default function ClientProfilePage() {
                   ok={phoneVerified || !!user?.phoneVerified}
                   label={phoneVerified || user?.phoneVerified ? "SĐT đã xác thực" : "SĐT chưa xác thực"}
                 />
-                <VerificationBadge
+                {/* <VerificationBadge
                   ok={emailVerified || !!user?.isEmailVerified}
                   label={emailVerified || user?.isEmailVerified ? "Email đã xác thực" : "Email chưa xác thực"}
-                />
+                /> */}
               </div>
               {!(emailVerified || user?.isEmailVerified) && user?.email && !editing && (
                 <button
@@ -768,16 +769,16 @@ export default function ClientProfilePage() {
               {!editing ? (
                 <div style={styles.infoGrid}>
                   <InfoField label="Họ và tên" value={user?.fullName} />
-                  <InfoField label="Email" value={user?.email || "-"} />
+                  <InfoField label="Email" value={user?.email || "Chưa cập nhật"} />
                   <InfoField label="Số điện thoại" value={user?.phone || "-"} />
-                  <InfoField
+                  {/* <InfoField
                     label="Xác thực email"
                     value={user?.isEmailVerified ? "Đã xác thực" : "Chưa xác thực"}
                   />
                   <InfoField
                     label="Xác thực số điện thoại"
                     value={user?.phoneVerified ? "Đã xác thực" : "Chưa xác thực"}
-                  />
+                  /> */}
                   <InfoField
                     label="Trạng thái KYC"
                     value={KYC_STATUS_MAP[user?.kycStatus || ""] || "-"}
@@ -789,22 +790,27 @@ export default function ClientProfilePage() {
                       user?.dateOfBirth ? dayjs(user.dateOfBirth).format("DD/MM/YYYY") : "-"
                     }
                   />
-                  <InfoField label="Ví điện tử" value={user?.walletAddress || "-"} />
-                  <InfoField
-                    label="Loại ví"
-                    value={user?.walletType ? WALLET_TYPE_MAP[user.walletType] : "-"}
-                  />
                   <InfoField label="CCCD/CMND" value={user?.profile?.idCardNumber || "-"} />
-                  <InfoField label="Nghề nghiệp" value={user?.profile?.occupation || "-"} />
                   <InfoField label="Địa chỉ hiện tại" value={displayAddress || "-"} spanFull />
-                  <InfoField
+                  {displayAddress && (
+                    <div style={{ gridColumn: "1 / -1", borderRadius: 12, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                      <iframe
+                        width="100%"
+                        height="200"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(displayAddress)}&output=embed`}
+                      />
+                    </div>
+                  )}
+                  {/* <InfoField
                     label="Liên hệ khẩn cấp"
                     value={user?.profile?.emergencyContactName || "-"}
                   />
                   <InfoField
                     label="SĐT khẩn cấp"
                     value={user?.profile?.emergencyContactPhone || "-"}
-                  />
+                  /> */}
                   <InfoField label="KYC gửi lúc" value={formatDate(user?.kycSubmittedAt)} />
                   <InfoField label="KYC duyệt lúc" value={formatDate(user?.kycVerifiedAt)} />
                   <InfoField label="Lý do từ chối KYC" value={user?.kycRejectionReason || "-"} />
@@ -813,233 +819,253 @@ export default function ClientProfilePage() {
               ) : (
                 <Spin spinning={locationLoading}>
                   <Form form={form} layout="vertical" requiredMark={false} onFinish={handleSubmit}>
-                  <Row gutter={[20, 0]}>
-                    <Col xs={24} md={12}>
-                      <Form.Item
-                        name="fullName"
-                        label={<FieldLabel>Họ và tên</FieldLabel>}
-                        rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}
-                      >
-                        <Input size="large" prefix={<UserOutlined style={styles.inputIcon} />} />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
-                      <Form.Item
-                        name="profileFullName"
-                        label={<FieldLabel>Tên trên hồ sơ</FieldLabel>}
-                      >
-                        <Input size="large" prefix={<UserOutlined style={styles.inputIcon} />} />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
-                      <Form.Item
-                        name="email"
-                        label={<FieldLabel>Email</FieldLabel>}
-                        rules={[
-                          { required: true, message: "Vui lòng nhập email" },
-                          { type: "email", message: "Email không hợp lệ" },
-                        ]}
-                      >
-                        <Input
-                          size="large"
-                          prefix={<MailOutlined style={styles.inputIcon} />}
-                          suffix={
-                            canShowEmailVerifyAction ? (
-                              <Button
-                                type="link"
-                                size="small"
-                                loading={emailOtpLoading}
-                                className="!p-0"
-                                onClick={() => handleRequestEmailOtp(String(form.getFieldValue("email") || ""))}
-                              >
-                                Xác thực
-                              </Button>
-                            ) : emailVerified || (!!user?.isEmailVerified && !emailChanged) ? (
-                              <span className="text-green-600 text-xs">Đã xác thực</span>
-                            ) : null
-                          }
-                        />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
-                      <Form.Item
-                        name="phone"
-                        label={<FieldLabel>Số điện thoại</FieldLabel>}
-                        rules={[{ pattern: /^[0-9]{9,11}$/, message: "Số điện thoại không hợp lệ" }]}
-                      >
-                        <Input
-                          size="large"
-                          prefix={<PhoneOutlined style={styles.inputIcon} />}
-                          suffix={
-                            phoneChanged && !phoneVerified ? (
-                              <Button
-                                type="link"
-                                size="small"
-                                loading={otpLoading}
-                                className="!p-0"
-                                onClick={() => handleSendOtp(String(form.getFieldValue("phone") || ""))}
-                              >
-                                Xác thực
-                              </Button>
-                            ) : phoneChanged && phoneVerified ? (
-                              <span className="text-green-600 text-xs">Đã xác thực</span>
-                            ) : null
-                          }
-                        />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
-                      <Form.Item name="dateOfBirth" label={<FieldLabel>Ngày sinh</FieldLabel>}>
-                        <DatePicker size="large" format="DD/MM/YYYY" className="w-full" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
-                      <Form.Item name="gender" label={<FieldLabel>Giới tính</FieldLabel>}>
-                        <Radio.Group>
-                          <Radio value="male">Nam</Radio>
-                          <Radio value="female">Nữ</Radio>
-                          <Radio value="other">Khác</Radio>
-                        </Radio.Group>
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
-                      <Form.Item name="idCardNumber" label={<FieldLabel>CCCD/CMND</FieldLabel>}>
-                        <Input size="large" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
-                      <Form.Item name="occupation" label={<FieldLabel>Nghề nghiệp</FieldLabel>}>
-                        <Input size="large" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
-                      <Form.Item name="walletAddress" label={<FieldLabel>Địa chỉ ví</FieldLabel>}>
-                        <Input size="large" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
-                      <Form.Item name="walletType" label={<FieldLabel>Loại ví</FieldLabel>}>
-                        <Select size="large" allowClear placeholder="Chọn loại ví">
-                          {Object.entries(WALLET_TYPE_MAP).map(([value, label]) => (
-                            <Option key={value} value={value}>
-                              {label}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24}>
-                      <Form.Item
-                        name="currentAddress"
-                        label={<FieldLabel>Số nhà, tên đường</FieldLabel>}
-                        rules={[{ required: true, message: "Vui lòng nhập số nhà, tên đường" }]}
-                      >
-                        <Input size="large" placeholder="Ví dụ: 12 Nguyễn Trãi" />
-                      </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={8}>
-                      <Form.Item
-                        name="currentCityCode"
-                        label={<FieldLabel>Tỉnh/Thành phố</FieldLabel>}
-                        rules={[{ required: true, message: "Chọn tỉnh/thành phố" }]}
-                      >
-                        <Select
-                          size="large"
-                          placeholder="Chọn tỉnh/thành"
-                          onChange={handleProvinceChange}
-                          showSearch
-                          filterOption={(input, option) =>
-                            String(option?.children || "")
-                              .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
+                    <Row gutter={[20, 0]}>
+                      <Col xs={24} md={12}>
+                        <Form.Item
+                          name="fullName"
+                          label={<FieldLabel>Họ và tên</FieldLabel>}
+                          rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}
                         >
-                          {provinces.map((province) => (
-                            <Option key={province.code} value={province.code}>
-                              {province.name}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
+                          <Input size="large" prefix={<UserOutlined style={styles.inputIcon} />} />
+                        </Form.Item>
+                      </Col>
 
-                    <Col xs={24} md={8}>
-                      <Form.Item
-                        name="currentDistrictCode"
-                        label={<FieldLabel>Quận/Huyện</FieldLabel>}
-                        rules={[{ required: true, message: "Chọn quận/huyện" }]}
-                      >
-                        <Select
-                          size="large"
-                          placeholder="Chọn quận/huyện"
-                          disabled={districts.length === 0}
-                          onChange={handleDistrictChange}
-                          showSearch
-                          filterOption={(input, option) =>
-                            String(option?.children || "")
-                              .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
+
+
+                      <Col xs={24} md={12}>
+                        <Form.Item
+                          name="email"
+                          label={<FieldLabel>Email (tùy chọn)</FieldLabel>}
+                          rules={[
+                            { type: "email", message: "Email không hợp lệ" },
+                          ]}
                         >
-                          {districts.map((district) => (
-                            <Option key={district.code} value={district.code}>
-                              {district.name}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
+                          <Input
+                            size="large"
+                            prefix={<MailOutlined style={styles.inputIcon} />}
+                            suffix={
+                              canShowEmailVerifyAction ? (
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  loading={emailOtpLoading}
+                                  className="!p-0"
+                                  onClick={() => handleRequestEmailOtp(String(form.getFieldValue("email") || ""))}
+                                >
+                                  Xác thực
+                                </Button>
+                              ) : emailVerified || (!!user?.isEmailVerified && !emailChanged) ? (
+                                <span className="text-green-600 text-xs">Đã xác thực</span>
+                              ) : null
+                            }
+                          />
+                        </Form.Item>
+                      </Col>
 
-                    <Col xs={24} md={8}>
-                      <Form.Item
-                        name="currentWardCode"
-                        label={<FieldLabel>Phường/Xã</FieldLabel>}
-                        rules={[{ required: true, message: "Chọn phường/xã" }]}
-                      >
-                        <Select
-                          size="large"
-                          placeholder="Chọn phường/xã"
-                          disabled={wards.length === 0}
-                          onChange={handleWardChange}
-                          showSearch
-                          filterOption={(input, option) =>
-                            String(option?.children || "")
-                              .toLowerCase()
-                              .includes(input.toLowerCase())
-                          }
+                      <Col xs={24} md={12}>
+                        <Form.Item
+                          name="phone"
+                          label={<FieldLabel>Số điện thoại</FieldLabel>}
+                          rules={[{ pattern: /^[0-9]{9,11}$/, message: "Số điện thoại không hợp lệ" }]}
                         >
-                          {wards.map((ward) => (
-                            <Option key={ward.code} value={ward.code}>
-                              {ward.name}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
+                          <Input
+                            size="large"
+                            prefix={<PhoneOutlined style={styles.inputIcon} />}
+                            suffix={
+                              phoneChanged && !phoneVerified ? (
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  loading={otpLoading}
+                                  className="!p-0"
+                                  onClick={() => handleSendOtp(String(form.getFieldValue("phone") || ""))}
+                                >
+                                  Xác thực
+                                </Button>
+                              ) : phoneChanged && phoneVerified ? (
+                                <span className="text-green-600 text-xs">Đã xác thực</span>
+                              ) : null
+                            }
+                          />
+                        </Form.Item>
+                      </Col>
 
-                    <Col xs={24} md={12}>
-                      <Form.Item name="emergencyContactName" label={<FieldLabel>Người liên hệ khẩn cấp</FieldLabel>}>
-                        <Input size="large" />
-                      </Form.Item>
-                    </Col>
+                      <Col xs={24} md={12}>
+                        <Form.Item name="dateOfBirth" label={<FieldLabel>Ngày sinh</FieldLabel>}>
+                          <DatePicker size="large" format="DD/MM/YYYY" className="w-full" />
+                        </Form.Item>
+                      </Col>
 
-                    <Col xs={24} md={12}>
-                      <Form.Item name="emergencyContactPhone" label={<FieldLabel>SĐT khẩn cấp</FieldLabel>}>
-                        <Input size="large" />
-                      </Form.Item>
-                    </Col>
-                  </Row>
+                      <Col xs={24} md={12}>
+                        <Form.Item name="gender" label={<FieldLabel>Giới tính</FieldLabel>}>
+                          <Radio.Group>
+                            <Radio value="male">Nam</Radio>
+                            <Radio value="female">Nữ</Radio>
+                            <Radio value="other">Khác</Radio>
+                          </Radio.Group>
+                        </Form.Item>
+                      </Col>
+
+                      <Col xs={24} md={12}>
+                        <Form.Item name="idCardNumber" label={<FieldLabel>CCCD/CMND</FieldLabel>}>
+                          <Input size="large" />
+                        </Form.Item>
+                      </Col>
+
+
+
+                      {/* === ĐỊA CHỈ: Thành phố → Quận → Phường → Số nhà === */}
+                      <Col xs={24}>
+                        <div style={{ marginBottom: 4, marginTop: 8 }}>
+                          <FieldLabel>Địa chỉ hiện tại</FieldLabel>
+                        </div>
+                      </Col>
+
+                      <Col xs={24} md={8}>
+                        <Form.Item
+                          name="currentCityCode"
+                          label={<FieldLabel>Tỉnh/Thành phố</FieldLabel>}
+                          rules={[{ required: true, message: "Chọn tỉnh/thành phố" }]}
+                        >
+                          <Select
+                            size="large"
+                            placeholder="Chọn tỉnh/thành"
+                            onChange={handleProvinceChange}
+                            showSearch
+                            filterOption={(input, option) =>
+                              String(option?.children || "")
+                                .toLowerCase()
+                                .includes(input.toLowerCase())
+                            }
+                          >
+                            {provinces.map((province) => (
+                              <Option key={province.code} value={province.code}>
+                                {province.name}
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+
+                      <Col xs={24} md={8}>
+                        <Form.Item
+                          name="currentDistrictCode"
+                          label={<FieldLabel>Quận/Huyện</FieldLabel>}
+                          rules={[{ required: true, message: "Chọn quận/huyện" }]}
+                        >
+                          <Select
+                            size="large"
+                            placeholder="Chọn quận/huyện"
+                            disabled={districts.length === 0}
+                            onChange={handleDistrictChange}
+                            showSearch
+                            filterOption={(input, option) =>
+                              String(option?.children || "")
+                                .toLowerCase()
+                                .includes(input.toLowerCase())
+                            }
+                          >
+                            {districts.map((district) => (
+                              <Option key={district.code} value={district.code}>
+                                {district.name}
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+
+                      <Col xs={24} md={8}>
+                        <Form.Item
+                          name="currentWardCode"
+                          label={<FieldLabel>Phường/Xã</FieldLabel>}
+                          rules={[{ required: true, message: "Chọn phường/xã" }]}
+                        >
+                          <Select
+                            size="large"
+                            placeholder="Chọn phường/xã"
+                            disabled={wards.length === 0}
+                            onChange={handleWardChange}
+                            showSearch
+                            filterOption={(input, option) =>
+                              String(option?.children || "")
+                                .toLowerCase()
+                                .includes(input.toLowerCase())
+                            }
+                          >
+                            {wards.map((ward) => (
+                              <Option key={ward.code} value={ward.code}>
+                                {ward.name}
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+
+                      <Col xs={24}>
+                        <Form.Item
+                          name="currentAddress"
+                          label={<FieldLabel>Số nhà, tên đường</FieldLabel>}
+                          rules={[{ required: true, message: "Vui lòng nhập số nhà, tên đường" }]}
+                        >
+                          <Input
+                            size="large"
+                            placeholder="Ví dụ: 460/6 Nơ Trang Long"
+                            onBlur={updateMapQuery}
+                            onPressEnter={updateMapQuery}
+                          />
+                        </Form.Item>
+                      </Col>
+
+                      {/* Hiển thị địa chỉ đầy đủ */}
+                      {mapQuery && (
+                        <Col xs={24}>
+                          <div style={{
+                            padding: "10px 14px",
+                            background: "#f0f9ff",
+                            border: "1px solid #bae6fd",
+                            borderRadius: 10,
+                            fontSize: 13,
+                            color: "#0c4a6e",
+                            fontWeight: 500,
+                            marginBottom: 12,
+                          }}>
+                            📍 {mapQuery}
+                          </div>
+                        </Col>
+                      )}
+
+                      {/* Map preview for address verification */}
+                      {mapQuery && (
+                        <Col xs={24}>
+                          <div style={{ marginBottom: 16 }}>
+                            <FieldLabel>Xác nhận vị trí trên bản đồ</FieldLabel>
+                            <div style={{ marginTop: 8, borderRadius: 12, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                              <iframe
+                                key={mapQuery}
+                                width="100%"
+                                height="280"
+                                style={{ border: 0 }}
+                                loading="lazy"
+                                src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                              />
+                            </div>
+                            <p style={{ fontSize: 11, color: "#94a3b8", marginTop: 6 }}>Kiểm tra vị trí trên bản đồ có đúng địa chỉ nhà của bạn không.</p>
+                          </div>
+                        </Col>
+                      )}
+
+                      <Col xs={24} md={12}>
+                        <Form.Item name="emergencyContactName" label={<FieldLabel>Người liên hệ khẩn cấp</FieldLabel>}>
+                          <Input size="large" />
+                        </Form.Item>
+                      </Col>
+
+                      <Col xs={24} md={12}>
+                        <Form.Item name="emergencyContactPhone" label={<FieldLabel>SĐT khẩn cấp</FieldLabel>}>
+                          <Input size="large" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
 
                     <Form.Item name="currentCity" hidden>
                       <Input />

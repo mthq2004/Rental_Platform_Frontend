@@ -66,8 +66,6 @@ const PAYMENT_TYPE_LABELS: Record<PaymentType, string> = {
 const TOPUP_METHOD_OPTIONS: MethodOption[] = [
   { value: "momo", label: "MoMo", description: "Thanh toán nhanh bằng ứng dụng MoMo." },
   { value: "vnpay", label: "VNPay", description: "Chuyển sang cổng thanh toán VNPay." },
-  { value: "zalopay", label: "ZaloPay", description: "Thanh toán bằng ví ZaloPay." },
-  { value: "bank_transfer", label: "Chuyển khoản ngân hàng", description: "Hiển thị thông tin chuyển khoản ngân hàng." },
   { value: "other", label: "Ví nội bộ của bạn", description: "Thanh toán bằng số dư ví nội bộ trong hệ thống." }
 ];
 
@@ -154,16 +152,16 @@ export default function PaymentsPage() {
     try {
 
       console.log("Xác nhận thanh toán: ", {
-          paymentId: selectedPayment.paymentId,
-          data: {
-            paymentMethod: methodDraft,
-            paymentType: selectedPayment.paymentType,
-            paidAmount: selectedPayment.remainingAmount || selectedPayment.amount,
-            transactionId: undefined,
-            transactionRef: undefined,
-          },
-        });
-      
+        paymentId: selectedPayment.paymentId,
+        data: {
+          paymentMethod: methodDraft,
+          paymentType: selectedPayment.paymentType,
+          paidAmount: selectedPayment.remainingAmount || selectedPayment.amount,
+          transactionId: undefined,
+          transactionRef: undefined,
+        },
+      });
+
       const payload = await dispatch(
         confirmPayment({
           paymentId: selectedPayment.paymentId,
@@ -383,36 +381,36 @@ export default function PaymentsPage() {
           className="[&_.ant-table-thead_th]:bg-gray-50! [&_.ant-table-thead_th]:text-gray-600! [&_.ant-table-thead_th]:font-medium! [&_.ant-table-thead_th]:text-xs! [&_.ant-table-thead_th]:uppercase!"
         />
       </div>
-        <TopupMethodModal
-          open={confirmOpen}
-          amount={Number(selectedPayment?.amount)}
-          selectedMethod={methodDraft}
-          loading={actionLoading}
-          title="Xác nhận thanh toán"
-          amountLabel="Số tiền thanh toán"
-          confirmText="Xác nhận"
-          options={TOPUP_METHOD_OPTIONS}
-          onCancel={() => {
-            setConfirmOpen(false);
-            setSelectedPayment(null);
-          }}
-          onBack={() => {
-            setConfirmOpen(false);
-            setSelectedPayment(null);
-          }}
-          onConfirm={handleConfirmPayment}
-          onChangeMethod={setMethodDraft}
-        />
-        <InvoiceModal
-          open={invoiceOpen}
-          onClose={() => {
-            setInvoiceOpen(false);
-            setInvoicePayment(null);
-          }}
-          payment={invoicePayment}
-          items={invoiceItems}
-          contract={invoiceContract}
-        />
+      <TopupMethodModal
+        open={confirmOpen}
+        amount={Number(selectedPayment?.amount)}
+        selectedMethod={methodDraft}
+        loading={actionLoading}
+        title="Xác nhận thanh toán"
+        amountLabel="Số tiền thanh toán"
+        confirmText="Xác nhận"
+        options={TOPUP_METHOD_OPTIONS}
+        onCancel={() => {
+          setConfirmOpen(false);
+          setSelectedPayment(null);
+        }}
+        onBack={() => {
+          setConfirmOpen(false);
+          setSelectedPayment(null);
+        }}
+        onConfirm={handleConfirmPayment}
+        onChangeMethod={setMethodDraft}
+      />
+      <InvoiceModal
+        open={invoiceOpen}
+        onClose={() => {
+          setInvoiceOpen(false);
+          setInvoicePayment(null);
+        }}
+        payment={invoicePayment}
+        items={invoiceItems}
+        contract={invoiceContract}
+      />
     </div>
   );
 }

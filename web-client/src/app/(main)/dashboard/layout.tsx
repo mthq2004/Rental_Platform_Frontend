@@ -19,6 +19,9 @@ import {
   CalendarOutlined,
   WalletOutlined,
   PlusCircleOutlined,
+  SwapOutlined,
+  CreditCardOutlined,
+  FileProtectOutlined,
 } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 import type { MenuProps } from "antd";
@@ -99,30 +102,48 @@ export default function DashboardLayout({
   }, [dispatch]);
 
   const menuItems: MenuProps["items"] = [
-    ...(menuVisibility.posts
-      ? [{ key: "/dashboard/posts", icon: <AppstoreOutlined />, label: "Quản lý bài đăng" }]
-      : []),
-    { key: "/dashboard/favorites", icon: <HeartOutlined />, label: "Tin yêu thích" },
-    ...(menuVisibility.rentalRequests
-      ? [{ key: "/dashboard/rental-requests", icon: <SendOutlined />, label: "Yêu cầu thuê" }]
-      : []),
-    ...(menuVisibility.contracts
-      ? [{ key: "/dashboard/contracts", icon: <FileTextOutlined />, label: "Hợp đồng" }]
-      : []),
-    { key: "/dashboard/wallet", icon: <WalletOutlined />, label: "Ví & giao dịch" },
-    ...(menuVisibility.payments
-      ? [{ key: "/dashboard/payments", icon: <DollarOutlined />, label: "Thanh toán" }]
-      : []),
-    { key: "/dashboard/bookings", icon: <CalendarOutlined />, label: "Lịch xem nhà" },
-    ...(menuVisibility.customers
-      ? [{ key: "/dashboard/customers", icon: <TeamOutlined />, label: "Khách hàng" }]
-      : []),
-    { key: "/dashboard/statistics", icon: <BarChartOutlined />, label: "Thống kê" },
-    { type: "divider" },
-    { key: "/dashboard/profile", icon: <UserOutlined />, label: "Thông tin cá nhân" },
-    ...(!isHydrated || !isOAuthUser
-      ? [{ key: "/dashboard/change-password", icon: <LockOutlined />, label: "Đổi mật khẩu" }]
-      : []),
+    {
+      type: "group",
+      label: "TỔNG QUAN",
+      children: [
+        { key: "/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
+        { key: "/dashboard/statistics", icon: <BarChartOutlined />, label: "Phân tích & Báo cáo" },
+      ],
+    },
+    {
+      type: "group",
+      label: "QUẢN LÝ",
+      children: [
+        ...(menuVisibility.customers
+          ? [{ key: "/dashboard/customers", icon: <TeamOutlined />, label: "Khách hàng" }]
+          : []),
+        ...(menuVisibility.posts
+          ? [{ key: "/dashboard/posts", icon: <FileTextOutlined />, label: "Tin đăng" }]
+          : []),
+        { key: "/dashboard/favorites", icon: <HeartOutlined />, label: "Tin yêu thích" },
+        ...(menuVisibility.rentalRequests
+          ? [{ key: "/dashboard/rental-requests", icon: <SendOutlined />, label: "Yêu cầu thuê" }]
+          : []),
+        ...(menuVisibility.contracts
+          ? [{ key: "/dashboard/contracts", icon: <FileProtectOutlined />, label: "Hợp đồng" }]
+          : []),
+        { key: "/dashboard/bookings", icon: <CalendarOutlined />, label: "Lịch xem nhà" },
+        { key: "/dashboard/wallet", icon: <SwapOutlined />, label: "Giao dịch" },
+        ...(menuVisibility.payments
+          ? [{ key: "/dashboard/payments", icon: <CreditCardOutlined />, label: "Thanh toán" }]
+          : []),
+      ],
+    },
+    {
+      type: "group",
+      label: "HỆ THỐNG",
+      children: [
+        { key: "/dashboard/profile", icon: <UserOutlined />, label: "Thông tin cá nhân" },
+        ...(!isHydrated || !isOAuthUser
+          ? [{ key: "/dashboard/change-password", icon: <LockOutlined />, label: "Cài đặt & Mật khẩu" }]
+          : []),
+      ],
+    },
   ];
 
   const handleLogout = async () => {

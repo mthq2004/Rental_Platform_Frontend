@@ -79,15 +79,20 @@ interface Report {
     tenantId: string;
     monthlyRent?: number;
     depositAmount?: number;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
     property?: {
       title: string;
       address: string;
     };
     tenantUser?: {
       fullName: string;
+      avatar?: string;
     };
     ownerUser?: {
       fullName: string;
+      avatar?: string;
     };
   };
 }
@@ -343,9 +348,15 @@ const ComplaintPage = () => {
       <div className="dispute-resolution-page">
         {/* Header matching Design 2 */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          <Tag color="orange" style={{ borderRadius: 16, border: 0, background: "#ffedd5", color: "#9a3412" }}>
-            ĐANG CHỜ XỬ LÝ
-          </Tag>
+          {selectedReport.status === 'resolved' ? (
+            <Tag color="green" style={{ borderRadius: 16, border: 0, background: "#d1fae5", color: "#065f46" }}>
+              ĐÃ GIẢI QUYẾT
+            </Tag>
+          ) : (
+            <Tag color="orange" style={{ borderRadius: 16, border: 0, background: "#ffedd5", color: "#9a3412" }}>
+              ĐANG CHỜ XỬ LÝ
+            </Tag>
+          )}
           {selectedReport.priority === "high" && (
             <Tag color="red" style={{ borderRadius: 16, border: 0, background: "#fee2e2", color: "#991b1b" }}>
               ƯU TIÊN CAO
@@ -378,28 +389,36 @@ const ComplaintPage = () => {
                 </div>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: 0.5, marginBottom: 4, textTransform: "uppercase" }}>Thời hạn</div>
-                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>Jan 1, 2023 - Dec 31, 2023</div>
-                  <div style={{ color: "#6b7280", fontSize: 13 }}>Còn 8 tháng</div>
+                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>
+                    {selectedReport.rental?.startDate ? new Date(selectedReport.rental.startDate).toLocaleDateString('vi-VN') : '?'}
+                    {' — '}
+                    {selectedReport.rental?.endDate ? new Date(selectedReport.rental.endDate).toLocaleDateString('vi-VN') : '?'}
+                  </div>
+                  <div style={{ color: "#6b7280", fontSize: 13 }}>{selectedReport.rental?.status === 'active' ? 'Đang hiệu lực' : selectedReport.rental?.status === 'terminated' ? 'Đã chấm dứt' : 'Hết hạn'}</div>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
                 <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
-                  <Avatar size={40} style={{ backgroundColor: "#6366f1" }}>T</Avatar>
+                  <Avatar size={40} src={selectedReport.rental?.tenantUser?.avatar} style={{ backgroundColor: "#6366f1" }}>
+                    {selectedReport.rental?.tenantUser?.fullName?.[0] || 'T'}
+                  </Avatar>
                   <div>
                     <div style={{ fontSize: 12, color: "#6b7280" }}>
                       Người thuê {selectedReport.createdBy === selectedReport.rental?.tenantId ? <strong style={{ color: '#ef4444' }}>(Người khiếu nại)</strong> : "(Bị khiếu nại)"}
                     </div>
-                    <div style={{ fontWeight: 500, color: "#111827" }}>{selectedReport.rental?.tenantUser?.fullName || "Tenant Name"}</div>
+                    <div style={{ fontWeight: 500, color: "#111827" }}>{selectedReport.rental?.tenantUser?.fullName || "Người thuê"}</div>
                   </div>
                 </div>
                 <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
-                  <Avatar size={40} style={{ backgroundColor: "#e5e7eb", color: "#374151" }}>O</Avatar>
+                  <Avatar size={40} src={selectedReport.rental?.ownerUser?.avatar} style={{ backgroundColor: "#e5e7eb", color: "#374151" }}>
+                    {selectedReport.rental?.ownerUser?.fullName?.[0] || 'O'}
+                  </Avatar>
                   <div>
                     <div style={{ fontSize: 12, color: "#6b7280" }}>
                       Chủ nhà {selectedReport.createdBy === selectedReport.rental?.ownerId ? <strong style={{ color: '#ef4444' }}>(Người khiếu nại)</strong> : "(Bị khiếu nại)"}
                     </div>
-                    <div style={{ fontWeight: 500, color: "#111827" }}>{selectedReport.rental?.ownerUser?.fullName || "Owner Name"}</div>
+                    <div style={{ fontWeight: 500, color: "#111827" }}>{selectedReport.rental?.ownerUser?.fullName || "Chủ nhà"}</div>
                   </div>
                 </div>
               </div>
@@ -623,34 +642,58 @@ const ComplaintPage = () => {
 
             {/* Final Decision */}
             <Card className="dispute-action-card" variant="borderless">
-              <Title level={4} style={{ margin: "0 0 16px 0", color: "#111827" }}>Quyết định cuối cùng</Title>
+              <Title level={4} style={{ margin: "0 0 16px 0", color: "#111827" }}>
+                {selectedReport.status === 'resolved' ? 'Kết quả xử lý' : 'Quyết định cuối cùng'}
+              </Title>
               
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Ghi chú nội bộ (Các bên không nhìn thấy)</div>
-                <Input.TextArea 
-                  rows={4} 
-                  placeholder="Cung cấp lý do giải quyết cuối cùng..." 
-                  value={adminNote}
-                  onChange={(e) => setAdminNote(e.target.value)}
-                  style={{ borderRadius: 6 }}
-                />
-              </div>
-
-              <Space style={{ width: "100%" }} direction="vertical">
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  block 
-                  style={{ background: "#4f46e5", height: 48, fontWeight: 600, borderRadius: 8 }}
-                  onClick={confirmResolve}
-                  loading={resolving}
-                >
-                  Xác nhận giải quyết
-                </Button>
-                <Button block type="text" onClick={() => setResolutionViewOpen(false)}>
-                  Hủy & Quay lại
-                </Button>
-              </Space>
+              {selectedReport.status === 'resolved' ? (
+                <>
+                  {selectedReport.adminNote && (
+                    <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: "#166534", marginBottom: 4 }}>Ghi chú admin</div>
+                      <div style={{ color: "#374151" }}>{selectedReport.adminNote}</div>
+                    </div>
+                  )}
+                  {selectedReport.terminationRequest?.resolution && (
+                    <div style={{ background: selectedReport.terminationRequest.resolution === 'terminate_contract' ? "#fef2f2" : "#f0fdf4", border: `1px solid ${selectedReport.terminationRequest.resolution === 'terminate_contract' ? '#fecaca' : '#bbf7d0'}`, borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                      <div style={{ fontWeight: 600, color: selectedReport.terminationRequest.resolution === 'terminate_contract' ? "#dc2626" : "#16a34a" }}>
+                        {selectedReport.terminationRequest.resolution === 'terminate_contract' ? 'Chấm dứt hợp đồng' : 'Tiếp tục hợp đồng'}
+                      </div>
+                    </div>
+                  )}
+                  <Button block type="default" size="large" onClick={() => setResolutionViewOpen(false)} style={{ height: 48, borderRadius: 8 }}>
+                    Quay lại
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Ghi chú nội bộ</div>
+                    <Input.TextArea 
+                      rows={4} 
+                      placeholder="Cung cấp lý do giải quyết cuối cùng..." 
+                      value={adminNote}
+                      onChange={(e) => setAdminNote(e.target.value)}
+                      style={{ borderRadius: 6 }}
+                    />
+                  </div>
+                  <Space style={{ width: "100%" }} direction="vertical">
+                    <Button 
+                      type="primary" 
+                      size="large" 
+                      block 
+                      style={{ background: "#4f46e5", height: 48, fontWeight: 600, borderRadius: 8 }}
+                      onClick={confirmResolve}
+                      loading={resolving}
+                    >
+                      Xác nhận giải quyết
+                    </Button>
+                    <Button block type="text" onClick={() => setResolutionViewOpen(false)}>
+                      Quay lại
+                    </Button>
+                  </Space>
+                </>
+              )}
             </Card>
           </Col>
         </Row>

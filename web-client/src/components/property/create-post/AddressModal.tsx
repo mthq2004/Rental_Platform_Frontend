@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Modal, Select, Input, Spin, App } from "antd";
 import { EnvironmentOutlined } from "@ant-design/icons";
 
@@ -104,6 +104,22 @@ export default function AddressModal({
     option?.label?.toLowerCase().includes(input.toLowerCase());
 
   /* =========================
+     Google Maps Query
+  ========================= */
+  const mapQuery = useMemo(() => {
+    const parts = [
+      streetAddress.trim(),
+      selectedWard?.name,
+      selectedDistrict?.name,
+      selectedProvince?.name,
+    ].filter(Boolean);
+
+    // Chỉ hiển thị map khi có ít nhất đến cấp Phường/Xã
+    if (!selectedProvince || !selectedDistrict || !selectedWard) return "";
+    return parts.join(", ");
+  }, [streetAddress, selectedWard, selectedDistrict, selectedProvince]);
+
+  /* =========================
      Confirm
   ========================= */
   const handleConfirm = () => {
@@ -158,7 +174,7 @@ export default function AddressModal({
         onClose();
       }}
       footer={null}
-      width={560}
+      width={680}
       centered
       title={
         <div className="flex items-center gap-2">
@@ -241,11 +257,34 @@ export default function AddressModal({
             </label>
             <Input
               size="large"
-              placeholder="Ví dụ: 123 Nguyễn Văn Linh"
+              placeholder="Ví dụ: 460/6 Nơ Trang Long"
               value={streetAddress}
               onChange={(e) => setStreetAddress(e.target.value)}
             />
           </div>
+
+          {/* Google Maps Preview */}
+          {mapQuery && (
+            <div>
+              <label className="block text-sm font-medium mb-2 text-gray-700">
+                📍 Xác nhận vị trí trên bản đồ
+              </label>
+              <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                <iframe
+                  key={mapQuery}
+                  width="100%"
+                  height="260"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=16&ie=UTF8&iwloc=&output=embed`}
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1.5">
+                Địa chỉ: {mapQuery}
+              </p>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">

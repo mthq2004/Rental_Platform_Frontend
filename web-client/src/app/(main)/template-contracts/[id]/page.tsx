@@ -709,10 +709,10 @@ const RentalContractPage = () => {
           router.push("/dashboard/contracts");
         }, 2000);
       } else {
-        throw new Error("Lưu nháp thất bại");
+        throw new Error("Lưu hợp đồng thất bại");
       }
     } catch (err: any) {
-      setSaveError(err.message || "Lỗi khi lưu nháp hợp đồng");
+      setSaveError(err.message || "Lỗi khi lưu hợp đồng");
     } finally {
       setIsSaving(false);
     }
@@ -895,16 +895,16 @@ const RentalContractPage = () => {
               className="action-btn"
               type="button"
             >
-              {isSaving ? "Đang lưu..." : <><SaveOutlined /> Lưu nháp</>}
+              {isSaving ? "Đang lưu..." : <><SaveOutlined /> Lưu hợp đồng</>}
             </button>
-            {/* <button
+            <button
               onClick={handlePrepareToSend}
               disabled={isSaving || !areAllRequiredFieldsFilled()}
               className="action-btn action-btn-primary"
               type="button"
             >
               {isSaving ? "Đang xử lý..." : <><SendOutlined /> Gửi ký</>}
-            </button> */}
+            </button>
           </div>
         </div>
 

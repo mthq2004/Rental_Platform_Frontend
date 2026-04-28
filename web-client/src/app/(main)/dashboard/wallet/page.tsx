@@ -457,7 +457,7 @@ export default function WalletDashboardPage() {
           <div>
             <Text className="text-xs uppercase tracking-[0.14em] text-[#6E63D8]">Ví tài khoản</Text>
             <h2 className="mb-1 mt-1 text-2xl font-semibold text-[#2D226B]">Nạp tiền, rút tiền và giao dịch ví</h2>
-            <Text type="secondary">Hỗ trợ MoMo, VNPay, ZaloPay, chuyển khoản ngân hàng theo quy trình đối soát chuẩn.</Text>
+            <Text type="secondary">Hỗ trợ MoMo, VNPay theo quy trình đối soát chuẩn.</Text>
           </div>
           <Space wrap>
             <Button icon={<PlusCircleOutlined />} type="primary" onClick={openTopupModal}>
@@ -636,7 +636,7 @@ export default function WalletDashboardPage() {
             <div className="mb-2 text-sm font-medium text-[#4B4B7A]">
               Nhập số tiền nạp, bạn sẽ chọn cổng thanh toán ở bước tiếp theo.
             </div>
-            <div className="text-xs text-[#6B6F9C]">Hỗ trợ MoMo, VNPay, ZaloPay, chuyển khoản ngân hàng.</div>
+            <div className="text-xs text-[#6B6F9C]">Hỗ trợ MoMo, VNPay</div>
           </div>
 
           <div className="mb-4 rounded-2xl border border-[#E8E6FF] bg-white p-4">
@@ -678,10 +678,9 @@ export default function WalletDashboardPage() {
                 min={10000}
                 step={10000}
                 controls={false}
-                stringMode
                 placeholder="Nhập số tiền cần nạp"
                 formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                parser={(value) => String(value || "").replace(/,/g, "")}
+                parser={(value) => Number(String(value || "").replace(/,/g, "")) || 0}
               />
               <Input
                 size="large"
@@ -695,7 +694,7 @@ export default function WalletDashboardPage() {
           <div className="flex items-start gap-3 rounded-xl border border-[#E8E6FF] bg-[#F8F9FF] px-4 py-3 text-sm text-[#4A4F8A]">
             <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-[#5B5BFF]" />
             <div>
-              Bước tiếp theo sẽ mở màn hình chọn MoMo, VNPay, ZaloPay hoặc chuyển khoản ngân hàng.
+              Bước tiếp theo sẽ mở màn hình chọn MoMo hoặc VNPay.
             </div>
           </div>
         </Form>
