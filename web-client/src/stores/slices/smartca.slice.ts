@@ -5,6 +5,7 @@ export type SmartCASignStatus =
 	| "IDLE"
 	| "WAITING_CONFIRM"
 	| "PENDING"
+	| "PROCESSING"
 	| "SIGNED"
 	| "REJECTED"
 	| "EXPIRED"
@@ -17,8 +18,13 @@ interface StartSignResponse {
 }
 
 interface HandleSignResultResponse {
-	status: "SIGNED" | "REJECTED" | "PENDING" | "EXPIRED";
+	status: "SIGNED" | "REJECTED" | "PENDING" | "PROCESSING" | "EXPIRED";
 	dataUri?: string;
+}
+
+interface ContractSignStatusResponse {
+	status: "SIGNED" | "PROCESSING" | "PENDING";
+	signedFileUrl?: string;
 }
 
 interface SmartCAState {
@@ -69,6 +75,19 @@ export const handleSignResult = createAsyncThunk(
 			return data as HandleSignResultResponse;
 		} catch (e: any) {
 			return rejectWithValue(e?.message || "Không thể kiểm tra trạng thái ký");
+		}
+	}
+);
+
+export const getContractSignStatus = createAsyncThunk(
+	"smartca/getContractSignStatus",
+	async (contractId: string, { rejectWithValue }) => {
+		try {
+			const response = await http.get(`/contract/smartca/contracts/${contractId}/status`);
+			const data = response?.data ?? response;
+			return data as ContractSignStatusResponse;
+		} catch (e: any) {
+			return rejectWithValue(e?.message || "Không thể lấy trạng thái xử lý ký hợp đồng");
 		}
 	}
 );
@@ -133,6 +152,11 @@ const smartcaSlice = createSlice({
 					return;
 				}
 
+				if (status === "PROCESSING") {
+					state.signStatus = "PROCESSING";
+					return;
+				}
+
 				if (status === "EXPIRED") {
 					state.signStatus = "EXPIRED";
 					state.expiredIn = 0;
@@ -145,6 +169,27 @@ const smartcaSlice = createSlice({
 				state.loading = false;
 				state.signStatus = "ERROR";
 				state.error = (action.payload as string) || "Không thể kiểm tra trạng thái ký";
+			});
+
+		builder
+			.addCase(getContractSignStatus.fulfilled, (state, action) => {
+				const status = action.payload?.status;
+
+				if (status === "SIGNED") {
+					state.signStatus = "SIGNED";
+					state.error = null;
+					return;
+				}
+
+				if (status === "PROCESSING") {
+					state.signStatus = "PROCESSING";
+					return;
+				}
+
+				state.signStatus = "PENDING";
+			})
+			.addCase(getContractSignStatus.rejected, (state, action) => {
+				state.error = (action.payload as string) || "Không thể lấy trạng thái xử lý ký hợp đồng";
 			});
 	},
 });

@@ -31,6 +31,7 @@ import ContractDetailModal from "@/components/contracts/ContractDetailModal";
 import ContractEditModal from "@/components/contracts/ContractEditModal";
 import { getRequestTemplateData } from "@/stores/slices/template-contract.slice";
 import {
+  getContractSignStatus,
   handleSignResult,
   resetSmartCAState,
   signContract,
@@ -109,7 +110,7 @@ export default function ContractsPage() {
 
   const hasActiveSigningSession =
     Boolean(smartca.transactionId) &&
-    ["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus);
+    ["WAITING_CONFIRM", "PENDING", "PROCESSING"].includes(smartca.signStatus);
 
   const fetchContracts = useCallback(
     (status?: string, p?: number) => {
@@ -190,7 +191,7 @@ export default function ContractsPage() {
 
   const handleCloseSmartCAModal = () => {
     setSmartCAModalOpen(false);
-    if (["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus) && smartca.transactionId) {
+    if (["WAITING_CONFIRM", "PENDING", "PROCESSING"].includes(smartca.signStatus) && smartca.transactionId) {
       return;
     }
     setSigningContractId(null);
@@ -359,6 +360,20 @@ export default function ContractsPage() {
     if (smartca.signStatus === "EXPIRED") { finalizedRef.current = true; message.error("Phiên ký đã hết hạn, vui lòng thử lại"); return; }
     if (smartca.signStatus === "ERROR") { finalizedRef.current = true; message.error(smartca.error || "Ký SmartCA thất bại"); }
   }, [dispatch, detailOpen, handleRefresh, message, signingContractId, signingRole, smartCAModalOpen, smartca.error, smartca.signStatus]);
+
+  useEffect(() => {
+    if (!smartCAModalOpen || !signingContractId || !signingRole) return;
+    if (smartca.signStatus !== "PROCESSING") return;
+
+    const pollContractStatus = () => dispatch(getContractSignStatus(signingContractId));
+
+    pollContractStatus();
+    const intervalId = setInterval(pollContractStatus, SMARTCA_POLLING_MS);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [dispatch, signingContractId, signingRole, smartCAModalOpen, smartca.signStatus]);
 
   const progressPercent = smartca.initialExpiredIn > 0
     ? Math.max(0, Math.min(100, (smartca.expiredIn / smartca.initialExpiredIn) * 100))
@@ -737,6 +752,7 @@ export default function ContractsPage() {
                     : smartca.signStatus === "REJECTED" ? "Bạn đã từ chối ký hợp đồng"
                     : smartca.signStatus === "EXPIRED" ? "Phiên ký đã hết hạn, vui lòng thử lại"
                     : smartca.signStatus === "ERROR" ? smartca.error || "Có lỗi xảy ra khi ký SmartCA"
+                    : smartca.signStatus === "PROCESSING" ? "Đã xác nhận, hệ thống đang xử lý chữ ký"
                     : "Đang chờ xác nhận..."}
                 </span>
               }
@@ -744,31 +760,39 @@ export default function ContractsPage() {
                 <span className="text-[13px] text-slate-500">
                   {smartca.signStatus === "SIGNED"
                     ? "Hệ thống đang cập nhật lại trạng thái hợp đồng."
+                    : smartca.signStatus === "PROCESSING"
+                    ? "Vui lòng chờ trong giây lát để hoàn tất ký và cập nhật hợp đồng."
                     : "Bạn có thể tạm đóng cửa sổ này. Khi mở lại sẽ tiếp tục hiển thị tiến trình ký."}
                 </span>
               }
               className="rounded-xl"
             />
 
-            {["WAITING_CONFIRM", "PENDING"].includes(smartca.signStatus) && (
+            {["WAITING_CONFIRM", "PENDING", "PROCESSING"].includes(smartca.signStatus) && (
               <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-5 py-4">
                 <div className="flex items-center gap-2.5 text-blue-600 mb-2">
                   <Spin size="small" />
                   <Text className="text-blue-600 text-sm font-medium">
-                    Đang chờ xác nhận trên ứng dụng SmartCA...
+                    {smartca.signStatus === "PROCESSING"
+                      ? "Hệ thống đang xử lý chữ ký số..."
+                      : "Đang chờ xác nhận trên ứng dụng SmartCA..."}
                   </Text>
                 </div>
-                <Text className="block text-[13px] text-blue-500 mb-2.5">
-                  Thời gian còn lại: {Math.max(0, smartca.expiredIn)} giây
-                </Text>
-                <Progress
-                  percent={progressPercent}
-                  showInfo={false}
-                  strokeColor="#3b82f6"
-                  railColor="#dbeafe"
-                  status="active"
-                  strokeLinecap="round"
-                />
+                {smartca.signStatus !== "PROCESSING" && (
+                  <>
+                    <Text className="block text-[13px] text-blue-500 mb-2.5">
+                      Thời gian còn lại: {Math.max(0, smartca.expiredIn)} giây
+                    </Text>
+                    <Progress
+                      percent={progressPercent}
+                      showInfo={false}
+                      strokeColor="#3b82f6"
+                      railColor="#dbeafe"
+                      status="active"
+                      strokeLinecap="round"
+                    />
+                  </>
+                )}
               </div>
             )}
 
