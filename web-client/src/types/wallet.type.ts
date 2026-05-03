@@ -8,7 +8,7 @@ export type WalletTransactionType =
   | 'fee';
 
 export type WalletTransactionStatus = 'pending' | 'success' | 'failed';
-export type WalletTopupMethod = 'momo' | 'vnpay' | 'zalopay' | 'bank_transfer';
+export type WalletTopupMethod = 'momo' | 'vnpay' | ' ' | ' ';
 export type WithdrawalStatus = 'pending' | 'processing' | 'success' | 'rejected';
 
 export interface WalletOverview {

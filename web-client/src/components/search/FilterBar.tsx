@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import {
   FilterOutlined,
-  SafetyCertificateOutlined,
   HomeOutlined,
   DollarOutlined,
   ColumnWidthOutlined,
@@ -12,8 +11,8 @@ import {
   CloseOutlined,
   SortAscendingOutlined,
 } from "@ant-design/icons";
-import { Switch } from "antd";
 import type { SearchFilters } from "./SearchPage";
+import FilterDrawer from "./FilterDrawer";
 
 interface FilterBarProps {
   filters: SearchFilters;
@@ -67,6 +66,7 @@ const SORT_OPTIONS = [
 
 export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
   const [openDropdown, setOpenDropdown] = useState<DropdownType>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -91,7 +91,13 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
     const match = PRICE_RANGES.find(
       (r) => r.min === filters.priceMin && r.max === filters.priceMax
     );
-    return match && match.min !== null ? match.label : "Khoảng giá";
+    if (match && (match.min !== null || match.max !== null)) return match.label;
+    if (filters.priceMin !== null || filters.priceMax !== null) {
+      const minStr = filters.priceMin ? `${(filters.priceMin / 1000000).toFixed(0)} tr` : "0";
+      const maxStr = filters.priceMax ? `${(filters.priceMax / 1000000).toFixed(0)} tr` : "∞";
+      return `${minStr} - ${maxStr}`;
+    }
+    return "Khoảng giá";
   };
 
   const getAreaLabel = () => {
@@ -112,181 +118,194 @@ export default function FilterBar({ filters, onFilterChange }: FilterBarProps) {
     return match && match.value ? match.label : "Loại nhà đất";
   };
 
+  const activeFilterCount = [
+    filters.propertyType,
+    filters.priceMin !== null || filters.priceMax !== null,
+    filters.areaMin !== null || filters.areaMax !== null,
+  ].filter(Boolean).length;
+
   return (
-    <div className="flex flex-wrap items-center gap-2 mt-4" ref={dropdownRef}>
-      {/* Filter icon button */}
-      <button
-        className="flex items-center gap-1.5 border border-gray-300 px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium"
-      >
-        <FilterOutlined />
-        Lọc
-      </button>
-
-      {/* Verified toggle */}
-      <div
-        className="flex items-center gap-2 border border-gray-300 px-3 py-1.5 rounded-lg bg-white text-sm"
-      >
-        <SafetyCertificateOutlined className="text-blue-500" />
-        <span className="text-gray-700">Tin xác thực</span>
-        <Switch size="small" className="ml-1" />
-      </div>
-
-      {/* Property type dropdown */}
-      <div className="relative">
+    <>
+      <div className="flex flex-wrap items-center gap-2 mt-4" ref={dropdownRef}>
+        {/* Filter drawer button */}
         <button
-          onClick={() => toggleDropdown("propertyType")}
-          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium ${openDropdown === "propertyType" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
+          onClick={() => setDrawerOpen(true)}
+          className="flex items-center gap-1.5 border border-blue-200 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-50 to-sky-50 hover:from-blue-100 hover:to-sky-100 hover:border-blue-300 transition-all text-sm font-semibold text-blue-600 shadow-sm"
         >
-          <HomeOutlined />
-          {getTypeLabel()}
-          <DownOutlined className="text-xs ml-1" />
+          <FilterOutlined />
+          Bộ lọc
+          {activeFilterCount > 0 && (
+            <span className="bg-blue-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center ml-1 font-bold">
+              {activeFilterCount}
+            </span>
+          )}
         </button>
 
-        {openDropdown === "propertyType" && (
-          <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-1">
-            {PROPERTY_TYPES.map((type) => (
-              <button
-                key={type.value}
-                onClick={() => {
-                  onFilterChange({ propertyType: type.value });
-                  setOpenDropdown(null);
-                }}
-                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.propertyType === type.value ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
-              >
-                {type.label}
-                {filters.propertyType === type.value && (
-                  <CheckOutlined className="text-blue-500 text-xs" />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+        {/* Property type dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => toggleDropdown("propertyType")}
+            className={`flex items-center gap-1.5 border px-4 py-2 rounded-xl bg-white hover:border-blue-400 hover:text-blue-500 transition-all text-sm font-medium shadow-sm ${openDropdown === "propertyType" ? "border-blue-400 text-blue-500 shadow-md" : "border-gray-200"}`}
+          >
+            <HomeOutlined />
+            {getTypeLabel()}
+            <DownOutlined className={`text-xs ml-1 transition-transform duration-200 ${openDropdown === "propertyType" ? "rotate-180" : ""}`} />
+          </button>
 
-      {/* Price dropdown */}
-      <div className="relative">
-        <button
-          onClick={() => toggleDropdown("price")}
-          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium ${openDropdown === "price" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
-        >
-          <DollarOutlined />
-          {getPriceLabel()}
-          <DownOutlined className="text-xs ml-1" />
-        </button>
-
-        {openDropdown === "price" && (
-          <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 max-h-80 overflow-y-auto">
-            {PRICE_RANGES.map((range, idx) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  onFilterChange({
-                    priceMin: range.min,
-                    priceMax: range.max,
-                  });
-                  setOpenDropdown(null);
-                }}
-                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.priceMin === range.min && filters.priceMax === range.max ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
-              >
-                {range.label}
-                {filters.priceMin === range.min &&
-                  filters.priceMax === range.max && (
+          {openDropdown === "propertyType" && (
+            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+              {PROPERTY_TYPES.map((type) => (
+                <button
+                  key={type.value}
+                  onClick={() => {
+                    onFilterChange({ propertyType: type.value });
+                    setOpenDropdown(null);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.propertyType === type.value ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
+                >
+                  {type.label}
+                  {filters.propertyType === type.value && (
                     <CheckOutlined className="text-blue-500 text-xs" />
                   )}
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Price dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => toggleDropdown("price")}
+            className={`flex items-center gap-1.5 border px-4 py-2 rounded-xl bg-white hover:border-blue-400 hover:text-blue-500 transition-all text-sm font-medium shadow-sm ${openDropdown === "price" ? "border-blue-400 text-blue-500 shadow-md" : "border-gray-200"}`}
+          >
+            <DollarOutlined />
+            {getPriceLabel()}
+            <DownOutlined className={`text-xs ml-1 transition-transform duration-200 ${openDropdown === "price" ? "rotate-180" : ""}`} />
+          </button>
+
+          {openDropdown === "price" && (
+            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-80 overflow-y-auto">
+              {PRICE_RANGES.map((range, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    onFilterChange({
+                      priceMin: range.min,
+                      priceMax: range.max,
+                    });
+                    setOpenDropdown(null);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.priceMin === range.min && filters.priceMax === range.max ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
+                >
+                  {range.label}
+                  {filters.priceMin === range.min &&
+                    filters.priceMax === range.max && (
+                      <CheckOutlined className="text-blue-500 text-xs" />
+                    )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Area dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => toggleDropdown("area")}
+            className={`flex items-center gap-1.5 border px-4 py-2 rounded-xl bg-white hover:border-blue-400 hover:text-blue-500 transition-all text-sm font-medium shadow-sm ${openDropdown === "area" ? "border-blue-400 text-blue-500 shadow-md" : "border-gray-200"}`}
+          >
+            <ColumnWidthOutlined />
+            {getAreaLabel()}
+            <DownOutlined className={`text-xs ml-1 transition-transform duration-200 ${openDropdown === "area" ? "rotate-180" : ""}`} />
+          </button>
+
+          {openDropdown === "area" && (
+            <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-80 overflow-y-auto">
+              {AREA_RANGES.map((range, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    onFilterChange({
+                      areaMin: range.min,
+                      areaMax: range.max,
+                    });
+                    setOpenDropdown(null);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.areaMin === range.min && filters.areaMax === range.max ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
+                >
+                  {range.label}
+                  {filters.areaMin === range.min &&
+                    filters.areaMax === range.max && (
+                      <CheckOutlined className="text-blue-500 text-xs" />
+                    )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Active filter tags */}
+        {(filters.propertyType ||
+          filters.priceMin !== null ||
+          filters.areaMin !== null) && (
+          <button
+            onClick={() =>
+              onFilterChange({
+                propertyType: "",
+                priceMin: null,
+                priceMax: null,
+                areaMin: null,
+                areaMax: null,
+              })
+            }
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 transition-colors ml-1"
+          >
+            <CloseOutlined className="text-xs" />
+            Xóa bộ lọc
+          </button>
         )}
-      </div>
 
-      {/* Area dropdown */}
-      <div className="relative">
-        <button
-          onClick={() => toggleDropdown("area")}
-          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium ${openDropdown === "area" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
-        >
-          <ColumnWidthOutlined />
-          {getAreaLabel()}
-          <DownOutlined className="text-xs ml-1" />
-        </button>
+        {/* Sort dropdown */}
+        <div className="relative ml-auto">
+          <button
+            onClick={() => toggleDropdown("sort")}
+            className={`flex items-center gap-1.5 border px-4 py-2 rounded-xl bg-white hover:border-blue-400 hover:text-blue-500 transition-all text-sm font-medium shadow-sm ${openDropdown === "sort" ? "border-blue-400 text-blue-500 shadow-md" : "border-gray-200"}`}
+          >
+            <SortAscendingOutlined />
+            {getSortLabel()}
+            <DownOutlined className={`text-xs ml-1 transition-transform duration-200 ${openDropdown === "sort" ? "rotate-180" : ""}`} />
+          </button>
 
-        {openDropdown === "area" && (
-          <div className="absolute top-full left-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 max-h-80 overflow-y-auto">
-            {AREA_RANGES.map((range, idx) => (
-              <button
-                key={idx}
-                onClick={() => {
-                  onFilterChange({
-                    areaMin: range.min,
-                    areaMax: range.max,
-                  });
-                  setOpenDropdown(null);
-                }}
-                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.areaMin === range.min && filters.areaMax === range.max ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
-              >
-                {range.label}
-                {filters.areaMin === range.min &&
-                  filters.areaMax === range.max && (
+          {openDropdown === "sort" && (
+            <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => {
+                    onFilterChange({ sortBy: opt.value });
+                    setOpenDropdown(null);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.sortBy === opt.value ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
+                >
+                  {opt.label}
+                  {filters.sortBy === opt.value && (
                     <CheckOutlined className="text-blue-500 text-xs" />
                   )}
-              </button>
-            ))}
-          </div>
-        )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Active filter tags */}
-      {(filters.propertyType ||
-        filters.priceMin !== null ||
-        filters.areaMin !== null) && (
-        <button
-          onClick={() =>
-            onFilterChange({
-              propertyType: "",
-              priceMin: null,
-              priceMax: null,
-              areaMin: null,
-              areaMax: null,
-            })
-          }
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-red-500 transition-colors ml-1"
-        >
-          <CloseOutlined className="text-xs" />
-          Xóa bộ lọc
-        </button>
-      )}
-
-      {/* Sort dropdown */}
-      <div className="relative ml-auto">
-        <button
-          onClick={() => toggleDropdown("sort")}
-          className={`flex items-center gap-1.5 border px-4 py-2 rounded-lg bg-white hover:border-blue-400 hover:text-blue-500 transition-colors text-sm font-medium ${openDropdown === "sort" ? "border-blue-400 text-blue-500" : "border-gray-300"}`}
-        >
-          <SortAscendingOutlined />
-          {getSortLabel()}
-          <DownOutlined className="text-xs ml-1" />
-        </button>
-
-        {openDropdown === "sort" && (
-          <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
-            {SORT_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() => {
-                  onFilterChange({ sortBy: opt.value });
-                  setOpenDropdown(null);
-                }}
-                className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${filters.sortBy === opt.value ? "text-blue-500 font-medium bg-blue-50/50" : "text-gray-700"}`}
-              >
-                {opt.label}
-                {filters.sortBy === opt.value && (
-                  <CheckOutlined className="text-blue-500 text-xs" />
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+      {/* Filter Drawer */}
+      <FilterDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        filters={filters}
+        onFilterChange={onFilterChange}
+      />
+    </>
   );
 }

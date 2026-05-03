@@ -6,6 +6,7 @@ import SearchHeader from "./SearchHeader";
 import FilterBar from "./FilterBar";
 import PropertyList from "./PropertyList";
 import SidebarFilter from "./SidebarFilter";
+import { HomeOutlined, RightOutlined } from "@ant-design/icons";
 
 
 export interface SearchFilters {
@@ -124,7 +125,7 @@ export default function SearchPage() {
   }, []);
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen">
       {/* Search bar */}
       <SearchHeader
         keyword={filters.keyword}
@@ -136,21 +137,35 @@ export default function SearchPage() {
         <FilterBar filters={filters} onFilterChange={updateFilters} />
 
         {/* Breadcrumb */}
-        <div className="text-sm text-gray-500 mt-4 mb-2">
-          <span className="hover:text-blue-500 cursor-pointer" onClick={() => router.push("/")}>
+        <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-5 mb-3">
+          <HomeOutlined className="text-blue-500 text-xs" />
+          <span className="hover:text-blue-500 cursor-pointer transition-colors" onClick={() => router.push("/")}>
+            Trang chủ
+          </span>
+          <RightOutlined className="text-[10px] text-gray-400" />
+          <span className="hover:text-blue-500 cursor-pointer transition-colors" onClick={() => router.push("/search")}>
             Cho thuê
           </span>
-          <span className="mx-1">/</span>
-          <span className="font-medium text-gray-700">
-            {filters.city ? `${filters.city}` : "Tất cả BĐS trên toàn quốc"}
-          </span>
+          {filters.city && (
+            <>
+              <RightOutlined className="text-[10px] text-gray-400" />
+              <span className="font-medium text-gray-700">{filters.city}</span>
+            </>
+          )}
         </div>
 
-        <h1 className="text-xl font-bold text-gray-900 mb-1">
-          {filters.city
-            ? `Cho thuê nhà đất tại ${filters.city}`
-            : "Cho thuê nhà đất trên toàn quốc"}
-        </h1>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {filters.city
+                ? `Cho thuê nhà đất tại ${filters.city}`
+                : "Cho thuê nhà đất trên toàn quốc"}
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Tìm kiếm bất động sản cho thuê phù hợp với nhu cầu của bạn
+            </p>
+          </div>
+        </div>
 
         {/* Main layout */}
         <div className="flex gap-6">
@@ -160,6 +175,7 @@ export default function SearchPage() {
               filters={filters}
               onNextPage={goToNextPage}
               onPrevPage={goToPrevPage}
+              onFilterChange={updateFilters}
             />
           </div>
 

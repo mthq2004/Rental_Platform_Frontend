@@ -264,12 +264,7 @@ const Sidebar: React.FC = () => {
         },
       ],
     },
-    {
-      key: "contracts",
-      icon: <FileProtectOutlined />, // Icon bảo mật/hợp đồng
-      label: "Quản lý mẫu hợp đồng",
-      onClick: () => navigate("/dashboard/contracts"),
-    },
+
     // --- NHÓM VẬN HÀNH & KIỂM SOÁT ---
     {
       key: "operations",
@@ -294,7 +289,7 @@ const Sidebar: React.FC = () => {
     // --- NHÓM PHÂN TÍCH DỮ LIỆU ---
     {
       key: "analytics-group",
-      icon: <PieChartOutlined />, 
+      icon: <PieChartOutlined />,
       label: "Báo cáo & Phân tích",
       children: [
         {
@@ -502,9 +497,9 @@ const Sidebar: React.FC = () => {
               }}
             />
 
-           {/* NOTIFICATIONS */}
-            <Badge 
-              count={unreadCount} 
+            {/* NOTIFICATIONS */}
+            <Badge
+              count={unreadCount}
               overflowCount={99} // Nếu > 99 sẽ hiển thị 99+
               offset={[-2, 4]}   // Căn chỉnh vị trí số badge cho đẹp hơn với nút hình tròn
             >
@@ -572,12 +567,12 @@ const Sidebar: React.FC = () => {
 
       </Layout>
 
-    <NotificationDrawer
-      open={notificationDrawerOpen}
-      onClose={() => setNotificationDrawerOpen(false)}
-    />
+      <NotificationDrawer
+        open={notificationDrawerOpen}
+        onClose={() => setNotificationDrawerOpen(false)}
+      />
     </Layout>
-  );  
+  );
 };
 
 export default Sidebar;

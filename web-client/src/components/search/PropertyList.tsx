@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { Select } from "antd";
-import { SortAscendingOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
+import { LeftOutlined, RightOutlined } from "@ant-design/icons";
 import type { SearchFilters } from "./SearchPage";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { searchPropertiesThunk } from "@/stores/slices/estate.slice";
@@ -12,11 +11,12 @@ interface PropertyListProps {
   filters: SearchFilters;
   onNextPage: (nextCursor: string) => void;
   onPrevPage: () => void;
+  onFilterChange: (partial: Partial<SearchFilters>) => void;
 }
 
 function PropertySkeleton() {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 flex gap-4 animate-pulse">
+    <div className="bg-white rounded-xl shadow-sm p-4 flex gap-4 animate-pulse border border-gray-100">
       <div className="w-75 h-50 bg-gray-200 rounded-lg shrink-0" />
       <div className="flex-1 space-y-3">
         <div className="h-5 bg-gray-200 rounded w-3/4" />
@@ -33,7 +33,40 @@ function PropertySkeleton() {
   );
 }
 
-export default function PropertyList({ filters, onNextPage, onPrevPage }: PropertyListProps) {
+/** Generate page number array with ellipsis, e.g. [1, 2, 3, '...', 10] */
+function generatePageNumbers(current: number, totalPages: number): (number | "...")[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const pages: (number | "...")[] = [];
+
+  // Always show first page
+  pages.push(1);
+
+  if (current <= 4) {
+    // Show first 5 pages + ellipsis + last
+    for (let i = 2; i <= 5; i++) pages.push(i);
+    pages.push("...");
+    pages.push(totalPages);
+  } else if (current >= totalPages - 3) {
+    // Show first + ellipsis + last 5 pages
+    pages.push("...");
+    for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+  } else {
+    // Show first + ellipsis + current-1, current, current+1 + ellipsis + last
+    pages.push("...");
+    pages.push(current - 1);
+    pages.push(current);
+    pages.push(current + 1);
+    pages.push("...");
+    pages.push(totalPages);
+  }
+
+  return pages;
+}
+
+export default function PropertyList({ filters, onNextPage, onPrevPage, onFilterChange }: PropertyListProps) {
   const dispatch = useAppDispatch();
   const { data: properties, loading, error, total, nextCursor, hasMore } =
     useAppSelector((state) => state.estate.search);
@@ -62,6 +95,9 @@ export default function PropertyList({ filters, onNextPage, onPrevPage }: Proper
   const PAGE_SIZE = 20;
   const currentStart = (filters.pageIndex - 1) * PAGE_SIZE + 1;
   const currentEnd = Math.min(filters.pageIndex * PAGE_SIZE, total);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const pageNumbers = generatePageNumbers(filters.pageIndex, totalPages);
 
   if (loading) {
     return (
@@ -87,7 +123,7 @@ export default function PropertyList({ filters, onNextPage, onPrevPage }: Proper
             areaMax: filters.areaMax,
             city: filters.city || undefined,
             district: filters.district || undefined,
-            cursor: filters.cursor,
+            page: filters.pageIndex,
             limit: 20,
             sortBy: filters.sortBy,
           }))}
@@ -101,33 +137,12 @@ export default function PropertyList({ filters, onNextPage, onPrevPage }: Proper
   return (
     <div>
       {/* Sort + total bar */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100">
         <p className="text-sm text-gray-500">
           {total > 0
-            ? <>Hiển thị <span className="font-medium text-gray-700">{currentStart}–{currentEnd}</span> trong <span className="font-medium text-gray-700">{total.toLocaleString("vi-VN")}</span> tin đăng</>
+            ? <>Hiển thị <span className="font-semibold text-gray-800">{currentStart}–{currentEnd}</span> trong <span className="font-semibold text-blue-600">{total.toLocaleString("vi-VN")}</span> tin đăng</>
             : "Không tìm thấy kết quả"}
         </p>
-
-        <div className="flex items-center gap-2">
-          <SortAscendingOutlined className="text-gray-400" />
-          <Select
-            value={filters.sortBy}
-            onChange={(value) => {
-              /* sortBy change is handled via updateFilters in parent via FilterBar */
-            }}
-            className="w-42"
-            size="small"
-            options={[
-              { value: "newest", label: "Mới nhất" },
-              { value: "oldest", label: "Cũ nhất" },
-              { value: "price_asc", label: "Giá tăng dần" },
-              { value: "price_desc", label: "Giá giảm dần" },
-              { value: "area_asc", label: "Diện tích tăng" },
-              { value: "area_desc", label: "Diện tích giảm" },
-            ]}
-            disabled
-          />
-        </div>
       </div>
 
       {/* Property cards */}
@@ -139,52 +154,95 @@ export default function PropertyList({ filters, onNextPage, onPrevPage }: Proper
 
       {/* Empty state */}
       {properties.length === 0 && (
-        <div className="text-center py-16">
-          <div className="text-6xl mb-4">🏠</div>
-          <h3 className="text-lg font-medium text-gray-700 mb-2">
+        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
+          <div className="w-20 h-20 mx-auto bg-blue-50 rounded-full flex items-center justify-center mb-4">
+            <span className="text-4xl">🏠</span>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">
             Không tìm thấy bất động sản phù hợp
           </h3>
-          <p className="text-sm text-gray-500">
-            Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm
+          <p className="text-sm text-gray-500 max-w-md mx-auto">
+            Hãy thử thay đổi bộ lọc hoặc từ khóa tìm kiếm để tìm được kết quả phù hợp hơn.
           </p>
         </div>
       )}
 
-      {/* Cursor-based Pagination Controls */}
+      {/* Pagination Controls - Full page numbers */}
       {properties.length > 0 && (
-        <div className="flex items-center justify-center gap-4 mt-8 mb-4">
+        <div className="flex items-center justify-center gap-1 mt-8 mb-4">
+          {/* Previous button */}
           <button
-            onClick={onPrevPage}
+            onClick={() => {
+              onFilterChange({ pageIndex: filters.pageIndex - 1 });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             disabled={filters.pageIndex <= 1}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border text-sm font-medium transition-colors
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
               ${filters.pageIndex <= 1
-                ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                : "border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-500"
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
               }`}
           >
             <LeftOutlined className="text-xs" />
-            Trang trước
+            Trước
           </button>
 
-          <span className="text-sm text-gray-600 min-w-[80px] text-center">
-            Trang <span className="font-semibold text-gray-900">{filters.pageIndex}</span>
-          </span>
+          {/* Page numbers */}
+          <div className="flex items-center gap-1">
+            {pageNumbers.map((page, idx) => {
+              if (page === "...") {
+                return (
+                  <span key={`ellipsis-${idx}`} className="w-10 h-10 flex items-center justify-center text-gray-400 text-sm">
+                    ···
+                  </span>
+                );
+              }
+              const isActive = page === filters.pageIndex;
+              return (
+                <button
+                  key={page}
+                  disabled={isActive}
+                  onClick={() => {
+                    onFilterChange({ pageIndex: page as number });
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className={`w-10 h-10 rounded-xl text-sm font-medium transition-all duration-200
+                    ${isActive
+                      ? "bg-blue-500 text-white shadow-lg shadow-blue-200 scale-105"
+                      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
+                    }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+          </div>
 
+          {/* Next button */}
           <button
-            onClick={() => nextCursor && onNextPage(nextCursor)}
-            disabled={!hasMore || !nextCursor}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg border text-sm font-medium transition-colors
-              ${!hasMore || !nextCursor
-                ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                : "border-gray-300 text-gray-700 hover:border-blue-400 hover:text-blue-500"
+            onClick={() => {
+              onFilterChange({ pageIndex: filters.pageIndex + 1 });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            disabled={filters.pageIndex >= totalPages}
+            className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
+              ${filters.pageIndex >= totalPages
+                ? "text-gray-300 cursor-not-allowed"
+                : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
               }`}
           >
-            Trang tiếp
+            Tiếp
             <RightOutlined className="text-xs" />
           </button>
         </div>
       )}
+
+      {/* Pagination info */}
+      {properties.length > 0 && totalPages > 1 && (
+        <p className="text-center text-xs text-gray-400 mb-4">
+          Trang {filters.pageIndex} / {totalPages} · Tổng {total.toLocaleString("vi-VN")} kết quả
+        </p>
+      )}
     </div>
   );
 }
-
