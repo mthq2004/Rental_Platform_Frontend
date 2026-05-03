@@ -2,12 +2,11 @@ import { View, Text, TouchableOpacity, Alert } from 'react-native'
 import React from 'react'
 import { Ionicons } from '@expo/vector-icons'
 import { router } from 'expo-router'
-import { useAppDispatch, useAppSelector } from '@/store/hook'
-import { createConversation } from '@/store/slices/conversation.slice'
 
 type PropertyActionsProps = {
   isOwner: boolean
   propertyId: string
+  ownerId?: string
   onBookSchedule?: () => void
   onContact?: () => void
   onViewStats?: () => void
@@ -16,15 +15,14 @@ type PropertyActionsProps = {
 export const PropertyActions: React.FC<PropertyActionsProps> = ({
   isOwner,
   propertyId,
+  ownerId,
   onBookSchedule,
   onContact,
   onViewStats
 }) => {
-  const dispatch = useAppDispatch()
-  const { conversations, error, loading } = useAppSelector(state => state.conversation)
   const handleBookSchedule = () => {
     if (onBookSchedule) {
-      onBookSchedule()
+      onBookSchedule();
     } else {
       router.push({
         pathname: "/(post)/book-schedule",
@@ -51,6 +49,21 @@ export const PropertyActions: React.FC<PropertyActionsProps> = ({
     }
   }
 
+  const handleRentalRequest = () => {
+    if (!ownerId) {
+      Alert.alert('Lỗi', 'Không tìm thấy chủ nhà')
+      return;
+    }
+
+    router.push({
+      pathname: '/(rental)/create-request',
+      params: {
+        propertyId,
+        ownerId,
+      },
+    })
+  }
+
   if (isOwner) {
     return (
       <View className="border-t border-gray-200 dark:border-gray-800 p-4 bg-white dark:bg-gray-950">
@@ -75,6 +88,16 @@ export const PropertyActions: React.FC<PropertyActionsProps> = ({
           <Ionicons name="calendar" size={20} color="white" />
           <Text className="text-white font-semibold text-base ml-2">Đặt lịch xem</Text>
         </TouchableOpacity>
+
+        {!isOwner && (
+          <TouchableOpacity
+            onPress={handleRentalRequest}
+            className="flex-1 bg-emerald-600 py-3.5 rounded-xl flex-row items-center justify-center"
+          >
+            <Ionicons name="document-text-outline" size={20} color="white" />
+            <Text className="text-white font-semibold text-base ml-2">Yêu cầu thuê</Text>
+          </TouchableOpacity>
+        )}
         
         <TouchableOpacity
           onPress={handleContact}

@@ -1,10 +1,14 @@
-import { Text, TouchableOpacity } from "react-native";
+import React from 'react'
+import { Text, TouchableOpacity, ViewStyle } from 'react-native'
+import { useThemeColors } from '@/utils/colors'
 
 interface PrimaryButtonProps {
-  title: string;
-  onPress: () => void;
-  disabled?: boolean;
-  loading?: boolean;
+  title?: string
+  onPress?: () => void
+  disabled?: boolean
+  loading?: boolean
+  style?: ViewStyle
+  children?: React.ReactNode
 }
 
 const PrimaryButton = ({
@@ -12,30 +16,41 @@ const PrimaryButton = ({
   onPress,
   disabled = false,
   loading = false,
+  style,
+  children,
 }: PrimaryButtonProps) => {
+  const { current } = useThemeColors()
+
+  const bg = disabled || loading ? current.border : current.icon
+  const textColor = disabled || loading ? current.textInactive : current.card === '#F9FAFB' ? '#FFFFFF' : '#FFFFFF'
+
   return (
     <TouchableOpacity
-      className={`py-4 rounded-xl items-center ${
-        disabled || loading ? 'bg-gray-300' : 'bg-blue-600 active:bg-blue-700'
-      }`}
+      className={`py-4 rounded-xl items-center justify-center active:opacity-90`}
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
       style={{
-        shadowColor: disabled || loading ? 'transparent' : '#3B82F6',
+        backgroundColor: bg,
+        shadowColor: disabled || loading ? 'transparent' : current.icon,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
+        shadowOpacity: 0.22,
+        shadowRadius: 6,
         elevation: 5,
+        ...(style || {}),
       }}
     >
       {loading ? (
         <Text className="text-white text-base font-semibold">Đang xử lý...</Text>
       ) : (
-        <Text className="text-white text-base font-semibold">{title}</Text>
+        children ? (
+          children
+        ) : (
+          <Text style={{ color: textColor }} className="text-base font-semibold">{title}</Text>
+        )
       )}
     </TouchableOpacity>
-  );
-};
+  )
+}
 
-export default PrimaryButton;
+export default PrimaryButton

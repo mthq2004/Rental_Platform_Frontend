@@ -196,6 +196,12 @@ const AuthenticatedProfile = () => {
       iconColor: '#ef4444',
     },
     {
+      icon: FileText,
+      title: 'Yêu cầu thuê',
+      onPress: () => router.push('/(rental)/requests'),
+      iconColor: '#2563eb',
+    },
+    {
       icon: Search,
       title: 'Tìm kiếm đã lưu',
       onPress: () => Alert.alert('Tìm kiếm đã lưu'),
