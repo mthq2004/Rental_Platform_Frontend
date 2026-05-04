@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { CallProvider } from "@/contexts/CallContext";
 import CallOverlay from "@/components/chat/CallOverlay";
 import { GlobalToast } from '@/components/Notification';
+import ClickEffect from "@/components/common/ClickEffect";
 
 export default function RootLayout() {
   return (
@@ -21,12 +22,14 @@ export default function RootLayout() {
           <ChatSocketProvider>
             <CallProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="(tab)" />
-                  <Stack.Screen name="(auth)" />
-                </Stack>
-                <CallOverlay />
-                <GlobalToast />
+                <ClickEffect>
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="(tab)" />
+                    <Stack.Screen name="(auth)" />
+                  </Stack>
+                  <CallOverlay />
+                  <GlobalToast />
+                </ClickEffect>
               </GestureHandlerRootView>
             </CallProvider>
           </ChatSocketProvider>
