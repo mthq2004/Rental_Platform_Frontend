@@ -15,8 +15,10 @@ import KeyboardSafeWrapper from "@/components/KeyboardSafeWrapper";
 import { useColorScheme } from "nativewind";
 import { validatePhoneRealtime, validatePhone } from "@/utils/validation";
 import { Toast } from "@/components/Notification";
+import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
 
 const ForgotPasswordScreen = () => {
+    useEnableFloatingKeyboard();
 
     const [phone, setPhone] = useState("");
     const [error, setError] = useState("");

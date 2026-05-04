@@ -282,7 +282,7 @@ export default function WalletDashboardPage() {
         window.open(result.paymentUrl, "_blank", "noopener,noreferrer");
       }
 
-      if (result?.method === "bank_transfer" && result?.bankInfo) {
+      if (result?.method === " " && result?.bankInfo) {
         modal.info({
           title: "Thông tin chuyển khoản nạp ví",
           content: (

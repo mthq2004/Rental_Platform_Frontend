@@ -10,6 +10,7 @@ import messageReducer from "./slices/message.slice"
 import customerCategoryReducer from "./slices/customer-category.slice"
 import estateReducer from "./slices/estate.slice"
 import kycReducer from "./slices/kyc.slice"
+import walletReducer from "./slices/wallet.slice"
 
 export const makeStore = () => {
   return configureStore({
@@ -25,6 +26,7 @@ export const makeStore = () => {
       customerCategory: customerCategoryReducer,
       estate: estateReducer,
       kyc: kycReducer,
+      wallet: walletReducer,
     },
   });
 };

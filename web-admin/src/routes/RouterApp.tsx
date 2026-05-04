@@ -5,8 +5,6 @@ import Sidebar from "../components/layout/Sidebar";
 import DashboardPage from "../pages/dashboard/DashboardPage";
 import AiAnalyticsPage from "../pages/dashboard/AiAnalyticsPage";
 import PropertyDetailPage from "../pages/properties/PropertyDetailPage";
-import ContractTemplatePage from "../pages/contracts/ContractTemplatePage";
-import ContractDetailPage from "../pages/contracts/ContractDetailPage";
 import StatisticsPage from "../pages/statistics/StatisticsPage";
 import ComplaintPage from "../pages/complaints/ComplaintPage";
 import { PublicRoute } from "../components/auth/PublicRoute";
@@ -78,14 +76,6 @@ const router = createBrowserRouter([
           {
             path: "properties/:id",
             element: <PropertyDetailPage />,
-          },
-          {
-            path: "contracts",
-            element: <ContractTemplatePage />,
-          },
-          {
-            path: "contracts/:id",
-            element: <ContractDetailPage />,
           },
           {
             path: "statistics",

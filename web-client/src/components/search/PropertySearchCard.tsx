@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { propertySlug } from "@/utils/slug";
 import {
@@ -9,6 +9,7 @@ import {
   PhoneOutlined,
   EnvironmentOutlined,
   PictureOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import {
@@ -81,6 +82,35 @@ function formatTimeAgo(dateStr: string): string {
   return `Đăng ${Math.floor(diffDays / 30)} tháng trước`;
 }
 
+/** Strip HTML tags and decode HTML entities to plain text */
+function stripHtml(html: string): string {
+  if (!html) return "";
+  // Create a temporary element to decode HTML entities
+  if (typeof document !== "undefined") {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || "";
+  }
+  // SSR fallback: simple regex strip
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&ecirc;/gi, "ê")
+    .replace(/&ograve;/gi, "ò")
+    .replace(/&agrave;/gi, "à")
+    .replace(/&aacute;/gi, "á")
+    .replace(/&ocirc;/gi, "ô")
+    .replace(/&uacute;/gi, "ú")
+    .replace(/&sup2;/gi, "²")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function PropertySearchCard({ property }: PropertySearchCardProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -88,7 +118,7 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
   const favoriteStatusMap = useAppSelector((state) => state.estate.favoriteStatusMap);
   const isFavorite = !!favoriteStatusMap[property.id];
   const [showPhone, setShowPhone] = useState(false);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [avatarError, setAvatarError] = useState(false);
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
@@ -105,6 +135,11 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
   const vipLabel = property.isVip && property.vipLevel
     ? VIP_LABELS[property.vipLevel]
     : null;
+
+  // Clean description: strip HTML tags and decode entities
+  const cleanDescription = useMemo(() => stripHtml(property.description), [property.description]);
+
+  const hasValidAvatar = property.user.avatarUrl && !avatarError;
 
   const handlePhoneReveal = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -127,11 +162,12 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
   return (
     <div
       onClick={() => router.push(`/property/${propertySlug(property.title, property.id)}`)}
-      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 group cursor-pointer border border-gray-100"
-    >  <div className="flex flex-col sm:flex-row">
+      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200 group cursor-pointer border border-gray-100 flex flex-col sm:h-[240px]"
+    >  
+      <div className="flex flex-col sm:flex-row flex-1 h-full min-h-0">
         {/* === Image Gallery === */}
-        <div className="relative w-full sm:w-[320px] shrink-0">
-          <div className="flex h-55 sm:h-full">
+        <div className="relative w-full sm:w-[320px] shrink-0 h-[200px] sm:h-full">
+          <div className="flex h-full w-full">
             {/* Main image */}
             <div className="flex-1 relative overflow-hidden">
               <img
@@ -219,9 +255,9 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
               </span>
             </div>
 
-            {/* Description */}
+            {/* Description - cleaned from HTML */}
             <p className="text-gray-500 text-sm mt-2 line-clamp-2 leading-relaxed">
-              {property.description}
+              {cleanDescription}
             </p>
           </div>
 
@@ -229,9 +265,18 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
             {/* User */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                {property.user.fullName.charAt(0).toUpperCase()}
-              </div>
+              {hasValidAvatar ? (
+                <img
+                  src={property.user.avatarUrl}
+                  alt={property.user.fullName}
+                  className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200"
+                  onError={() => setAvatarError(true)}
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                  {property.user.fullName.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div>
                 <p className="text-sm font-medium text-gray-700 leading-tight">
                   {property.user.fullName}

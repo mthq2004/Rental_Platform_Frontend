@@ -25,6 +25,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Toast } from '@/components/Notification';
 import { PROPERTY_META } from '@/constants/property.constant';
 import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
+import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
 
 interface PropertyImage {
   id: string;
@@ -33,6 +34,7 @@ interface PropertyImage {
 }
 
 const CreatePost = () => {
+  useEnableFloatingKeyboard();
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showAmenityModal, setShowAmenityModal] = useState(false);

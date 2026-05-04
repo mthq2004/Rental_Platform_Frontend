@@ -97,7 +97,7 @@ const LocationPickerModal: React.FC<Props> = ({
       >
         <Pressable
           className="h-[85%] bg-white dark:bg-secondary-dark rounded-t-3xl"
-          onPress={() => {}}
+          onPress={() => { }}
         >
           {/* Header */}
           <View className="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-700">
@@ -163,19 +163,17 @@ const LocationPickerModal: React.FC<Props> = ({
                 return (
                   <TouchableOpacity
                     onPress={() => toggle(item)}
-                    className={`flex-row items-center px-4 py-4 rounded-xl mb-2 border ${
-                      active
+                    className={`flex-row items-center px-4 py-4 rounded-xl mb-2 border ${active
                         ? "bg-blue-50 border-blue-500"
                         : "border-gray-200 dark:border-gray-600"
-                    }`}
+                      }`}
                   >
                     {/* Checkbox */}
                     <View
-                      className={`w-6 h-6 rounded-lg border items-center justify-center ${
-                        active
+                      className={`w-6 h-6 rounded-lg border items-center justify-center ${active
                           ? "bg-blue-600 border-blue-600"
                           : "border-gray-300 dark:border-gray-600"
-                      }`}
+                        }`}
                     >
                       {active && (
                         <Check size={16} color="white" />
@@ -184,11 +182,10 @@ const LocationPickerModal: React.FC<Props> = ({
 
                     {/* Name */}
                     <Text
-                      className={`flex-1 ml-3 text-base ${
-                        active
+                      className={`flex-1 ml-3 text-base ${active
                           ? "text-blue-900"
                           : "text-gray-700 dark:text-gray-200"
-                      }`}
+                        }`}
                     >
                       {item.name}
                     </Text>
@@ -220,11 +217,10 @@ const LocationPickerModal: React.FC<Props> = ({
             <TouchableOpacity
               onPress={handleApply}
               disabled={selected.length === 0}
-              className={`flex-[1.4] py-3 rounded-xl items-center ${
-                selected.length > 0
+              className={`flex-[1.4] py-3 rounded-xl items-center ${selected.length > 0
                   ? "bg-primary"
                   : "bg-gray-300"
-              }`}
+                }`}
             >
               <Text className="text-white font-bold">
                 Áp dụng ({selected.length})

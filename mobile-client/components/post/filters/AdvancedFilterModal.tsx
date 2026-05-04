@@ -109,7 +109,7 @@ const AdvancedFilterModal: React.FC<AdvancedFilterModalProps> = ({
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="flex-1 justify-end"
         >
-          <Pressable className="bg-white dark:bg-secondary-dark rounded-t-3xl max-h-[92%]" onPress={() => {}}>
+          <Pressable className="bg-white dark:bg-secondary-dark rounded-t-3xl max-h-[92%]" onPress={() => { }}>
             <View className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex-row items-center justify-between">
               <Text className="text-lg font-bold text-gray-900 dark:text-foreground-dark">
                 Bộ lọc chi tiết
@@ -167,11 +167,10 @@ const AdvancedFilterModal: React.FC<AdvancedFilterModalProps> = ({
                 <TouchableOpacity
                   disabled={!selectedProvince}
                   onPress={() => setDistrictPickerVisible(true)}
-                  className={`flex-row items-center justify-between px-3 py-3 border rounded-xl ${
-                    selectedProvince
+                  className={`flex-row items-center justify-between px-3 py-3 border rounded-xl ${selectedProvince
                       ? 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
                       : 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   <Text className={`text-base ${selectedDistrict ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
                     {selectedDistrict?.name ?? 'Chọn quận/huyện'}
@@ -197,11 +196,10 @@ const AdvancedFilterModal: React.FC<AdvancedFilterModalProps> = ({
                 <TouchableOpacity
                   disabled={!selectedDistrict}
                   onPress={() => setWardPickerVisible(true)}
-                  className={`flex-row items-center justify-between px-3 py-3 border rounded-xl ${
-                    selectedDistrict
+                  className={`flex-row items-center justify-between px-3 py-3 border rounded-xl ${selectedDistrict
                       ? 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
                       : 'border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   <Text className={`text-base ${selectedWard ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
                     {selectedWard?.name ?? 'Chọn phường/xã'}

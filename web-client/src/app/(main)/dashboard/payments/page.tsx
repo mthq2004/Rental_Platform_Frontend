@@ -129,8 +129,8 @@ export default function PaymentsPage() {
   const getAvailableMethodOptions = useCallback(
     (ownerSide: boolean): MethodOption[] => {
       const values = ownerSide
-        ? ["cash", "bank_transfer"]
-        : ["other", "momo", "vnpay", "zalopay", "bank_transfer"];
+        ? ["cash"]
+        : ["other", "momo", "vnpay"];
 
       return values
         .map((value) => {
@@ -181,7 +181,7 @@ export default function PaymentsPage() {
         const redirectUrl = result.paymentUrl || result.payUrl;
         window.open(redirectUrl, "_blank", "noopener,noreferrer");
         message.success("Đã tạo giao dịch. Vui lòng hoàn tất thanh toán trên cổng thanh toán.");
-      } else if (result?.type === "bank_transfer") {
+      } else if (result?.type === " ") {
         modal.info({
           title: "Thông tin chuyển khoản",
           content: (

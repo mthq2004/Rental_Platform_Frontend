@@ -21,6 +21,7 @@ function buildSearchQuery(params: SearchPropertyParams): string {
   if (params.city) p.set("city", params.city);
   if (params.district) p.set("district", params.district);
   if (params.bedrooms != null) p.set("bedrooms", String(params.bedrooms));
+  if (params.page != null) p.set("page", String(params.page));
   if (params.cursor) p.set("cursor", params.cursor);
   if (params.limit) p.set("limit", String(params.limit));
   if (params.sortBy) p.set("sortBy", params.sortBy);

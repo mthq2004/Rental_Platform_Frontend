@@ -23,8 +23,10 @@ import * as Linking from 'expo-linking';
 import { useColorScheme } from 'nativewind';
 import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
 import { validatePhone, validatePhoneRealtime } from '@/utils/validation';
+import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
 
 const LoginScreen = () => {
+  useEnableFloatingKeyboard();
   const navigation = useNavigation();
   const { code, redirect_to } = useLocalSearchParams<{ code?: string; redirect_to?: string }>();
   const [phoneNumber, setPhoneNumber] = useState<string>('');

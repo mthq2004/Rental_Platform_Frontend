@@ -18,8 +18,8 @@ export default function PrivacyPage() {
         <Divider />
 
         <Paragraph className="!text-gray-600 !leading-relaxed">
-          Group33 Real Estate (&quot;chúng tôi&quot;) cam kết bảo vệ quyền riêng tư và thông tin cá nhân của bạn. 
-          Chính sách bảo mật này giải thích cách chúng tôi thu thập, sử dụng, lưu trữ và bảo vệ thông tin 
+          Group33 Real Estate (&quot;chúng tôi&quot;) cam kết bảo vệ quyền riêng tư và thông tin cá nhân của bạn.
+          Chính sách bảo mật này giải thích cách chúng tôi thu thập, sử dụng, lưu trữ và bảo vệ thông tin
           khi bạn sử dụng nền tảng cho thuê bất động sản trực tuyến của chúng tôi.
         </Paragraph>
 
@@ -64,7 +64,7 @@ export default function PrivacyPage() {
           Chúng tôi <Text strong>không</Text> bán thông tin cá nhân của bạn cho bên thứ ba. Thông tin chỉ được chia sẻ trong các trường hợp sau:
           <ul className="list-disc pl-6 space-y-2 mt-2">
             <li><Text strong>Giữa các bên trong giao dịch:</Text> Chủ nhà và Người thuê sẽ thấy thông tin cơ bản của nhau (tên, số điện thoại) khi có giao dịch phát sinh để liên lạc.</li>
-            <li><Text strong>Đối tác dịch vụ:</Text> Các nhà cung cấp thanh toán (VNPay, MoMo, ZaloPay), dịch vụ chữ ký số (SmartCA), dịch vụ blockchain để xử lý giao dịch.</li>
+            <li><Text strong>Đối tác dịch vụ:</Text> Các nhà cung cấp thanh toán (VNPay, MoMo,  ), dịch vụ chữ ký số (SmartCA), dịch vụ blockchain để xử lý giao dịch.</li>
             <li><Text strong>Yêu cầu pháp lý:</Text> Khi có yêu cầu từ cơ quan nhà nước có thẩm quyền theo quy định pháp luật.</li>
             <li><Text strong>Bảo vệ quyền lợi:</Text> Khi cần thiết để bảo vệ quyền, tài sản hoặc sự an toàn của Nền tảng, người dùng hoặc công chúng.</li>
           </ul>
@@ -117,13 +117,13 @@ export default function PrivacyPage() {
 
         <Title level={3}>8. Bảo mật trẻ em</Title>
         <Paragraph className="!text-gray-600 !leading-relaxed">
-          Nền tảng không dành cho người dưới 18 tuổi. Chúng tôi không cố ý thu thập thông tin từ trẻ em. 
+          Nền tảng không dành cho người dưới 18 tuổi. Chúng tôi không cố ý thu thập thông tin từ trẻ em.
           Nếu phát hiện tài khoản của người dưới 18 tuổi, chúng tôi sẽ xóa ngay thông tin liên quan.
         </Paragraph>
 
         <Title level={3}>9. Thay đổi chính sách</Title>
         <Paragraph className="!text-gray-600 !leading-relaxed">
-          Chính sách bảo mật này có thể được cập nhật theo thời gian. Chúng tôi sẽ thông báo về các thay đổi quan trọng 
+          Chính sách bảo mật này có thể được cập nhật theo thời gian. Chúng tôi sẽ thông báo về các thay đổi quan trọng
           qua email hoặc thông báo trên Nền tảng. Bạn nên kiểm tra trang này định kỳ để cập nhật các thay đổi mới nhất.
         </Paragraph>
 

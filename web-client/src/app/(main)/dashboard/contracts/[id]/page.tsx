@@ -680,7 +680,7 @@ export default function ContractDetailPage() {
         const redirectUrl = result.paymentUrl || result.payUrl;
         window.open(redirectUrl, "_blank", "noopener,noreferrer");
         message.success("Đã tạo giao dịch. Vui lòng hoàn tất thanh toán trên cổng thanh toán.");
-      } else if (result?.type === "bank_transfer") {
+      } else if (result?.type === " ") {
         modal.info({
           title: "Thông tin chuyển khoản",
           content: (

@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import SyncTextInput from "@/components/common/SyncTextInput";
 
 interface CustomInputProps {
   label: string;
@@ -42,12 +43,12 @@ const CustomInput = ({
       </Text>
       <View
         className={`flex-row items-center border rounded-xl px-4 ${error
-            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-            : isFocused
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-              : value
-                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                : 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800'
+          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+          : isFocused
+            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+            : value
+              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+              : 'border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800'
           }`}
       >
         {icon && (
@@ -66,7 +67,7 @@ const CustomInput = ({
             style={{ marginRight: 12 }}
           />
         )}
-        <TextInput
+        <SyncTextInput
           className="flex-1 py-4 text-base text-gray-900 dark:text-gray-100"
           placeholder={placeholder}
           value={value}
