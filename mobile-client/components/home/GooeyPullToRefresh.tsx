@@ -1,22 +1,13 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   useWindowDimensions,
   Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  Blur,
-  Canvas,
-  Circle,
-  ColorMatrix,
-  Group,
-  Paint,
-  Rect,
-  RoundedRect,
-} from '@shopify/react-native-skia';
 
 interface GooeyPullToRefreshProps {
   pullDistance: number;
@@ -34,25 +25,39 @@ const GooeyPullToRefresh: React.FC<GooeyPullToRefreshProps> = ({
 }) => {
   const { width } = useWindowDimensions();
   const spin = useRef(new Animated.Value(0)).current;
+  const pullAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!refreshing) {
       spin.stopAnimation();
       spin.setValue(0);
+      Animated.spring(pullAnim, {
+        toValue: 0,
+        useNativeDriver: true,
+        tension: 40,
+        friction: 8,
+      }).start();
       return;
     }
+
+    Animated.timing(pullAnim, {
+      toValue: 1,
+      duration: 240,
+      useNativeDriver: true,
+    }).start();
 
     const loop = Animated.loop(
       Animated.timing(spin, {
         toValue: 1,
         duration: 900,
         useNativeDriver: true,
+        easing: Easing.linear,
       })
     );
 
     loop.start();
     return () => loop.stop();
-  }, [refreshing, spin]);
+  }, [refreshing, spin, pullAnim]);
 
   const clampedPull = Math.max(0, Math.min(pullDistance, 160));
   const progress = Math.min(clampedPull / threshold, 1);
@@ -72,23 +77,6 @@ const GooeyPullToRefresh: React.FC<GooeyPullToRefreshProps> = ({
 
   const ready = clampedPull >= threshold;
 
-  const layerPaint = useMemo(
-    () => (
-      <Paint>
-        <Blur blur={12} />
-        <ColorMatrix
-          matrix={[
-            1, 0, 0, 0, 0,
-            0, 1, 0, 0, 0,
-            0, 0, 1, 0, 0,
-            0, 0, 0, 30, -12,
-          ]}
-        />
-      </Paint>
-    ),
-    []
-  );
-
   if (clampedPull <= 0 && !refreshing) {
     return null;
   }
@@ -100,21 +88,67 @@ const GooeyPullToRefresh: React.FC<GooeyPullToRefreshProps> = ({
 
   return (
     <View pointerEvents="none" style={styles.container}>
-      <Canvas style={{ height: 200, width }}>
-        <Group layer={layerPaint}>
-          <Rect x={0} y={0} width={width} height={topBandHeight} color={color} />
-          <RoundedRect
-            x={width / 2 - neckWidth / 2}
-            y={neckY}
-            width={neckWidth}
-            height={neckHeight}
-            r={neckWidth / 2}
-            color={color}
-          />
-          <Circle cx={width / 2} cy={bridgeY} r={bridgeRadius} color={color} />
-          <Circle cx={width / 2} cy={circleY} r={circleRadius} color={color} />
-        </Group>
-      </Canvas>
+      <Animated.View
+        style={[
+          styles.canvasFallback,
+          {
+            width,
+            height: 200,
+            opacity: refreshing || clampedPull > 0 ? 1 : 0,
+            transform: [
+              {
+                translateY: pullAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 6],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <View style={[styles.band, { backgroundColor: color, height: topBandHeight }]} />
+        <View
+          style={[
+            styles.bridge,
+            {
+              backgroundColor: color,
+              width: Math.max(0, bridgeRadius * 2),
+              height: Math.max(0, bridgeRadius * 2),
+              borderRadius: bridgeRadius,
+              left: width / 2 - bridgeRadius,
+              top: bridgeY - bridgeRadius,
+              opacity: bridgeRadius > 0 ? 1 : 0,
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.bridge,
+            {
+              backgroundColor: color,
+              width: Math.max(0, neckWidth),
+              height: Math.max(0, neckHeight),
+              borderRadius: Math.max(0, neckWidth / 2),
+              left: width / 2 - neckWidth / 2,
+              top: neckY,
+              opacity: neckWidth > 0 && neckHeight > 0 ? 1 : 0,
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.circle,
+            {
+              backgroundColor: color,
+              width: circleRadius * 2,
+              height: circleRadius * 2,
+              borderRadius: circleRadius,
+              left: width / 2 - circleRadius,
+              top: circleY - circleRadius,
+            },
+          ]}
+        />
+      </Animated.View>
 
       <View style={[styles.iconContainer, { top: Math.max(8, circleY - 11) }]}>
         <Animated.View style={refreshing ? { transform: [{ rotate }] } : undefined}>
@@ -160,6 +194,22 @@ const styles = StyleSheet.create({
     color: '#E5E7EB',
     fontSize: 12,
     fontWeight: '600',
+  },
+  canvasFallback: {
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  band: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  bridge: {
+    position: 'absolute',
+  },
+  circle: {
+    position: 'absolute',
   },
 });
 

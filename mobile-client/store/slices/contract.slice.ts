@@ -1,0 +1,166 @@
+import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
+import contractService from '@/services/contract.service'
+
+interface ContractState {
+  loading: boolean
+  myRequests: any[]
+  contracts: any[]
+  contractDetail: any | null
+  error?: string | null
+}
+
+const initialState: ContractState = {
+  loading: false,
+  myRequests: [],
+  contracts: [],
+  contractDetail: null,
+  error: null,
+}
+
+export const createRentalRequest = createAsyncThunk(
+  'contract/createRentalRequest',
+  async (data: { propertyId: string; ownerId: string; startDate: string; endDate: string; proposedRent: number; message?: string }, { rejectWithValue }) => {
+    try {
+      return await contractService.createRentalRequest(data)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Create rental request failed')
+    }
+  }
+)
+
+export const payHoldingDeposit = createAsyncThunk(
+  'contract/payHoldingDeposit',
+  async (data: { requestId: string; method: string }, { rejectWithValue }) => {
+    try {
+      return await contractService.payHoldingDeposit(data)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Pay holding deposit failed')
+    }
+  }
+)
+
+export const getContractDetail = createAsyncThunk(
+  'contract/getContractDetail',
+  async (contractId: string, { rejectWithValue }) => {
+    try {
+      return await contractService.getContractDetail(contractId)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Get contract detail failed')
+    }
+  }
+)
+
+export const getMyRentalRequests = createAsyncThunk(
+  'contract/getMyRentalRequests',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await contractService.getMyRentalRequests()
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Get my rental requests failed')
+    }
+  }
+)
+
+export const getOwnerRequests = createAsyncThunk(
+  'contract/getOwnerRequests',
+  async (status?: string, { rejectWithValue }) => {
+    try {
+      return await contractService.getOwnerRequests(status)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Get owner rental requests failed')
+    }
+  }
+)
+
+export const reviewRequest = createAsyncThunk(
+  'contract/reviewRequest',
+  async (
+    data: { requestId: string; status: 'under_review' | 'rejected'; rejectionReason?: string; landlordNotes?: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await contractService.reviewRequest(data)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Review request failed')
+    }
+  }
+)
+
+export const openHoldingDepositWindow = createAsyncThunk(
+  'contract/openHoldingDepositWindow',
+  async (data: { requestIds: string[]; expireMinutes?: number }, { rejectWithValue }) => {
+    try {
+      return await contractService.openHoldingDeposit(data)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Open holding deposit failed')
+    }
+  }
+)
+
+export const getMyContracts = createAsyncThunk(
+  'contract/getMyContracts',
+  async (params?: { status?: string; page?: number; limit?: number }, { rejectWithValue }) => {
+    try {
+      return await contractService.getMyContracts(params)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Get my contracts failed')
+    }
+  }
+)
+
+const slice = createSlice({
+  name: 'contract',
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(createRentalRequest.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(createRentalRequest.fulfilled, (state, action) => {
+        state.loading = false
+        if (Array.isArray(state.myRequests)) {
+          state.myRequests.unshift(action.payload)
+        } else {
+          state.myRequests = [action.payload]
+        }
+      })
+      .addCase(createRentalRequest.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(payHoldingDeposit.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(payHoldingDeposit.fulfilled, (state, action) => { state.loading = false })
+      .addCase(payHoldingDeposit.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(getContractDetail.pending, (state) => { state.loading = true; state.error = null; state.contractDetail = null })
+      .addCase(getContractDetail.fulfilled, (state, action) => { state.loading = false; state.contractDetail = action.payload })
+      .addCase(getContractDetail.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(getMyRentalRequests.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(getMyRentalRequests.fulfilled, (state, action) => {
+        state.loading = false
+        const payload = action.payload
+        state.myRequests = Array.isArray(payload) ? payload : payload?.items || payload?.data || []
+      })
+      .addCase(getMyRentalRequests.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(getOwnerRequests.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(getOwnerRequests.fulfilled, (state) => { state.loading = false })
+      .addCase(getOwnerRequests.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(reviewRequest.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(reviewRequest.fulfilled, (state) => { state.loading = false })
+      .addCase(reviewRequest.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(openHoldingDepositWindow.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(openHoldingDepositWindow.fulfilled, (state) => { state.loading = false })
+      .addCase(openHoldingDepositWindow.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(getMyContracts.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(getMyContracts.fulfilled, (state, action) => {
+        state.loading = false
+        const payload = action.payload
+        state.contracts = Array.isArray(payload) ? payload : payload?.items || payload?.data || []
+      })
+      .addCase(getMyContracts.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+  }
+})
+
+export default slice.reducer

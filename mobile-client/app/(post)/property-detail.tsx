@@ -469,6 +469,7 @@ const PropertyDetail = () => {
         <PropertyActions
           isOwner={isOwner}
           propertyId={propertyId.toString()}
+          ownerId={propertyDetail?.user.id}
           onContact={handleConversation}
         />
 
