@@ -1,298 +1,161 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { View, Text, Alert, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native'
-import { router, useLocalSearchParams } from 'expo-router'
-import AuthGuard from '@/components/AuthGuard'
-import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper'
+import React, { useCallback, useEffect, useState } from 'react'
+import { View, Text, ScrollView, ActivityIndicator, Alert, TextInput } from 'react-native'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useDispatch, useSelector } from 'react-redux'
+import { AppDispatch, RootState } from '@/store'
+import { createContract, getRequestTemplateData, getTemplateDetail } from '@/store/slices/contract.slice'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import BackButton from '@/components/BackButton'
-import CustomInput from '@/components/CustomInput'
+import { useThemeColors } from '@/utils/colors'
 import PrimaryButton from '@/components/PrimaryButton'
-import contractService from '@/services/contract.service'
-
-type TemplateVariable = {
-  name: string
-  type: 'string' | 'number' | 'date'
-  label: string
-  required: boolean
-}
-
-type TemplateItem = {
-  templateId: string
-  templateName: string
-  description?: string
-  isDefault?: boolean
-}
-
-const formatDate = (value?: string) => {
-  if (!value) return ''
-  const ddmmyyyy = value.match(/^(\d{2})-(\d{2})-(\d{4})$/)
-  if (ddmmyyyy) return value
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
-  return `${day}-${month}-${year}`
-}
-
-const toApiDate = (value?: string) => {
-  if (!value) return ''
-  const ddmmyyyy = value.trim().match(/^(\d{2})-(\d{2})-(\d{4})$/)
-  if (ddmmyyyy) {
-    const [, day, month, year] = ddmmyyyy
-    return `${year}-${month}-${day}`
-  }
-  const iso = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (iso) return value.trim()
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-const flattenObject = (obj: any, prefix = ''): Record<string, any> => {
-  const res: Record<string, any> = {}
-  Object.entries(obj || {}).forEach(([key, value]) => {
-    const nextKey = prefix ? `${prefix}.${key}` : key
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      Object.assign(res, flattenObject(value, nextKey))
-    } else {
-      res[nextKey] = value
-    }
-  })
-  return res
-}
-
-const buildHtml = (templateContent: string, values: Record<string, string>) => {
-  return templateContent.replace(/\{\{(.*?)\}\}/g, (_, rawKey: string) => {
-    const key = rawKey.trim()
-    const value = values[key]
-    if (value == null || value === '') return `{{${key}}}`
-    return key.toLowerCase().includes('date') ? formatDate(value) : value
-  })
-}
+import WebView from 'react-native-webview'
+import { format } from 'date-fns'
 
 const ContractBuilderScreen = () => {
-  const { requestId } = useLocalSearchParams<{ requestId?: string }>()
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [requestData, setRequestData] = useState<any>(null)
-  const [templates, setTemplates] = useState<TemplateItem[]>([])
-  const [templateDetail, setTemplateDetail] = useState<any>(null)
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
-  const [contractId, setContractId] = useState<string | null>(null)
-  const [values, setValues] = useState<Record<string, string>>({})
+  const { templateId, requestId } = useLocalSearchParams<{ templateId: string, requestId: string }>();
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+  const theme = useThemeColors() as any;
+  const current = theme.current;
+  const primary = theme.primary;
+  const { loading } = useSelector((state: RootState) => state.contract);
 
-  const flattenedRequest = useMemo(() => flattenObject(requestData), [requestData])
-  const templateVariables: TemplateVariable[] = templateDetail?.templateVariables || []
+  const [template, setTemplate] = useState<any>(null);
+  const [requestData, setRequestData] = useState<any>(null);
+  const [contractHtml, setContractHtml] = useState('');
+  const [formValues, setFormValues] = useState<Record<string, any>>({});
 
-  const preload = async () => {
-    if (!requestId) return
-    setLoading(true)
-    try {
-      const reqRes = await contractService.getRequestTemplateData(String(requestId))
-      const req = reqRes?.data ?? reqRes
-      setRequestData(req)
-
-      const propertyType = req?.property?.type || req?.property?.propertyType || 'room'
-      const templateRes = await contractService.getTemplates(String(propertyType))
-      const list = Array.isArray(templateRes?.data) ? templateRes.data : Array.isArray(templateRes) ? templateRes : []
-      setTemplates(list)
-
-      const defaultTemplate = list.find((item: TemplateItem) => item.isDefault) || list[0]
-      if (defaultTemplate) {
-        setSelectedTemplateId(defaultTemplate.templateId)
-        const detailRes = await contractService.getTemplateDetail(defaultTemplate.templateId)
-        const detail = detailRes?.data ?? detailRes
-        setTemplateDetail(detail)
-      }
-    } catch (error: any) {
-      Alert.alert('Lỗi', error?.message || 'Không tải được dữ liệu hợp đồng')
-    } finally {
-      setLoading(false)
+  const loadData = useCallback(async () => {
+    if (!templateId || !requestId) {
+      Alert.alert('Lỗi', 'Thiếu thông tin mẫu hoặc yêu cầu.', [{ text: 'OK', onPress: () => router.back() }]);
+      return
     }
-  }
+    try {
+      const [templateDetail, reqData] = await Promise.all([
+        dispatch(getTemplateDetail(templateId)).unwrap(),
+        dispatch(getRequestTemplateData(requestId)).unwrap(),
+      ]);
+      setTemplate(templateDetail);
+      setRequestData(reqData);
+
+      const initialFormValues = {
+        'contract.startDate': format(new Date(reqData.startDate), 'dd/MM/yyyy'),
+        'contract.endDate': format(new Date(reqData.endDate), 'dd/MM/yyyy'),
+        'contract.monthlyRent': reqData.proposedRent,
+        'contract.depositAmount': reqData.property.depositAmount,
+        'property.name': reqData.property.title,
+        'property.address': reqData.property.address,
+        'owner.fullName': reqData.owner.profile.fullName,
+        'owner.phone': reqData.owner.profile.phone,
+        'owner.email': reqData.owner.email,
+        'tenant.fullName': reqData.tenant.profile.fullName,
+        'tenant.phone': reqData.tenant.profile.phone,
+        'tenant.email': reqData.tenant.email,
+      }
+      setFormValues(initialFormValues);
+
+      let html = templateDetail.content
+      for (const key of Object.keys(initialFormValues) as Array<keyof typeof initialFormValues>) {
+        html = html.replace(new RegExp(`{{${String(key)}}}`, 'g'), String(initialFormValues[key]))
+      }
+      setContractHtml(html)
+
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không thể tải dữ liệu hợp đồng.');
+    }
+  }, [dispatch, templateId, requestId, router]);
 
   useEffect(() => {
-    preload()
-  }, [requestId])
+    loadData()
+  }, [loadData]);
 
-  useEffect(() => {
-    if (!templateDetail || !requestData) return
-    const nextValues: Record<string, string> = {}
-    const flat = flattenedRequest
-
-    templateVariables.forEach((variable) => {
-      const current = flat[variable.name]
-      if (current != null && current !== '') {
-        nextValues[variable.name] = variable.type === 'date' ? formatDate(String(current)) : String(current)
-      } else if (variable.name === 'contract.startDate' && flat['contract.startDate']) {
-        nextValues[variable.name] = formatDate(String(flat['contract.startDate']))
-      } else if (variable.name === 'contract.endDate' && flat['contract.endDate']) {
-        nextValues[variable.name] = formatDate(String(flat['contract.endDate']))
-      } else if (variable.name === 'contract.monthlyRent' && flat['property.monthlyRent']) {
-        nextValues[variable.name] = String(flat['property.monthlyRent'])
-      } else if (variable.name === 'contract.depositAmount' && flat['property.depositAmount']) {
-        nextValues[variable.name] = String(flat['property.depositAmount'])
-      } else {
-        nextValues[variable.name] = ''
-      }
-    })
-
-    setValues((prev) => ({ ...nextValues, ...prev }))
-  }, [templateDetail, requestData])
-
-  const handleTemplateChange = async (templateId: string) => {
-    setSelectedTemplateId(templateId)
-    setLoading(true)
-    try {
-      const detailRes = await contractService.getTemplateDetail(templateId)
-      setTemplateDetail(detailRes?.data ?? detailRes)
-    } catch (error: any) {
-      Alert.alert('Lỗi', error?.message || 'Không tải được template')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSaveDraft = async (): Promise<string | null> => {
-    if (!requestData || !templateDetail) return
-    setSaving(true)
+  const handleSaveDraft = async () => {
+    if (!template || !requestData) return
     try {
       const payload = {
-        templateId: selectedTemplateId,
-        fromRequestId: String(requestId),
-        propertyId: requestData.property?.id,
-        ownerId: requestData.owner?.id,
-        tenantId: requestData.tenant?.id,
-        startDate: values['contract.startDate'] ? toApiDate(values['contract.startDate']) : requestData.contract?.startDate,
-        endDate: values['contract.endDate'] ? toApiDate(values['contract.endDate']) : requestData.contract?.endDate,
-        monthlyRent: Number(values['contract.monthlyRent'] || requestData.property?.monthlyRent || 0),
-        depositAmount: Number(values['contract.depositAmount'] || requestData.property?.depositAmount || 0),
-        contractData: values,
-        contractHtml: buildHtml(templateDetail.templateContent || '', values),
-        status: 'draft',
+        templateId: template.templateId,
+        propertyId: requestData.propertyId,
+        ownerId: requestData.ownerId,
+        tenantId: requestData.tenantId,
+        fromRequestId: requestId,
+        startDate: requestData.startDate,
+        endDate: requestData.endDate,
+        monthlyRent: formValues['contract.monthlyRent'],
+        depositAmount: formValues['contract.depositAmount'],
+        contractData: formValues,
+        contractHtml,
       }
-
-      const res = await contractService.createContract(payload)
-      const created = res?.data ?? res
-      const nextContractId = created?.rentalId || created?.id || contractId
-      setContractId(nextContractId)
-      Alert.alert('Thành công', 'Đã lưu nháp hợp đồng')
-      return nextContractId || null
-    } catch (error: any) {
-      Alert.alert('Lỗi', error?.message || 'Lưu nháp thất bại')
-      return null
-    } finally {
-      setSaving(false)
+      const result = await dispatch(createContract(payload)).unwrap()
+      Alert.alert('Thành công', `Đã tạo hợp đồng nháp #${result.contractCode}.`, [
+        { text: 'OK', onPress: () => router.replace('/(rental)/requests') }
+      ])
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không thể lưu hợp đồng nháp.');
     }
   }
 
-  const handleSend = async () => {
-    try {
-      setSending(true)
-      const finalId = contractId || (await handleSaveDraft())
-      if (!finalId) {
-        Alert.alert('Lỗi', 'Không tạo được hợp đồng nháp')
-        return
-      }
-      await contractService.sendContractToTenant(finalId)
-      Alert.alert('Thành công', 'Đã gửi hợp đồng cho khách ký')
-      router.replace({ pathname: '/(rental)/contract-detail', params: { contractId: finalId } })
-    } catch (error: any) {
-      Alert.alert('Lỗi', error?.message || 'Gửi hợp đồng thất bại')
-    } finally {
-      setSending(false)
-    }
-  }
-
-  if (loading && !requestData) {
+  if (!template || !requestData) {
     return (
-      <AuthGuard>
-        <KeyboardSafeWrapper className="bg-white dark:bg-gray-950 pt-10">
-          <View className="flex-1 items-center justify-center py-20">
-            <ActivityIndicator />
-          </View>
-        </KeyboardSafeWrapper>
-      </AuthGuard>
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: current.background }}>
+        <ActivityIndicator size="large" color={primary} />
+        <Text style={{ marginTop: 16, color: current.text }}>Đang tải dữ liệu hợp đồng...</Text>
+      </SafeAreaView>
     )
   }
 
   return (
-    <AuthGuard>
-      <KeyboardSafeWrapper className="bg-white dark:bg-gray-950 pt-10">
-        <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-          <View className="flex-row items-center mb-4">
-            <BackButton onPress={() => router.back()} />
-            <View className="flex-1 ml-3">
-              <Text className="text-2xl font-bold text-gray-900 dark:text-white">Tạo hợp đồng</Text>
-              <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">Chọn template, lưu nháp rồi gửi cho khách ký</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: current.background }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: current.border }}>
+        <BackButton onPress={() => router.back()} />
+        <Text style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: 'bold', color: current.text }} numberOfLines={1}>{template.name}</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView style={{ flex: 1 }}>
+        <View style={{ height: 400, margin: 16, borderWidth: 1, borderColor: current.border, borderRadius: 8, overflow: 'hidden' }}>
+          <WebView
+            originWhitelist={['*']}
+            source={{ html: `<style>body{font-family:sans-serif;padding:10px;color:${current.text};background-color:${current.card}}</style>${contractHtml}` }}
+            style={{ flex: 1 }}
+          />
+        </View>
+
+        <View style={{ padding: 16, gap: 12 }}>
+          <Text style={{ fontSize: 16, fontWeight: 'bold', color: current.text }}>Chỉnh sửa thông tin</Text>
+          {Object.keys(formValues).map(key => (
+            <View key={key}>
+              <Text style={{ color: current.textInactive, marginBottom: 4, fontSize: 12 }}>{key}</Text>
+              <TextInput
+                value={String(formValues[key])}
+                onChangeText={text => {
+                  const newValues = { ...formValues, [key]: text }
+                  setFormValues(newValues)
+                  let html = template.content
+                  for (const k in newValues) {
+                    html = html.replace(new RegExp(`{{${k}}}`, 'g'), newValues[k])
+                  }
+                  setContractHtml(html)
+                }}
+                style={{
+                  backgroundColor: current.card,
+                  borderColor: current.border,
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  padding: 12,
+                  color: current.text
+                }}
+              />
             </View>
-          </View>
+          ))}
+        </View>
+      </ScrollView>
 
-          <View className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 mb-4">
-            <Text className="text-base font-semibold text-gray-900 dark:text-white mb-2">Thông tin yêu cầu</Text>
-            <Text className="text-sm text-gray-500 dark:text-gray-400">Bất động sản: {requestData?.property?.title || 'N/A'}</Text>
-            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">Khách thuê: {requestData?.tenant?.name || 'N/A'}</Text>
-            <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">Chủ nhà: {requestData?.owner?.name || 'N/A'}</Text>
-          </View>
-
-          <View className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 p-4 mb-4">
-            <Text className="text-blue-700 dark:text-blue-200 font-semibold">Bước 1: Chọn template hợp đồng</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-3">
-              {templates.map((template) => {
-                const active = template.templateId === selectedTemplateId
-                return (
-                  <TouchableOpacity
-                    key={template.templateId}
-                    onPress={() => handleTemplateChange(template.templateId)}
-                    className={`mr-3 w-64 rounded-2xl border p-4 ${active ? 'bg-white border-blue-500' : 'bg-white/60 border-blue-100'}`}
-                  >
-                    <Text className="font-bold text-gray-900">{template.templateName}</Text>
-                    <Text className="text-xs text-gray-500 mt-1">{template.description || 'Mẫu hợp đồng tiêu chuẩn'}</Text>
-                    {template.isDefault ? <Text className="text-xs text-blue-600 mt-2 font-semibold">Mặc định</Text> : null}
-                  </TouchableOpacity>
-                )
-              })}
-            </ScrollView>
-          </View>
-
-          <View className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 mb-4">
-            <Text className="text-base font-semibold text-gray-900 dark:text-white mb-3">Bước 2: Điền thông tin hợp đồng</Text>
-            {templateVariables.map((variable) => (
-              <View key={variable.name} className="mb-4">
-                <CustomInput
-                  label={variable.label}
-                  placeholder={variable.type === 'date' ? 'dd-mm-yyyy' : variable.label}
-                  value={values[variable.name] || ''}
-                  onChangeText={(text) => setValues((prev) => ({ ...prev, [variable.name]: text }))}
-                />
-              </View>
-            ))}
-          </View>
-
-          <View className="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 mb-4">
-            <Text className="text-base font-semibold text-gray-900 dark:text-white mb-2">Xem trước</Text>
-            <Text className="text-sm text-gray-600 dark:text-gray-300 leading-6">
-              {buildHtml(templateDetail?.templateContent || '', values).slice(0, 800) || 'Chưa có nội dung template'}
-            </Text>
-          </View>
-
-          <View className="flex-row gap-3">
-            <View className="flex-1">
-              <PrimaryButton title="Lưu nháp" onPress={handleSaveDraft} disabled={saving || sending} />
-            </View>
-            <View className="flex-1">
-              <PrimaryButton title="Gửi ký" onPress={handleSend} disabled={saving || sending} />
-            </View>
-          </View>
-
-          <View className="h-8" />
-        </ScrollView>
-      </KeyboardSafeWrapper>
-    </AuthGuard>
+      <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: current.border }}>
+        <PrimaryButton onPress={handleSaveDraft} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : 'Lưu hợp đồng nháp'}
+        </PrimaryButton>
+      </View>
+    </SafeAreaView>
   )
 }
 
