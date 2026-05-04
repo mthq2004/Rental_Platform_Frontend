@@ -98,12 +98,12 @@ const RequestsScreen: React.FC = () => {
     setPropertyCache((p) => ({ ...p, [propertyId]: { ...(p[propertyId] || {}), ...property } }))
   }, [])
 
-  const getPropertySummary = useCallback((request: RequestItem) => {
+  const getPropertySummary = useCallback((request: RequestItem): { id: string; title: string; address: string; imageUrl: string; propertyType: string; raw?: any } => {
     const cached = propertyCache[request?.propertyId] || propertyCache[String(request?.property?.id)] || null
-    if (cached) return { id: cached.id || request?.propertyId || '', title: cached.title || cached.name || request?.propertyTitle || request?.propertyId || 'Bất động sản', address: cached.address || '', imageUrl: cached.imageUrl || cached.images?.[0]?.uri || '' }
+    if (cached) return { id: cached.id || request?.propertyId || '', title: cached.title || cached.name || request?.propertyTitle || request?.propertyId || 'Bất động sản', address: cached.address || '', imageUrl: cached.imageUrl || cached.images?.[0]?.uri || '', propertyType: cached.propertyType || cached.type || request?.propertyType || request?.property?.type || '' }
     const ext = extractPropertyInfo(request)
-    return ext
-  }, [propertyCache])
+    return { ...ext, propertyType: request?.propertyType || request?.property?.type || '' }
+  }, [propertyCache] )
 
   const loadData = useCallback(async () => {
     try {
@@ -276,11 +276,14 @@ const RequestsScreen: React.FC = () => {
                 </TouchableOpacity>
               )}
 
-              {(item.status === 'holding_deposit_paid' || item.status === 'holding_deposit_locked' || item.contractId) && (
-                <TouchableOpacity onPress={() => router.push({ pathname: '/(rental)/contract-builder', params: { requestId: item.requestId || item.id } })} style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#7C3AED', borderRadius: 10 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#fff' }}>Hợp đồng</Text>
+              {(item.status === 'holding_deposit_paid' || item.status === 'holding_deposit_locked' || item.contractId) ? (
+                <TouchableOpacity
+                  onPress={() => router.push({ pathname: '/template-selection' as any, params: { requestId: item.requestId || item.id, propertyType: getPropertySummary(item).propertyType } })}
+                  style={{ flexGrow: 1, minWidth: 96, paddingVertical: 12, paddingHorizontal: 14, backgroundColor: '#7C3AED', borderRadius: 14, alignItems: 'center' }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff' }}>Hợp đồng</Text>
                 </TouchableOpacity>
-              )}
+              ) : null}
             </>
           ) : (
             <>

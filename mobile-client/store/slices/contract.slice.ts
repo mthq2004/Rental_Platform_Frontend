@@ -61,9 +61,10 @@ export const getMyRentalRequests = createAsyncThunk(
   }
 )
 
-export const getOwnerRequests = createAsyncThunk(
+export const getOwnerRequests = createAsyncThunk<any, string | undefined>(
   'contract/getOwnerRequests',
-  async (status?: string, { rejectWithValue }) => {
+  async (status, thunkApi) => {
+    const { rejectWithValue } = thunkApi
     try {
       return await contractService.getOwnerRequests(status)
     } catch (e: any) {
@@ -97,13 +98,69 @@ export const openHoldingDepositWindow = createAsyncThunk(
   }
 )
 
-export const getMyContracts = createAsyncThunk(
+export const getMyContracts = createAsyncThunk<any, { status?: string; page?: number; limit?: number } | undefined>(
   'contract/getMyContracts',
-  async (params?: { status?: string; page?: number; limit?: number }, { rejectWithValue }) => {
+  async (params, thunkApi) => {
+    const { rejectWithValue } = thunkApi
     try {
       return await contractService.getMyContracts(params)
     } catch (e: any) {
       return rejectWithValue(e?.message || 'Get my contracts failed')
+    }
+  }
+)
+
+export const getRequestDetail = createAsyncThunk(
+  'contract/getRequestDetail',
+  async (requestId: string, { rejectWithValue }) => {
+    try {
+      return await contractService.getRequestDetail(requestId)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Get request detail failed')
+    }
+  }
+)
+
+export const getTemplates = createAsyncThunk(
+  'contract/getTemplates',
+  async (propertyType: string, { rejectWithValue }) => {
+    try {
+      return await contractService.getTemplates(propertyType)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Get templates failed')
+    }
+  }
+)
+
+export const getTemplateDetail = createAsyncThunk(
+  'contract/getTemplateDetail',
+  async (templateId: string, { rejectWithValue }) => {
+    try {
+      return await contractService.getTemplateDetail(templateId)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Get template detail failed')
+    }
+  }
+)
+
+export const getRequestTemplateData = createAsyncThunk(
+  'contract/getRequestTemplateData',
+  async (requestId: string, { rejectWithValue }) => {
+    try {
+      return await contractService.getRequestTemplateData(requestId)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Get request template data failed')
+    }
+  }
+)
+
+export const createContract = createAsyncThunk(
+  'contract/createContract',
+  async (data: any, { rejectWithValue }) => {
+    try {
+      return await contractService.createContract(data)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Create contract failed')
     }
   }
 )
@@ -129,6 +186,22 @@ const slice = createSlice({
       .addCase(payHoldingDeposit.fulfilled, (state, action) => { state.loading = false })
       .addCase(payHoldingDeposit.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
 
+      .addCase(getTemplates.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(getTemplates.fulfilled, (state) => { state.loading = false })
+      .addCase(getTemplates.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(getTemplateDetail.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(getTemplateDetail.fulfilled, (state) => { state.loading = false })
+      .addCase(getTemplateDetail.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(getRequestTemplateData.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(getRequestTemplateData.fulfilled, (state) => { state.loading = false })
+      .addCase(getRequestTemplateData.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(createContract.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(createContract.fulfilled, (state) => { state.loading = false })
+      .addCase(createContract.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
       .addCase(getContractDetail.pending, (state) => { state.loading = true; state.error = null; state.contractDetail = null })
       .addCase(getContractDetail.fulfilled, (state, action) => { state.loading = false; state.contractDetail = action.payload })
       .addCase(getContractDetail.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
@@ -144,6 +217,10 @@ const slice = createSlice({
       .addCase(getOwnerRequests.pending, (state) => { state.loading = true; state.error = null })
       .addCase(getOwnerRequests.fulfilled, (state) => { state.loading = false })
       .addCase(getOwnerRequests.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(getRequestDetail.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(getRequestDetail.fulfilled, (state) => { state.loading = false })
+      .addCase(getRequestDetail.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
 
       .addCase(reviewRequest.pending, (state) => { state.loading = true; state.error = null })
       .addCase(reviewRequest.fulfilled, (state) => { state.loading = false })
