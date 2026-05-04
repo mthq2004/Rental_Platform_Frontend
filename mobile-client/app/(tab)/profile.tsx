@@ -27,11 +27,14 @@ import {
   Zap,
   Key,
   Fingerprint,
+  Wallet,
 } from 'lucide-react-native';
 import DarkModeToggle from '@/components/ThemeToggle';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { logout } from '@/store/slices/auth.slice';
-import { router } from 'expo-router';
+import { getWalletOverview } from '@/store/slices/wallet.slice';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { useColorScheme } from 'nativewind';
 import { COLORS } from '@/utils/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -149,6 +152,13 @@ const AuthenticatedProfile = () => {
   const { user } = useAppSelector(state => state.auth);
   const dispatch = useAppDispatch();
   const userName = user?.fullName || 'Người dùng';
+  const { overview: walletOverview, overviewLoading: walletOverviewLoading } = useAppSelector(state => state.wallet);
+
+  useFocusEffect(
+    useCallback(() => {
+      dispatch(getWalletOverview());
+    }, [dispatch])
+  );
 
   const memberSince = user?.createdAt
     ? `Thành viên từ ${new Date(user.createdAt).getFullYear()}`
@@ -306,6 +316,32 @@ const AuthenticatedProfile = () => {
           </View>
         </TouchableOpacity>
       )}
+
+      {/* Wallet Card */}
+      <TouchableOpacity
+        onPress={() => router.push('/(profile)/wallet' as any)}
+        style={[styles.verifyCard, { backgroundColor: isDark ? '#1f2937' : '#ffffff', borderWidth: 1, borderColor: isDark ? '#374151' : '#e5e7eb' }]}
+        activeOpacity={0.7}
+      >
+        <View style={styles.verifyRow}>
+          <View style={[styles.verifyIcon, { backgroundColor: isDark ? '#374151' : '#f3f4f6' }]}>
+            <Wallet size={20} color={isDark ? '#e5e7eb' : '#4b5563'} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text className="text-foreground dark:text-foreground-dark font-bold text-sm">
+              Ví EstatePro
+            </Text>
+            {walletOverviewLoading ? (
+               <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1">Đang tải...</Text>
+            ) : (
+               <Text className="text-teal-600 dark:text-teal-500 font-bold text-sm mt-1">
+                 {walletOverview?.availableBalance?.toLocaleString('vi-VN')} VND
+               </Text>
+            )}
+          </View>
+          <ChevronRight size={18} color="#9CA3AF" />
+        </View>
+      </TouchableOpacity>
 
       {/* Account Section */}
       <Text style={styles.sectionTitle} className="text-gray-500 dark:text-gray-400">

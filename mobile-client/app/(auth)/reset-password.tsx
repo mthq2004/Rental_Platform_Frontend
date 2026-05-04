@@ -7,8 +7,10 @@ import BackButton from "@/components/BackButton";
 import { useAppDispatch, useAppSelector } from "@/store/hook";
 import { resetPasswordWithOtp } from "@/store/slices/auth.slice";
 import KeyboardSafeWrapper from "@/components/KeyboardSafeWrapper";
+import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
 
 const ResetPasswordScreen = () => {
+  useEnableFloatingKeyboard();
 
   const { phone, otp } = useLocalSearchParams<{ phone?: string; otp?: string }>();
 

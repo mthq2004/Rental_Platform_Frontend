@@ -1,6 +1,7 @@
 import { PROPERTY_META } from "@/constants/property.constant";
 import { PropertyFormData, PropertyType, StepProps } from "@/types/property.type";
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import SyncTextInput from "@/components/common/SyncTextInput";
 
 const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
     <View className="p-4 space-y-4">
@@ -18,8 +19,8 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                         key={key}
                         onPress={() => updateFormData({ propertyType: key as PropertyType })}
                         className={`px-4 py-3 rounded-xl mr-2 ${formData.propertyType === key
-                                ? 'bg-blue-500'
-                                : 'bg-gray-100 dark:bg-gray-700'
+                            ? 'bg-blue-500'
+                            : 'bg-gray-100 dark:bg-gray-700'
                             }`}
                     >
                         <Text
@@ -69,7 +70,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
             <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-3">
                 Tiêu đề <Text className="text-red-500">*</Text>
             </Text>
-            <TextInput
+            <SyncTextInput
                 value={formData.title}
                 onChangeText={(text) => updateFormData({ title: text })}
                 placeholder="VD: Căn hộ 2PN view sông Saigon, full nội thất"
@@ -87,7 +88,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
             <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-3">
                 Mô tả chi tiết <Text className="text-red-500">*</Text>
             </Text>
-            <TextInput
+            <SyncTextInput
                 value={formData.description}
                 onChangeText={(text) => updateFormData({ description: text })}
                 placeholder="Mô tả chi tiết về bất động sản..."
@@ -101,7 +102,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                 <Text className="text-red-500 text-sm mt-1">{errors.description}</Text>
             )}
         </View>
-        
+
         <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 shadow-sm">
             <Text className="text-base font-bold text-gray-800 dark:text-foreground-dark mb-3">Giá bán/thuê</Text>
             <View className="flex-row space-x-3 gap-3">
@@ -109,7 +110,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                     <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         Giá ({formData.listingType === 'rent' ? 'triệu/tháng' : 'tỷ'}) <Text className="text-red-500">*</Text>
                     </Text>
-                    <TextInput
+                    <SyncTextInput
                         value={formData.pricePerMonth.toString()}
                         onChangeText={(text) => updateFormData({ pricePerMonth: Number(text) })}
                         placeholder="0"
@@ -127,7 +128,7 @@ const StepBasic = ({ formData, updateFormData, errors }: StepProps) => (
                         <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Đặt cọc (triệu)
                         </Text>
-                        <TextInput
+                        <SyncTextInput
                             value={formData.depositAmount}
                             onChangeText={(text) => updateFormData({ depositAmount: text })}
                             placeholder="0"

@@ -8,6 +8,9 @@ import {
   Pressable,
   StyleSheet,
   StatusBar,
+  Modal,
+  TextInput,
+  ActivityIndicator
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
@@ -16,17 +19,19 @@ import { router } from "expo-router";
 import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import CustomInput from "@/components/CustomInput";
 import { useAppDispatch, useAppSelector } from "@/store/hook";
-import { getProfile, updateAvatar, updateProfile } from "@/store/slices/auth.slice";
+import { getProfile, updateAvatar, updateProfile, requestPhoneUpdateOtp, verifyPhoneUpdateOtp, requestEmailVerificationOtp, verifyEmailOtp } from "@/store/slices/auth.slice";
 import KeyboardSafeWrapper from "@/components/KeyboardSafeWrapper";
 import { Toast } from "@/components/Notification";
 import { resetMessage } from "@/store/slices/auth.slice";
 import { useColorScheme } from "nativewind";
 import { COLORS } from "@/utils/colors";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { CheckCircle, Shield, User, Camera, Fingerprint } from "lucide-react-native";
+import { CheckCircle, Shield, User, Camera, Fingerprint, X } from "lucide-react-native";
 import { validatePhoneRealtime, validateEmailRealtime, validateFullNameRealtime, validatePhone, validateEmail, validateFullName, formatFullName } from "@/utils/validation";
+import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
 
 const EditProfile = () => {
+  useEnableFloatingKeyboard();
   const dispatch = useAppDispatch();
   const { user, loading } = useAppSelector((state) => state.auth);
   const { colorScheme } = useColorScheme();
@@ -44,6 +49,12 @@ const EditProfile = () => {
   const [emailHint, setEmailHint] = useState<string | null>(null);
   const [nameHint, setNameHint] = useState<string | null>(null);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+  const [otpModalVisible, setOtpModalVisible] = useState(false);
+  const [otpType, setOtpType] = useState<'phone' | 'email'>('phone');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<{phone?: string, email?: string, otherPayload?: any}>({});
 
   const isKycApproved = user?.kycStatus === 'approved' || user?.kycStatus === 'verified';
 
@@ -209,15 +220,87 @@ const EditProfile = () => {
     };
 
     const normalizedEmail = email.trim();
-    if (normalizedEmail) payload.email = normalizedEmail;
     const normalizedPhone = phone.trim();
-    if (normalizedPhone) payload.phone = normalizedPhone;
 
+    const phoneChanged = normalizedPhone && normalizedPhone !== user?.phone;
+    const emailChanged = normalizedEmail && normalizedEmail !== user?.email;
+
+    setPendingChanges({
+      phone: phoneChanged ? normalizedPhone : undefined,
+      email: emailChanged ? normalizedEmail : undefined,
+      otherPayload: payload
+    });
+
+    if (phoneChanged) {
+      try {
+        await dispatch(requestPhoneUpdateOtp(normalizedPhone)).unwrap();
+        setOtpType('phone');
+        setOtpModalVisible(true);
+      } catch (err: any) {
+        setError(typeof err === "string" ? err : "Không thể gửi OTP cho số điện thoại");
+      }
+      return;
+    }
+
+    if (emailChanged) {
+      try {
+        await dispatch(requestEmailVerificationOtp(normalizedEmail)).unwrap();
+        setOtpType('email');
+        setOtpModalVisible(true);
+      } catch (err: any) {
+        setError(typeof err === "string" ? err : "Không thể gửi OTP cho email");
+      }
+      return;
+    }
+
+    // No phone/email changes
     try {
       await dispatch(updateProfile(payload as any)).unwrap();
       await dispatch(getProfile()).unwrap();
     } catch (err: any) {
       setError(typeof err === "string" ? err : "Cập nhật thông tin thất bại");
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode) {
+      showToast('Vui lòng nhập mã OTP', 'error');
+      return;
+    }
+    setOtpLoading(true);
+    try {
+      if (otpType === 'phone') {
+        await dispatch(verifyPhoneUpdateOtp({ phone: pendingChanges.phone!, otp: otpCode })).unwrap();
+        
+        // Success phone, check email
+        if (pendingChanges.email) {
+          await dispatch(requestEmailVerificationOtp(pendingChanges.email)).unwrap();
+          setOtpType('email');
+          setOtpCode('');
+        } else {
+          // No email change, save rest of profile
+          if (Object.keys(pendingChanges.otherPayload).length > 0) {
+            await dispatch(updateProfile(pendingChanges.otherPayload)).unwrap();
+          }
+          await dispatch(getProfile()).unwrap();
+          setOtpModalVisible(false);
+          setOtpCode('');
+        }
+      } else {
+        await dispatch(verifyEmailOtp({ email: pendingChanges.email, otp: otpCode })).unwrap();
+        
+        // Success email, save rest of profile
+        if (Object.keys(pendingChanges.otherPayload).length > 0) {
+          await dispatch(updateProfile(pendingChanges.otherPayload)).unwrap();
+        }
+        await dispatch(getProfile()).unwrap();
+        setOtpModalVisible(false);
+        setOtpCode('');
+      }
+    } catch (err: any) {
+      showToast(typeof err === "string" ? err : "Xác thực OTP thất bại", 'error');
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -575,64 +658,75 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     marginBottom: 8,
+    flexDirection: "row",
+    gap: 12,
   },
   genderChip: {
     flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    alignItems: 'center',
   },
   datePickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   datePickerContainer: {
-    marginTop: 8,
     borderWidth: 1,
     borderRadius: 12,
+    marginTop: 8,
     overflow: 'hidden',
   },
   datePickerDone: {
-    paddingVertical: 10,
-    borderTopWidth: 1,
+    padding: 12,
     alignItems: 'center',
+    borderTopWidth: 1,
   },
   verificationBadge: {
-    flexDirection: 'row',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderRadius: 16,
-    marginTop: 16,
-    alignItems: 'flex-start',
+    marginTop: 8,
+    marginBottom: 12,
   },
   verificationIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 16,
   },
   errorText: {
     color: '#ef4444',
-    fontSize: 13,
-    marginTop: 12,
+    fontSize: 14,
+    marginLeft: 8,
   },
   saveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
+    backgroundColor: COLORS.primary,
+    padding: 16,
     borderRadius: 16,
-    marginTop: 20,
+    alignItems: "center",
+    marginTop: 8,
   },
   saveButtonText: {
-    color: '#fff',
     fontWeight: '700',
     fontSize: 16,
     marginLeft: 8,

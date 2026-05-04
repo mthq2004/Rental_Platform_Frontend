@@ -61,7 +61,7 @@ export const register = createAsyncThunk(
     async (userInfo: any, { rejectWithValue }) => {
         try {
             const res = await apiClient.post(
-                "/estate/auth/phone-update/signup",
+                "/estate/auth/phone/signup",
                 userInfo
             );
             return res.data.data;
@@ -175,6 +175,54 @@ export const resetPasswordWithOtp = createAsyncThunk(
     }
 );
 
+export const requestPhoneUpdateOtp = createAsyncThunk(
+    "auth/requestPhoneUpdateOtp",
+    async (phone: string, { rejectWithValue }) => {
+        try {
+            const res = await apiClient.post("/estate/auth/otp/request", { phone });
+            return res.data.data;
+        } catch (err: any) {
+            return rejectWithValue(getErrorMessage(err, "Yêu cầu OTP thất bại"));
+        }
+    }
+);
+
+export const verifyPhoneUpdateOtp = createAsyncThunk(
+    "auth/verifyPhoneUpdateOtp",
+    async (data: { phone: string; otp: string }, { rejectWithValue }) => {
+        try {
+            const res = await apiClient.post("/estate/auth/otp/verify-phone", data);
+            return res.data.data;
+        } catch (err: any) {
+            return rejectWithValue(getErrorMessage(err, "Xác thực OTP thất bại"));
+        }
+    }
+);
+
+export const requestEmailVerificationOtp = createAsyncThunk(
+    "auth/requestEmailVerificationOtp",
+    async (email: string, { rejectWithValue }) => {
+        try {
+            const res = await apiClient.post("/estate/auth/email/request-otp", { email });
+            return res.data.data;
+        } catch (err: any) {
+            return rejectWithValue(getErrorMessage(err, "Gửi OTP email thất bại"));
+        }
+    }
+);
+
+export const verifyEmailOtp = createAsyncThunk(
+    "auth/verifyEmailOtp",
+    async (data: { otp: string; email?: string }, { rejectWithValue }) => {
+        try {
+            const res = await apiClient.post("/estate/auth/email/verify", data);
+            return res.data.data;
+        } catch (err: any) {
+            return rejectWithValue(getErrorMessage(err, "Xác thực email thất bại"));
+        }
+    }
+);
+
 type AuthState = {
     loading: boolean;
     isAuth: boolean;
@@ -202,6 +250,10 @@ export const authSlice = createSlice({
             state.isAuth = false;
             state.user = null;
             state.error = null;
+            state.message = {
+                type: "success_logout",
+                message: "Đã đăng xuất thành công",
+            };
 
             clearAuthStorage();
         },

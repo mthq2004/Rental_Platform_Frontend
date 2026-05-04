@@ -8,7 +8,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hook'
 import { getMyRentalRequests, getOwnerRequests, openHoldingDepositWindow } from '@/store/slices/contract.slice'
 import { getPropertyById as getPropertyByIdThunk } from '@/store/slices/property.slice'
 import { useRouter } from 'expo-router'
-import { Ionicons } from '@expo/vector-icons'
+import { FileText, MapPin, RefreshCw, CheckCircle, Clock, XCircle, Home, Building, ChevronRight, Inbox } from 'lucide-react-native'
 import { useThemeColors } from '@/utils/colors'
 
 // Simple status labels
@@ -67,11 +67,16 @@ const extractPropertyInfo = (request: RequestItem) => {
 const PropertyGroupHeader: React.FC<{ title: string; address?: string; imageUrl?: string }> = ({ title, address, imageUrl }) => (
   <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
     <View style={{ width: 64, height: 64, borderRadius: 10, overflow: 'hidden', backgroundColor: '#F3F4F6' }}>
-      {imageUrl ? <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} /> : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 28 }}>🏠</Text></View>}
+      {imageUrl ? <Image source={{ uri: imageUrl }} style={{ width: '100%', height: '100%' }} /> : <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><Building size={24} color="#9CA3AF" /></View>}
     </View>
     <View style={{ flex: 1, justifyContent: 'center' }}>
       <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }} numberOfLines={2}>{title}</Text>
-      {address ? <Text style={{ fontSize: 13, color: '#E5E7EB', marginTop: 4 }} numberOfLines={1}>📍 {address}</Text> : null}
+      {address ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 4 }}>
+          <MapPin size={12} color="#E5E7EB" />
+          <Text style={{ fontSize: 13, color: '#E5E7EB', flex: 1 }} numberOfLines={1}>{address}</Text>
+        </View>
+      ) : null}
     </View>
   </View>
 )
@@ -245,7 +250,7 @@ const RequestsScreen: React.FC = () => {
             disabled={!isOpenDepositEligible(item.status)}
             style={{ width: 28, height: 28, borderRadius: 8, borderWidth: 1.5, borderColor: selected ? '#0040d1' : current.border, backgroundColor: selected ? '#0040d1' : 'transparent', alignItems: 'center', justifyContent: 'center', opacity: isOpenDepositEligible(item.status) ? 1 : 0.4 }}
           >
-            {selected ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
+            {selected ? <CheckCircle size={16} color="#fff" /> : null}
           </TouchableOpacity>
         ) : null}
 
@@ -298,7 +303,7 @@ const RequestsScreen: React.FC = () => {
   const renderGroupedRequests = (groups: any[], kind: TabType) => {
     if (!groups || groups.length === 0) return (
       <View style={{ padding: 40, alignItems: 'center' }}>
-        <Text style={{ fontSize: 40 }}>📭</Text>
+        <Inbox size={48} color="#9CA3AF" />
         <Text style={{ marginTop: 12, fontSize: 15, color: '#374151', fontWeight: '600' }}>{kind === 'my' ? 'Chưa có yêu cầu nào' : 'Chưa có yêu cầu nhận được'}</Text>
       </View>
     )
@@ -313,7 +318,7 @@ const RequestsScreen: React.FC = () => {
             </View>
             {kind === 'owner' ? (
               <TouchableOpacity onPress={() => { setRefreshing(true); loadData() }} style={{ flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.10)' }}>
-                <Ionicons name="refresh" size={14} color="#fff" />
+                <RefreshCw size={14} color="#fff" />
                 <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>Reload</Text>
               </TouchableOpacity>
             ) : null}
@@ -367,7 +372,7 @@ const RequestsScreen: React.FC = () => {
               <Text style={{ fontSize: 16, fontWeight: '800', color: current.text }}>{activeTab === 'my' ? `${myGroups.length} nhóm yêu cầu` : `${ownerGroups.length} nhóm nhận được`}</Text>
             </View>
             <TouchableOpacity onPress={() => { setRefreshing(true); loadData() }} style={{ flexDirection: 'row', gap: 6, alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: '#EAF1FF', borderWidth: 1, borderColor: '#C7DBFF' }}>
-              <Ionicons name="refresh" size={14} color="#0040d1" />
+              <RefreshCw size={14} color="#0040d1" />
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#0040d1' }}>Reload</Text>
             </TouchableOpacity>
           </View>

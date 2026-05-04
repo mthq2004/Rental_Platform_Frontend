@@ -25,6 +25,7 @@ import { router } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
 import { validatePhone, validatePhoneRealtime, validateFullNameRealtime } from '@/utils/validation';
+import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
 
 type Step = 'phone' | 'otp' | 'profile';
 
@@ -56,6 +57,7 @@ const TimerComponent = ({ timer, onResend }: { timer: number; onResend: () => vo
 );
 
 const RegisterFlow: React.FC = () => {
+  useEnableFloatingKeyboard();
   const navigation = useNavigation();
   const dispatch = useAppDispatch();
   const { error, isAuth, loading, user, message, verified, loadingOtp } = useAppSelector(state => state.auth)

@@ -1,7 +1,8 @@
 import { PROPERTY_META } from "@/constants/property.constant";
 import { FurnitureStatus, PropertyField, PropertyType, StepProps } from "@/types/property.type";
 import { Ionicons } from "@expo/vector-icons";
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import SyncTextInput from "@/components/common/SyncTextInput";
 
 const FURNITURE_STATUS: Record<FurnitureStatus, string> = {
     empty: 'Trống',
@@ -31,7 +32,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                         <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Số tháng thuê tối đa (tháng) <Text className="text-red-500">*</Text>
                         </Text>
-                        <TextInput
+                        <SyncTextInput
                             value={formData.maximumLeaseMonths.toString()}
                             onChangeText={(text) => updateFormData({ maximumLeaseMonths: Number(text) })}
                             placeholder="0"
@@ -47,7 +48,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                         <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Diện tích (m²) <Text className="text-red-500">*</Text>
                         </Text>
-                        <TextInput
+                        <SyncTextInput
                             value={formData.areaSqm.toString()}
                             onChangeText={(text) => updateFormData({ areaSqm: Number(text) })}
                             placeholder="0"
@@ -68,7 +69,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                 <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                     Phòng ngủ
                                 </Text>
-                                <TextInput
+                                <SyncTextInput
                                     value={formData.bedrooms}
                                     onChangeText={(text) => updateFormData({ bedrooms: text })}
                                     placeholder="0"
@@ -82,7 +83,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                     <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         Phòng tắm
                                     </Text>
-                                    <TextInput
+                                    <SyncTextInput
                                         value={formData.bathrooms}
                                         onChangeText={(text) => updateFormData({ bathrooms: text })}
                                         placeholder="0"
@@ -101,7 +102,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                 <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                     Phòng khách
                                 </Text>
-                                <TextInput
+                                <SyncTextInput
                                     value={formData.livingRooms}
                                     onChangeText={(text) => updateFormData({ livingRooms: text })}
                                     placeholder="0"
@@ -115,7 +116,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                     <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         Nhà bếp
                                     </Text>
-                                    <TextInput
+                                    <SyncTextInput
                                         value={formData.kitchens}
                                         onChangeText={(text) => updateFormData({ kitchens: text })}
                                         placeholder="0"
@@ -134,7 +135,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                 <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                     Ban công
                                 </Text>
-                                <TextInput
+                                <SyncTextInput
                                     value={formData.balconies}
                                     onChangeText={(text) => updateFormData({ balconies: text })}
                                     placeholder="0"
@@ -152,7 +153,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                 <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                     Tầng số
                                 </Text>
-                                <TextInput
+                                <SyncTextInput
                                     value={formData.floorNumber}
                                     onChangeText={(text) => updateFormData({ floorNumber: text })}
                                     placeholder="0"
@@ -166,7 +167,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                     <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         Tổng số tầng
                                     </Text>
-                                    <TextInput
+                                    <SyncTextInput
                                         value={formData.totalFloors}
                                         onChangeText={(text) => updateFormData({ totalFloors: text })}
                                         placeholder="0"
@@ -210,7 +211,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                 <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                     Phí gửi xe (nghìn/tháng)
                                 </Text>
-                                <TextInput
+                                <SyncTextInput
                                     value={formData.parkingFee}
                                     onChangeText={(text) => updateFormData({ parkingFee: text })}
                                     placeholder="0"
@@ -224,7 +225,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                     <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         Phí quản lý (nghìn/tháng)
                                     </Text>
-                                    <TextInput
+                                    <SyncTextInput
                                         value={formData.managementFee}
                                         onChangeText={(text) => updateFormData({ managementFee: text })}
                                         placeholder="0"
@@ -243,7 +244,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                 <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                     Giá điện (đồng/kWh)
                                 </Text>
-                                <TextInput
+                                <SyncTextInput
                                     value={formData.electricityCostPerKwh}
                                     onChangeText={(text) => updateFormData({ electricityCostPerKwh: text })}
                                     placeholder="0"
@@ -257,7 +258,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                                     <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                         Giá nước (đồng/m³)
                                     </Text>
-                                    <TextInput
+                                    <SyncTextInput
                                         value={formData.waterCostPerM3}
                                         onChangeText={(text) => updateFormData({ waterCostPerM3: text })}
                                         placeholder="0"
@@ -275,7 +276,7 @@ const StepDetail = ({ formData, updateFormData, errors }: StepProps) => {
                             <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                                 Thời gian thuê tối thiểu (tháng)
                             </Text>
-                            <TextInput
+                            <SyncTextInput
                                 value={formData.minimumLeaseMonths}
                                 onChangeText={(text) => updateFormData({ minimumLeaseMonths: text })}
                                 placeholder="0"

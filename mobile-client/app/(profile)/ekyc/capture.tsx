@@ -1,550 +1,322 @@
 import React, { useState, useRef } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  StatusBar,
-  Image,
-  Alert,
-  ActivityIndicator,
-  Dimensions,
+  View, Text, TouchableOpacity, StyleSheet, StatusBar,
+  Image, Alert, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useColorScheme } from 'nativewind';
-import { COLORS } from '@/utils/colors';
 import {
-  CreditCard,
-  Camera,
-  User,
-  Zap,
-  ImageIcon,
-  ChevronRight,
-  Check,
-  Shield,
+  CreditCard, Camera, User, Zap,
+  ChevronRight, Check, Shield,
 } from 'lucide-react-native';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { verifyKyc, saveForAdmin } from '@/store/slices/kyc.slice';
+import { verifyKyc } from '@/store/slices/kyc.slice';
 import { getProfile } from '@/store/slices/auth.slice';
 import { Toast } from '@/components/Notification';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SW, height: SH } = Dimensions.get('window');
+
+// CCCD ratio 85.60 x 53.98mm ≈ 1.586:1
+const CARD_W = SW * 0.85;
+const CARD_H = CARD_W / 1.586;
+// Selfie: oval — mở rộng gần full màn hình
+const OVAL_W = SW * 0.78;
+const OVAL_H = OVAL_W * 1.4;
 
 type Step = 1 | 2 | 3;
 
-const STEP_CONFIG: Record<Step, { title: string; subtitle: string; instruction: string; icon: any }> = {
-  1: {
-    title: 'Chụp mặt trước CCCD',
-    subtitle: 'STEP 1 OF 3',
-    instruction: 'Đặt thẻ CCCD vào trong khung hình. Đảm bảo ảnh rõ nét, không bị lóa sáng.',
-    icon: CreditCard,
-  },
-  2: {
-    title: 'Chụp mặt sau CCCD',
-    subtitle: 'STEP 2 OF 3',
-    instruction: 'Vui lòng đặt mặt sau của thẻ vào trong khung hình. Đảm bảo hình ảnh rõ nét, không bị lóa sáng.',
-    icon: CreditCard,
-  },
-  3: {
-    title: 'Chụp ảnh khuôn mặt',
-    subtitle: 'STEP 3 OF 3',
-    instruction: 'Vui lòng đưa khuôn mặt vào khung hình. Giữ camera ngang tầm mắt.',
-    icon: User,
-  },
+const STEP_CFG: Record<Step, { title: string; sub: string; hint: string; icon: any }> = {
+  1: { title: 'Mặt trước CCCD', sub: 'BƯỚC 1/3', hint: 'Đặt mặt trước CCCD vào khung hình', icon: CreditCard },
+  2: { title: 'Mặt sau CCCD', sub: 'BƯỚC 2/3', hint: 'Đặt mặt sau CCCD vào khung hình', icon: CreditCard },
+  3: { title: 'Ảnh khuôn mặt', sub: 'BƯỚC 3/3', hint: 'Đưa khuôn mặt vào khung hình', icon: User },
 };
 
-const EkycCaptureScreen = () => {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
+export default function EkycCaptureScreen() {
+  const isDark = useColorScheme().colorScheme === 'dark';
   const dispatch = useAppDispatch();
   const { loading } = useAppSelector((s) => s.kyc);
+  const [permission, requestPermission] = useCameraPermissions();
 
-  const [currentStep, setCurrentStep] = useState<Step>(1);
-  const [images, setImages] = useState<{ front: string | null; back: string | null; selfie: string | null }>({
-    front: null,
-    back: null,
-    selfie: null,
+  const cameraRef = useRef<any>(null);
+  const [step, setStep] = useState<Step>(1);
+  const [imgs, setImgs] = useState<{ front: string | null; back: string | null; selfie: string | null }>({
+    front: null, back: null, selfie: null,
   });
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [capturing, setCapturing] = useState(false);
 
-  const showToast = (message: string, type = 'success') => {
-    setToast({ visible: true, message, type });
-  };
-  const hideToast = () => setToast((prev) => ({ ...prev, visible: false }));
+  const showToast = (m: string, t = 'success') => setToast({ visible: true, message: m, type: t });
+  const hideToast = () => setToast((p) => ({ ...p, visible: false }));
 
-  const config = STEP_CONFIG[currentStep];
-  const imageKey = currentStep === 1 ? 'front' : currentStep === 2 ? 'back' : 'selfie';
-  const currentImage = images[imageKey];
+  const cfg = STEP_CFG[step];
+  const key = step === 1 ? 'front' : step === 2 ? 'back' : 'selfie';
+  const curImg = imgs[key];
+  const isSelfie = step === 3;
 
-  const handleTakePhoto = async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Thông báo', 'Bạn cần cấp quyền camera để chụp ảnh.');
-      return;
-    }
+  // Frame layout (center of screen) — used to calculate crop
+  const frameW = isSelfie ? OVAL_W : CARD_W;
+  const frameH = isSelfie ? OVAL_H : CARD_H;
 
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      // Selfie: portrait 3:4 for full face; CCCD: landscape 86:54 (standard ID card ratio)
-      aspect: currentStep === 3 ? [3, 4] : [86, 54],
-      quality: 0.9,
-      cameraType: currentStep === 3 ? ImagePicker.CameraType.front : ImagePicker.CameraType.back,
+  const cropPhoto = async (uri: string) => {
+    // Get actual photo size
+    const { width: pw, height: ph } = await new Promise<{ width: number; height: number }>((res) => {
+      Image.getSize(uri, (w, h) => res({ width: w, height: h }));
     });
 
-    if (!result.canceled) {
-      setImages((prev) => ({ ...prev, [imageKey]: result.assets[0].uri }));
-    }
+    // Camera preview fills the screen, so compute scale
+    const scaleX = pw / SW;
+    const scaleY = ph / SH;
+
+    // Frame center position on screen
+    const fx = (SW - frameW) / 2;
+    const fy = (SH - frameH) / 2;
+
+    const cropX = Math.max(0, Math.round(fx * scaleX));
+    const cropY = Math.max(0, Math.round(fy * scaleY));
+    const cropW = Math.min(pw - cropX, Math.round(frameW * scaleX));
+    const cropH = Math.min(ph - cropY, Math.round(frameH * scaleY));
+
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ crop: { originX: cropX, originY: cropY, width: cropW, height: cropH } }],
+      { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return result.uri;
   };
 
-  const handlePickFromGallery = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      // Same ratios as camera: Selfie 3:4, CCCD 86:54
-      aspect: currentStep === 3 ? [3, 4] : [86, 54],
-      quality: 0.9,
-    });
-
-    if (!result.canceled) {
-      setImages((prev) => ({ ...prev, [imageKey]: result.assets[0].uri }));
+  const handleCapture = async () => {
+    if (!cameraRef.current || capturing) return;
+    setCapturing(true);
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.9, skipProcessing: false });
+      const croppedUri = await cropPhoto(photo.uri);
+      setImgs((p) => ({ ...p, [key]: croppedUri }));
+    } catch (e) {
+      showToast('Chụp ảnh thất bại', 'error');
     }
+    setCapturing(false);
   };
+
+
 
   const handleNext = () => {
-    if (!currentImage) {
-      showToast('Vui lòng chụp ảnh trước khi tiếp tục', 'error');
-      return;
-    }
-
-    if (currentStep < 3) {
-      setCurrentStep((prev) => (prev + 1) as Step);
-    } else {
-      handleSubmit();
-    }
+    if (!curImg) { showToast('Vui lòng chụp ảnh trước', 'error'); return; }
+    if (step < 3) setStep((p) => (p + 1) as Step);
+    else handleSubmit();
   };
 
-  const handleRetake = () => {
-    setImages((prev) => ({ ...prev, [imageKey]: null }));
-  };
+  const handleRetake = () => setImgs((p) => ({ ...p, [key]: null }));
 
   const handleSubmit = async () => {
-    if (!images.front || !images.back || !images.selfie) {
-      showToast('Vui lòng hoàn tất tất cả các bước', 'error');
-      return;
+    if (!imgs.front || !imgs.back || !imgs.selfie) {
+      showToast('Vui lòng hoàn tất tất cả các bước', 'error'); return;
     }
-
     try {
-      const formData = new FormData();
+      const fd = new FormData();
+      // Backend dùng FilesInterceptor('files', 3) — tất cả phải cùng field name 'files'
+      // Thứ tự: selfie → back → front (giống web client)
+      fd.append('files', { uri: imgs.selfie, name: `kyc_selfie_${Date.now()}.jpg`, type: 'image/jpeg' } as any);
+      fd.append('files', { uri: imgs.back, name: `kyc_back_${Date.now()}.jpg`, type: 'image/jpeg' } as any);
+      fd.append('files', { uri: imgs.front, name: `kyc_front_${Date.now()}.jpg`, type: 'image/jpeg' } as any);
 
-      formData.append('frontImage', {
-        uri: images.front,
-        name: `kyc_front_${Date.now()}.jpg`,
-        type: 'image/jpeg',
-      } as any);
-
-      formData.append('backImage', {
-        uri: images.back,
-        name: `kyc_back_${Date.now()}.jpg`,
-        type: 'image/jpeg',
-      } as any);
-
-      formData.append('selfieImage', {
-        uri: images.selfie,
-        name: `kyc_selfie_${Date.now()}.jpg`,
-        type: 'image/jpeg',
-      } as any);
-
-      await dispatch(verifyKyc(formData)).unwrap();
-      await dispatch(saveForAdmin(formData)).unwrap();
+      const response = await dispatch(verifyKyc(fd)).unwrap();
       await dispatch(getProfile()).unwrap();
 
-      showToast('Xác thực eKYC thành công! Đang chờ phê duyệt.', 'success');
+      if (response?.status === "rejected") {
+        showToast(response?.rejectionReason || "Hồ sơ KYC bị từ chối. Vui lòng thử lại.", 'error');
+        return;
+      }
 
-      setTimeout(() => {
-        router.back();
-        router.back(); // Go back past the intro screen too
-      }, 2000);
-    } catch (error: any) {
-      showToast(typeof error === 'string' ? error : 'Xác thực eKYC thất bại', 'error');
+      // router.replace to success screen
+      router.replace('/(profile)/ekyc/success');
+    } catch (err: any) {
+      showToast(typeof err === 'string' ? err : 'Xác thực eKYC thất bại', 'error');
     }
   };
 
-  // Progress bar
-  const progress = (currentStep / 3) * 100;
+  // Permission screen
+  if (!permission?.granted) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#111827', justifyContent: 'center', alignItems: 'center' }}>
+        <StatusBar barStyle="light-content" />
+        <Shield size={48} color="#0d9488" />
+        <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700', marginTop: 16 }}>Cấp quyền Camera</Text>
+        <Text style={{ color: '#9ca3af', textAlign: 'center', marginTop: 8, paddingHorizontal: 40 }}>
+          Ứng dụng cần quyền truy cập camera để chụp ảnh xác thực danh tính.
+        </Text>
+        <TouchableOpacity onPress={requestPermission} style={[S.ctaBtn, { marginTop: 24 }]}>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Cho phép truy cập</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 12 }}>
+          <Text style={{ color: '#6b7280' }}>Quay lại</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: isDark ? '#0f172a' : '#111827' }}>
-      <StatusBar barStyle="light-content" backgroundColor="#111827" />
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+
+      {/* Camera hoặc Preview ảnh */}
+      {curImg ? (
+        <Image source={{ uri: curImg }} style={StyleSheet.absoluteFill} resizeMode="contain" />
+      ) : (
+        <CameraView
+          ref={cameraRef}
+          style={StyleSheet.absoluteFill}
+          facing={isSelfie ? 'front' : 'back'}
+        />
+      )}
+
+      {/* Overlay mask — chỉ hiện khi chưa chụp */}
+      {!curImg && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          {/* Top overlay */}
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }} />
+
+          {/* Middle row */}
+          <View style={{ flexDirection: 'row', height: frameH }}>
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }} />
+            {/* Transparent hole */}
+            <View style={{
+              width: frameW, height: frameH,
+              borderWidth: 2.5, borderColor: '#0d9488',
+              borderRadius: isSelfie ? frameW : 14,
+              backgroundColor: 'transparent',
+            }}>
+              {/* Corner markers for CCCD */}
+              {!isSelfie && (
+                <>
+                  <View style={[S.corner, { top: -1, left: -1, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 14 }]} />
+                  <View style={[S.corner, { top: -1, right: -1, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 14 }]} />
+                  <View style={[S.corner, { bottom: -1, left: -1, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 14 }]} />
+                  <View style={[S.corner, { bottom: -1, right: -1, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 14 }]} />
+                </>
+              )}
+            </View>
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }} />
+          </View>
+
+          {/* Bottom overlay */}
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }} />
+        </View>
+      )}
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => {
-            if (currentStep > 1) {
-              setCurrentStep((prev) => (prev - 1) as Step);
-            } else {
-              router.back();
-            }
-          }}
-          style={styles.backBtn}
-        >
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Identity Verification</Text>
-          <Text style={[styles.headerSubtitle, { color: '#0d9488' }]}>{config.subtitle}</Text>
+      <SafeAreaView edges={['top']} style={S.headerWrap}>
+        <View style={S.header}>
+          <TouchableOpacity
+            onPress={() => step > 1 ? setStep((p) => (p - 1) as Step) : router.back()}
+            style={S.backBtn}
+          >
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Identity Verification</Text>
+            <Text style={{ color: '#0d9488', fontSize: 11, fontWeight: '600', marginTop: 2 }}>{cfg.sub}</Text>
+          </View>
+          <Shield size={22} color="#0d9488" />
         </View>
-        <Shield size={22} color="#0d9488" />
-      </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${progress}%` }]} />
-      </View>
+        {/* Progress */}
+        <View style={S.progressBar}>
+          <View style={[S.progressFill, { width: `${(step / 3) * 100}%` }]} />
+        </View>
+      </SafeAreaView>
 
-      {/* Step Badge */}
-      <View style={styles.stepBadge}>
-        <View style={[styles.stepBadgeInner, { backgroundColor: isDark ? '#1e3a5f' : '#1e293b' }]}>
-          <config.icon size={16} color="#0d9488" />
-          <Text style={styles.stepBadgeText}>{config.title}</Text>
+      {/* Hint text */}
+      <View style={S.hintWrap}>
+        <View style={S.hintBadge}>
+          <cfg.icon size={14} color="#0d9488" />
+          <Text style={S.hintText}>{cfg.hint}</Text>
         </View>
       </View>
 
-      {/* Instruction */}
-      <Text style={styles.instruction}>{config.instruction}</Text>
-
-      {/* Capture Area */}
-      <View style={styles.captureArea}>
-        {currentImage ? (
-          <View style={styles.previewContainer}>
-            <Image source={{ uri: currentImage }} style={styles.previewImage} resizeMode="cover" />
-            <View style={styles.previewOverlay}>
-              <Check size={48} color="#0d9488" />
-              <Text style={styles.previewText}>Ảnh đã chụp</Text>
+      {/* Bottom controls */}
+      <SafeAreaView edges={['bottom']} style={S.bottomWrap}>
+        {curImg ? (
+          <View style={S.bottomInner}>
+            <View style={S.previewBadge}>
+              <Check size={16} color="#0d9488" />
+              <Text style={{ color: '#0d9488', fontWeight: '600', marginLeft: 6, fontSize: 13 }}>Ảnh đã chụp thành công</Text>
+            </View>
+            <View style={S.actionRow}>
+              <TouchableOpacity onPress={handleRetake} style={S.retakeBtn}>
+                <Camera size={20} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '600', marginLeft: 8 }}>Chụp lại</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleNext} disabled={loading} style={[S.ctaBtn, { opacity: loading ? 0.7 : 1 }]}>
+                {loading ? <ActivityIndicator color="#fff" /> : (
+                  <>
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15, marginRight: 4 }}>
+                      {step === 3 ? 'Hoàn tất' : 'Tiếp tục'}
+                    </Text>
+                    <ChevronRight size={18} color="#fff" />
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
         ) : (
-          <View style={styles.placeholderFrame}>
-            {/* Corner markers */}
-            <View style={[styles.corner, styles.cornerTL]} />
-            <View style={[styles.corner, styles.cornerTR]} />
-            <View style={[styles.corner, styles.cornerBL]} />
-            <View style={[styles.corner, styles.cornerBR]} />
-
-            <config.icon size={48} color="rgba(13,148,136,0.3)" />
-            <Text style={styles.placeholderText}>
-              {currentStep === 3 ? 'Đặt khuôn mặt vào đây' : 'Đặt thẻ vào đây'}
+          <View style={S.bottomInner}>
+            <Text style={{ color: '#d1d5db', fontSize: 13, textAlign: 'center', marginBottom: 16 }}>
+              {cfg.hint}
             </Text>
+            <View style={S.captureRow}>
+              <View style={S.placeholderSideBtn} />
+              <TouchableOpacity onPress={handleCapture} disabled={capturing} style={S.shutterBtn}>
+                {capturing ? (
+                  <ActivityIndicator color="#0d9488" size="large" />
+                ) : (
+                  <View style={S.shutterInner} />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity style={S.sideBtn}>
+                <Zap size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
-      </View>
 
-      {/* Auto brightness indicator */}
-      <View style={styles.brightnessBar}>
-        <Zap size={14} color="#f59e0b" />
-        <Text style={styles.brightnessText}>Tự động điều chỉnh độ sáng</Text>
-      </View>
-
-      {/* Action buttons */}
-      <View style={styles.actionArea}>
-        {currentImage ? (
-          <View style={styles.actionRow}>
-            <TouchableOpacity onPress={handleRetake} style={styles.retakeBtn}>
-              <Camera size={22} color="#fff" />
-              <Text style={styles.retakeBtnText}>Chụp lại</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={handleNext}
-              disabled={loading}
-              style={[styles.nextBtn, { backgroundColor: '#0d9488', opacity: loading ? 0.7 : 1 }]}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <>
-                  <Text style={styles.nextBtnText}>
-                    {currentStep === 3 ? 'Hoàn tất' : 'Tiếp tục'}
-                  </Text>
-                  <ChevronRight size={18} color="#fff" />
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.captureRow}>
-            <TouchableOpacity onPress={handlePickFromGallery} style={styles.galleryBtn}>
-              <ImageIcon size={22} color="#fff" />
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleTakePhoto} style={styles.shutterBtn}>
-              <View style={styles.shutterInner} />
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleTakePhoto} style={styles.flashBtn}>
-              <Zap size={22} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      {/* Security footer */}
-      <View style={styles.securityFooter}>
-        <Shield size={12} color="#6b7280" />
-        <Text style={styles.securityText}>END-TO-END ENCRYPTED SECURITY</Text>
-      </View>
+        {/* Security */}
+        <View style={S.secFooter}>
+          <Shield size={12} color="#6b7280" />
+          <Text style={{ color: '#6b7280', fontSize: 10, fontWeight: '600', letterSpacing: 1, marginLeft: 6 }}>
+            END-TO-END ENCRYPTED
+          </Text>
+        </View>
+      </SafeAreaView>
 
       <Toast visible={toast.visible} message={toast.message} type={toast.type} duration={3000} onHide={hideToast} />
-    </SafeAreaView>
+    </View>
   );
-};
+}
 
-const FRAME_W = SCREEN_WIDTH - 80;
-const FRAME_H = FRAME_W * 0.65;
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerCenter: {
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  headerSubtitle: {
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  progressBar: {
-    height: 3,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    marginHorizontal: 20,
-    borderRadius: 2,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#0d9488',
-    borderRadius: 2,
-  },
-  stepBadge: {
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  stepBadgeInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 24,
-  },
-  stepBadgeText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  instruction: {
-    color: '#d1d5db',
-    fontSize: 14,
-    textAlign: 'center',
-    paddingHorizontal: 40,
-    marginTop: 16,
-    lineHeight: 20,
-  },
-  captureArea: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  placeholderFrame: {
-    width: FRAME_W,
-    height: FRAME_H,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(13,148,136,0.4)',
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(13,148,136,0.05)',
-  },
-  placeholderText: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 13,
-    marginTop: 8,
-  },
-  corner: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    borderColor: '#0d9488',
-  },
-  cornerTL: {
-    top: -1,
-    left: -1,
-    borderTopWidth: 3,
-    borderLeftWidth: 3,
-    borderTopLeftRadius: 12,
-  },
-  cornerTR: {
-    top: -1,
-    right: -1,
-    borderTopWidth: 3,
-    borderRightWidth: 3,
-    borderTopRightRadius: 12,
-  },
-  cornerBL: {
-    bottom: -1,
-    left: -1,
-    borderBottomWidth: 3,
-    borderLeftWidth: 3,
-    borderBottomLeftRadius: 12,
-  },
-  cornerBR: {
-    bottom: -1,
-    right: -1,
-    borderBottomWidth: 3,
-    borderRightWidth: 3,
-    borderBottomRightRadius: 12,
-  },
-  previewContainer: {
-    width: FRAME_W,
-    height: FRAME_H,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#0d9488',
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  previewOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewText: {
-    color: '#fff',
-    fontWeight: '600',
-    marginTop: 8,
-  },
-  brightnessBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-  },
-  brightnessText: {
-    color: '#f59e0b',
-    fontSize: 12,
-    marginLeft: 6,
-  },
-  actionArea: {
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  captureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 40,
-  },
-  galleryBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  shutterBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  shutterInner: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: '#fff',
-  },
-  flashBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  retakeBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  retakeBtnText: {
-    color: '#fff',
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  nextBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 14,
-  },
-  nextBtnText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-    marginRight: 4,
-  },
-  securityFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  securityText: {
-    color: '#6b7280',
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 1,
-    marginLeft: 6,
-  },
+const S = StyleSheet.create({
+  headerWrap: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  progressBar: { height: 3, backgroundColor: 'rgba(255,255,255,0.15)', marginHorizontal: 20, borderRadius: 2 },
+  progressFill: { height: '100%', backgroundColor: '#0d9488', borderRadius: 2 },
+  hintWrap: { position: 'absolute', top: 120, left: 0, right: 0, alignItems: 'center', zIndex: 10 },
+  hintBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 24 },
+  hintText: { color: '#fff', fontWeight: '600', fontSize: 14, marginLeft: 8 },
+  bottomWrap: { position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10 },
+  bottomInner: { paddingHorizontal: 20, paddingBottom: 8 },
+  previewBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  actionRow: { flexDirection: 'row', gap: 12 },
+  retakeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)' },
+  ctaBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 14, backgroundColor: '#0d9488' },
+  captureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 30 },
+  sideBtn: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  placeholderSideBtn: { width: 50, height: 50 },
+  shutterBtn: { width: 76, height: 76, borderRadius: 38, borderWidth: 3, borderColor: 'rgba(255,255,255,0.5)', justifyContent: 'center', alignItems: 'center' },
+  shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#fff' },
+  secFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
+  corner: { position: 'absolute', width: 28, height: 28, borderColor: '#14b8a6' },
 });
-
-export default EkycCaptureScreen;

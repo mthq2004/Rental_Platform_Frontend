@@ -3,8 +3,9 @@ import { getProvinces, getDistricts, getWards } from "@/store/slices/location.sl
 import { StepProps } from "@/types/property.type";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { Text, TextInput, View, TouchableOpacity, Modal, FlatList, Platform } from "react-native";
+import { Text, View, TouchableOpacity, Modal, FlatList, Platform } from "react-native";
 import DateTimePicker from '@react-native-community/datetimepicker';
+import SyncTextInput from "@/components/common/SyncTextInput";
 
 const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
     const { provinces, districts, wards } = useAppSelector(state => state.location);
@@ -188,7 +189,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                         <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                             Địa chỉ cụ thể <Text className="text-red-500">*</Text>
                         </Text>
-                        <TextInput
+                        <SyncTextInput
                             value={formData.address}
                             onChangeText={(text) => updateFormData({ address: text })}
                             placeholder="VD: 123 Nguyễn Văn Linh"
