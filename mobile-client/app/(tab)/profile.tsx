@@ -212,6 +212,12 @@ const AuthenticatedProfile = () => {
       iconColor: '#2563eb',
     },
     {
+      icon: FileText,
+      title: 'Quản lý hợp đồng',
+      onPress: () => router.push('/(rental)/contracts'),
+      iconColor: '#8b5cf6',
+    },
+    {
       icon: Search,
       title: 'Tìm kiếm đã lưu',
       onPress: () => Alert.alert('Tìm kiếm đã lưu'),

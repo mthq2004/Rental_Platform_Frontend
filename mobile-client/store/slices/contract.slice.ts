@@ -87,6 +87,17 @@ export const reviewRequest = createAsyncThunk(
   }
 )
 
+export const cancelRequest = createAsyncThunk(
+  'contract/cancelRequest',
+  async (requestId: string, { rejectWithValue }) => {
+    try {
+      return await contractService.cancelRequest(requestId)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Cancel request failed')
+    }
+  }
+)
+
 export const openHoldingDepositWindow = createAsyncThunk(
   'contract/openHoldingDepositWindow',
   async (data: { requestIds: string[]; expireMinutes?: number }, { rejectWithValue }) => {
@@ -229,6 +240,10 @@ const slice = createSlice({
       .addCase(openHoldingDepositWindow.pending, (state) => { state.loading = true; state.error = null })
       .addCase(openHoldingDepositWindow.fulfilled, (state) => { state.loading = false })
       .addCase(openHoldingDepositWindow.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(cancelRequest.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(cancelRequest.fulfilled, (state) => { state.loading = false })
+      .addCase(cancelRequest.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
 
       .addCase(getMyContracts.pending, (state) => { state.loading = true; state.error = null })
       .addCase(getMyContracts.fulfilled, (state, action) => {

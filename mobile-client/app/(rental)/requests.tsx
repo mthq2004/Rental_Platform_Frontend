@@ -5,7 +5,8 @@ import BackButton from '@/components/BackButton'
 import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper'
 import PrimaryButton from '@/components/PrimaryButton'
 import { useAppDispatch, useAppSelector } from '@/store/hook'
-import { getMyRentalRequests, getOwnerRequests, openHoldingDepositWindow } from '@/store/slices/contract.slice'
+import { getMyRentalRequests, getOwnerRequests, openHoldingDepositWindow, cancelRequest, reviewRequest } from '@/store/slices/contract.slice'
+import { Modal, TextInput } from 'react-native'
 import { getPropertyById as getPropertyByIdThunk } from '@/store/slices/property.slice'
 import { useRouter } from 'expo-router'
 import { FileText, MapPin, RefreshCw, CheckCircle, Clock, XCircle, Home, Building, ChevronRight, Inbox } from 'lucide-react-native'
@@ -92,6 +93,47 @@ const RequestsScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false)
   const [propertyCache, setPropertyCache] = useState<Record<string, any>>({})
   const [selectedOwnerRequestIds, setSelectedOwnerRequestIds] = useState<string[]>([])
+  const [rejectModalOpen, setRejectModalOpen] = useState(false)
+  const [rejectReqId, setRejectReqId] = useState('')
+  const [rejectReason, setRejectReason] = useState('')
+
+  const handleCancelRequest = (requestId: string) => {
+    Alert.alert('Hủy yêu cầu', 'Bạn có chắc chắn muốn hủy yêu cầu này?', [
+      { text: 'Đóng', style: 'cancel' },
+      {
+        text: 'Hủy yêu cầu', style: 'destructive', onPress: async () => {
+          try {
+            await dispatch(cancelRequest(requestId)).unwrap()
+            Alert.alert('Thành công', 'Đã hủy yêu cầu')
+            loadData()
+          } catch (e: any) {
+            Alert.alert('Lỗi', e?.message || 'Có lỗi xảy ra')
+          }
+        }
+      }
+    ])
+  }
+
+  const handleOpenReject = (reqId: string) => {
+    setRejectReqId(reqId);
+    setRejectReason('');
+    setRejectModalOpen(true);
+  }
+
+  const submitReject = async () => {
+    if (!rejectReason.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập lý do từ chối');
+      return;
+    }
+    try {
+      await dispatch(reviewRequest({ requestId: rejectReqId, status: 'rejected', rejectionReason: rejectReason })).unwrap()
+      setRejectModalOpen(false)
+      Alert.alert('Thành công', 'Đã từ chối yêu cầu')
+      loadData()
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không thể từ chối')
+    }
+  }
 
   const mergePropertyToCache = useCallback((propertyId: string, property: any) => {
     if (!propertyId || !property) return
@@ -103,7 +145,7 @@ const RequestsScreen: React.FC = () => {
     if (cached) return { id: cached.id || request?.propertyId || '', title: cached.title || cached.name || request?.propertyTitle || request?.propertyId || 'Bất động sản', address: cached.address || '', imageUrl: cached.imageUrl || cached.images?.[0]?.uri || '', propertyType: cached.propertyType || cached.type || request?.propertyType || request?.property?.type || '' }
     const ext = extractPropertyInfo(request)
     return { ...ext, propertyType: request?.propertyType || request?.property?.type || '' }
-  }, [propertyCache] )
+  }, [propertyCache])
 
   const loadData = useCallback(async () => {
     try {
@@ -238,67 +280,97 @@ const RequestsScreen: React.FC = () => {
 
   const renderRequestRow = (item: RequestItem, kind: TabType) => {
     const statusColor = STATUS_BADGE_COLORS[item.status] || { bg: '#F3F4F6', text: '#374151' }
-    
     const requestKey = getRequestKey(item)
     const selected = selectedOwnerRequestIds.includes(requestKey)
 
     return (
-      <View key={requestKey} style={{ flexDirection: 'row', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: current.border, alignItems: 'center' }}>
-        {kind === 'owner' ? (
-          <TouchableOpacity
-            onPress={() => isOpenDepositEligible(item.status) ? toggleOwnerSelection(requestKey) : null}
-            disabled={!isOpenDepositEligible(item.status)}
-            style={{ width: 28, height: 28, borderRadius: 8, borderWidth: 1.5, borderColor: selected ? '#0040d1' : current.border, backgroundColor: selected ? '#0040d1' : 'transparent', alignItems: 'center', justifyContent: 'center', opacity: isOpenDepositEligible(item.status) ? 1 : 0.4 }}
-          >
-            {selected ? <CheckCircle size={16} color="#fff" /> : null}
-          </TouchableOpacity>
-        ) : null}
+      <View key={requestKey} style={{ padding: 14, borderBottomWidth: 1, borderBottomColor: current.border, backgroundColor: current.card }}>
 
-        <View style={{ backgroundColor: statusColor.bg, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, minWidth: 90 }}>
-          <Text style={{ fontSize: 11, fontWeight: '700', color: statusColor.text, textAlign: 'center' }}>{STATUS_LABELS[item.status] || item.status}</Text>
+        {/* Header Hành động & Mã Yêu cầu */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {kind === 'owner' && isOpenDepositEligible(item.status) && (
+              <TouchableOpacity
+                onPress={() => toggleOwnerSelection(requestKey)}
+                style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: selected ? '#0040d1' : current.border, backgroundColor: selected ? '#0040d1' : 'transparent', alignItems: 'center', justifyContent: 'center' }}
+              >
+                {selected && <CheckCircle size={14} color="#fff" />}
+              </TouchableOpacity>
+            )}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: current.textInactive }}>Mã YC: {item.requestCode || requestKey.slice(0, 8).toUpperCase()}</Text>
+          </View>
+          <View style={{ backgroundColor: statusColor.bg, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999 }}>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: statusColor.text, textAlign: 'center' }}>{STATUS_LABELS[item.status] || item.status}</Text>
+          </View>
         </View>
 
-        {/* Price & Actions */}
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: current.text }}>
-            {formatMoney(item.proposedRent)} đ
-          </Text>
-          <Text style={{ fontSize: 11, color: current.textInactive, marginTop: 2 }}>Giá đề xuất</Text>
+        {/* Khung lưới thông tin dạng Web */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#F1F5F9' }}>
+            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#94A3B8', fontWeight: '700' }}>Giá đề xuất</Text>
+            <Text style={{ fontSize: 14, fontWeight: '800', color: '#4F46E5', marginTop: 4 }}>{formatMoney(item.proposedRent)} đ</Text>
+          </View>
+          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#F1F5F9' }}>
+            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#94A3B8', fontWeight: '700' }}>Thời hạn thuê</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#111827', marginTop: 4 }}>
+              {new Date(item.startDate).toLocaleDateString('vi-VN')} → {new Date(item.endDate).toLocaleDateString('vi-VN')}
+            </Text>
+          </View>
+          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#F1F5F9' }}>
+            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#94A3B8', fontWeight: '700' }}>Hạn đặt cọc</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#111827', marginTop: 4 }}>
+              {item.holdingDepositExpiresAt ? new Date(item.holdingDepositExpiresAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
+            </Text>
+          </View>
+          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#F1F5F9' }}>
+            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#94A3B8', fontWeight: '700' }}>Ngày tạo</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: '#111827', marginTop: 4 }}>
+              {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+            </Text>
+          </View>
         </View>
 
-        {/* Action Buttons */}
-        <View style={{ flexDirection: 'row', gap: 6 }}>
+        {/* Nút Hành động */}
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
           {kind === 'owner' ? (
             <>
               {isOpenDepositEligible(item.status) && (
-                <TouchableOpacity onPress={() => handleOpenDeposit(item.requestId || item.id)} style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#0040d1', borderRadius: 10 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#fff' }}>Mở cọc</Text>
+                <TouchableOpacity onPress={() => handleOpenDeposit(requestKey)} style={{ flexGrow: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: '#0040d1', borderRadius: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>Mở cọc</Text>
                 </TouchableOpacity>
               )}
-
-              {(item.status === 'holding_deposit_paid' || item.status === 'holding_deposit_locked' || item.contractId) ? (
-                <TouchableOpacity
-                  onPress={() => router.push({ pathname: '/template-selection' as any, params: { requestId: item.requestId || item.id, propertyType: getPropertySummary(item).propertyType } })}
-                  style={{ flexGrow: 1, minWidth: 96, paddingVertical: 12, paddingHorizontal: 14, backgroundColor: '#7C3AED', borderRadius: 14, alignItems: 'center' }}
-                >
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: '#fff' }}>Hợp đồng</Text>
+              {['pending', 'under_review'].includes(item.status) && (
+                <TouchableOpacity onPress={() => handleOpenReject(requestKey)} style={{ flexGrow: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: '#FEE2E2', borderRadius: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#991B1B' }}>Từ chối</Text>
                 </TouchableOpacity>
-              ) : null}
+              )}
+              {(item.status === 'holding_deposit_paid' || item.status === 'holding_deposit_locked' || item.contractId) && (
+                <TouchableOpacity onPress={() => { item.contractId ? router.push({ pathname: '/(rental)/contract-detail', params: { contractId: item.contractId } }) : router.push({ pathname: '/template-selection' as any, params: { requestId: requestKey, propertyType: getPropertySummary(item).propertyType || 'house' } }) }} style={{ flexGrow: 1, minWidth: 96, alignItems: 'center', paddingVertical: 10, backgroundColor: '#7C3AED', borderRadius: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{item.contractId ? 'Quản lý HĐ' : 'Hợp đồng'}</Text>
+                </TouchableOpacity>
+              )}
             </>
           ) : (
             <>
+              <TouchableOpacity onPress={() => item.contractId ? router.push({ pathname: '/(rental)/contract-detail', params: { contractId: item.contractId } }) : null} disabled={!item.contractId} style={{ flexGrow: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: item.contractId ? '#4F46E5' : current.border, borderRadius: 10 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: item.contractId ? '#fff' : '#9CA3AF' }}>Xem Hợp đồng</Text>
+              </TouchableOpacity>
+
               {(item.holdingDepositStatus === 'open' || item.status === 'holding_deposit_open') && (
-                <TouchableOpacity onPress={() => router.push({ pathname: '/(rental)/pay-deposit', params: { requestId: item.requestId || item.id } })} style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#059669', borderRadius: 10 }}>
-                  <Text style={{ fontSize: 11, fontWeight: '600', color: '#fff' }}>Thanh toán</Text>
+                <TouchableOpacity onPress={() => router.push({ pathname: '/(rental)/pay-deposit', params: { requestId: requestKey } })} style={{ flexGrow: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: '#059669', borderRadius: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>Thanh toán</Text>
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity onPress={() => item.contractId ? router.push({ pathname: '/(rental)/contract-detail', params: { contractId: item.contractId } }) : null} disabled={!item.contractId} style={{ paddingHorizontal: 12, paddingVertical: 8, backgroundColor: item.contractId ? '#4F46E5' : current.border, borderRadius: 10 }}>
-                <Text style={{ fontSize: 11, fontWeight: '600', color: item.contractId ? '#fff' : '#9CA3AF' }}>Xem HĐ</Text>
-              </TouchableOpacity>
+              {['pending', 'under_review'].includes(item.status) && (
+                <TouchableOpacity onPress={() => handleCancelRequest(requestKey)} style={{ flexGrow: 1, alignItems: 'center', paddingVertical: 10, backgroundColor: '#FEE2E2', borderRadius: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#991B1B' }}>Hủy yêu cầu</Text>
+                </TouchableOpacity>
+              )}
             </>
           )}
         </View>
+
       </View>
     )
   }
@@ -332,7 +404,7 @@ const RequestsScreen: React.FC = () => {
         {/* Request Items - Compact rows */}
         <View>
           {group.requests.map((req: any, idx: number) => (
-            <View key={req.requestId || req.id}>
+            <View key={req.requestId || req.id || idx}>
               {renderRequestRow(req, kind)}
               {/* Add divider between items, not after last */}
               {idx < group.requests.length - 1 && <View style={{ height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 12 }} />}
@@ -348,7 +420,7 @@ const RequestsScreen: React.FC = () => {
   return (
     <AuthGuard>
       <KeyboardSafeWrapper className="flex-1 bg-white">
-        <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className='mt-10' refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} /> }>
+        <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className='mt-10' refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} />}>
           <View style={{ padding: 16, paddingTop: 20 }}>
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
               <BackButton onPress={() => router.back()} />
@@ -419,6 +491,31 @@ const RequestsScreen: React.FC = () => {
             </View>
           )}
         </ScrollView>
+
+        <Modal visible={rejectModalOpen} transparent animationType="fade">
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
+            <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', marginBottom: 10, color: '#111827' }}>Từ chối yêu cầu</Text>
+              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>Vui lòng nhập lý do từ chối để khách hàng có thể biết được vấn đề của họ.</Text>
+              <TextInput
+                value={rejectReason}
+                onChangeText={setRejectReason}
+                placeholder="Nhập lý do từ chối..."
+                multiline
+                style={{ backgroundColor: '#F3F4F6', borderRadius: 12, padding: 14, minHeight: 100, textAlignVertical: 'top', color: '#111827' }}
+              />
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+                <TouchableOpacity onPress={() => setRejectModalOpen(false)} style={{ flex: 1, paddingVertical: 14, backgroundColor: '#F3F4F6', borderRadius: 12, alignItems: 'center' }}>
+                  <Text style={{ fontWeight: '700', color: '#4B5563' }}>Hủy bỏ</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={submitReject} style={{ flex: 1, paddingVertical: 14, backgroundColor: '#DC2626', borderRadius: 12, alignItems: 'center' }}>
+                  <Text style={{ fontWeight: '700', color: '#fff' }}>Xác nhận từ chối</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
       </KeyboardSafeWrapper>
     </AuthGuard>
   )

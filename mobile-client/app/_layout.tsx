@@ -42,6 +42,7 @@ export default function RootLayout() {
                       <Stack.Screen name="(profile)/notification-settings" />
                       <Stack.Screen name="(profile)/ekyc" />
                       <Stack.Screen name="(rental)/contract-builder" />
+                      <Stack.Screen name="(rental)/contracts" />
                       <Stack.Screen name="(rental)/contract-detail" />
                       <Stack.Screen name="(rental)/create-request" />
                       <Stack.Screen name="(rental)/pay-deposit" />

@@ -11,6 +11,7 @@ import customerCategoryReducer from "./slices/customer-category.slice"
 import estateReducer from "./slices/estate.slice"
 import kycReducer from "./slices/kyc.slice"
 import walletReducer from "./slices/wallet.slice"
+import smartcaReducer from "./slices/smartca.slice"
 
 export const makeStore = () => {
   return configureStore({
@@ -27,6 +28,7 @@ export const makeStore = () => {
       estate: estateReducer,
       kyc: kycReducer,
       wallet: walletReducer,
+      smartca: smartcaReducer,
     },
   });
 };
