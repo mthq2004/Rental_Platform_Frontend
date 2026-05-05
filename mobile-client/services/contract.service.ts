@@ -49,6 +49,11 @@ export const getMyRentalRequests = async () => {
   return res.data
 }
 
+export const cancelRequest = async (requestId: string) => {
+  const res = await apiClient.put(`/contract/rental-requests/${requestId}/cancel`)
+  return res.data
+}
+
 export const getMyContracts = async (params?: { status?: string; page?: number; limit?: number }) => {
   const query = new URLSearchParams()
   if (params?.status) query.set('status', params.status)
@@ -56,6 +61,12 @@ export const getMyContracts = async (params?: { status?: string; page?: number; 
   if (params?.limit) query.set('limit', String(params.limit))
   const qs = query.toString()
   const res = await apiClient.get(`/contract/rental-contracts/my${qs ? `?${qs}` : ''}`)
+  const result = res.data
+  return result?.data || result?.items || result
+}
+
+export const getContractStatusCounts = async () => {
+  const res = await apiClient.get('/contract/rental-contracts/status-count')
   return res.data
 }
 
@@ -75,8 +86,14 @@ export const getRequestTemplateData = async (requestId: string) => {
 }
 
 export const createContract = async (data: Record<string, unknown>) => {
-  const res = await apiClient.post('/contract/rental-contracts/createContract', data)
-  return res.data
+  try {
+    const res = await apiClient.post('/contract/rental-contracts/createContract', data)
+    return res.data
+  } catch (err: any) {
+    // Surface backend validation / message when possible
+    const msg = err?.response?.data?.message || err?.message || 'Create contract failed'
+    throw new Error(msg)
+  }
 }
 
 export const updateContract = async (contractId: string, data: Record<string, unknown>) => {
@@ -104,21 +121,41 @@ export const getContractDetail = async (contractId: string) => {
   return res.data
 }
 
+export const getMyPayments = async (params?: { rentalId?: string; status?: string; page?: number; limit?: number }) => {
+  const query = new URLSearchParams()
+  if (params?.rentalId) query.set('rentalId', params.rentalId)
+  if (params?.status) query.set('status', params.status)
+  if (params?.page) query.set('page', String(params.page))
+  if (params?.limit) query.set('limit', String(params.limit))
+  const qs = query.toString()
+  const res = await apiClient.get(`/contract/payments/my${qs ? `?${qs}` : ''}`)
+  return res.data
+}
+
+export const confirmPayment = async (paymentId: string, data: { paymentMethod: string; paymentType?: string; transactionId?: string; transactionRef?: string; paidAmount?: number }) => {
+  const res = await apiClient.post(`/contract/payments/confirm/${paymentId}`, data)
+  return res.data
+}
+
 export default {
   createRentalRequest,
   openHoldingDeposit,
   getOwnerRequests,
   getRequestDetail,
   reviewRequest,
+  cancelRequest,
   payHoldingDeposit,
   getMyRentalRequests,
   getMyContracts,
+  getContractStatusCounts,
   getContractDetail,
+  getMyPayments,
   getTemplates,
   getTemplateDetail,
   getRequestTemplateData,
   createContract,
   updateContract,
+  confirmPayment,
   sendContractToTenant,
   tenantSignContract,
   ownerSignContract,

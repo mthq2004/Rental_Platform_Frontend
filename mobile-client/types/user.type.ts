@@ -3,6 +3,20 @@ export interface LoginUser {
     password: string;
 }
 
+export interface UserProfile {
+  profileId?: string;
+  userId?: string;
+  fullName?: string;
+  idCardNumber?: string;
+  currentAddress?: string | null;
+  currentWard?: string | null;
+  currentDistrict?: string | null;
+  currentCity?: string | null;
+  occupation?: string | null;
+  emergencyContactName?: string | null;
+  emergencyContactPhone?: string | null;
+}
+
 export type User = {
   id: string;
   email: string;
@@ -42,4 +56,6 @@ export type User = {
   lastLoginAt: string | null;
   lastLoginIp: string | null;
   loginCount: number;
+
+  profile?: UserProfile;
 };
