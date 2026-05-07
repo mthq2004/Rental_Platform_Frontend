@@ -1,5 +1,5 @@
 import React from 'react'
-import { Text, TouchableOpacity, ViewStyle } from 'react-native'
+import { Text, TouchableOpacity, ViewStyle, View } from 'react-native'
 import { useThemeColors } from '@/utils/colors'
 
 interface PrimaryButtonProps {
@@ -9,6 +9,7 @@ interface PrimaryButtonProps {
   loading?: boolean
   style?: ViewStyle
   children?: React.ReactNode
+  icon?: React.ReactNode
 }
 
 const PrimaryButton = ({
@@ -18,6 +19,7 @@ const PrimaryButton = ({
   loading = false,
   style,
   children,
+  icon,
 }: PrimaryButtonProps) => {
   const { current } = useThemeColors()
 
@@ -46,7 +48,10 @@ const PrimaryButton = ({
         children ? (
           children
         ) : (
-          <Text style={{ color: textColor }} className="text-base font-semibold">{title}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+            {icon}
+            <Text style={{ color: textColor }} className="text-base font-semibold">{title}</Text>
+          </View>
         )
       )}
     </TouchableOpacity>

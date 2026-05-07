@@ -1,13 +1,15 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react'
 import {
   View, Text, ActivityIndicator, Alert, ScrollView,
-  TouchableOpacity, Linking, Modal, Image, RefreshControl,
+  TouchableOpacity, Linking, Modal, Image, RefreshControl
 } from 'react-native'
 import * as DocumentPicker from 'expo-document-picker'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import AuthGuard from '@/components/AuthGuard'
 import BackButton from '@/components/BackButton'
 import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper'
+import SyncTextInput from '@/components/common/SyncTextInput'
+import CustomDatePicker from '@/components/CustomDatePicker'
 import PrimaryButton from '@/components/PrimaryButton'
 import { useAppDispatch, useAppSelector } from '@/store/hook'
 import { getContractDetail as getContractDetailThunk } from '@/store/slices/contract.slice'
@@ -18,7 +20,7 @@ import {
 import contractService from '@/services/contract.service'
 import smartcaService from '@/services/smartca.service'
 import apiClient from '@/utils/api'
-import { router, useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router'
 import {
   Calendar, Wallet, Lock, CheckCircle, AlertCircle, RefreshCw,
   Home, User, Phone, Shield, FileCheck, MapPin, Hash,
@@ -27,6 +29,9 @@ import {
 import { useThemeColors } from '@/utils/colors'
 import WebView from 'react-native-webview'
 import { Ionicons } from '@expo/vector-icons'
+import ScreenHeader from '@/components/common/ScreenHeader'
+import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext'
+import FloatingKeyboardBar from '@/components/common/FloatingKeyboardBar'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SMARTCA_POLLING_MS = 4000
@@ -106,6 +111,7 @@ const unwrap = (res: any) => res?.data?.data ?? res?.data ?? res
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const ContractDetail = () => {
+  useEnableFloatingKeyboard()
   const { contractId, requestId } = useLocalSearchParams<{ contractId?: string; requestId?: string }>()
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((s) => s.auth)
@@ -115,6 +121,7 @@ const ContractDetail = () => {
 
   const theme = useThemeColors() as any
   const current = theme.current
+  const isDark = theme.isDark
   const colors = theme
 
   // ── State ──────────────────────────────────────────────────────────────────
@@ -136,6 +143,38 @@ const ContractDetail = () => {
   const [verifyLoading, setVerifyLoading] = useState(false)
   const [verifyResult, setVerifyResult] = useState<{ ok: boolean; checkedAt: string } | null>(null)
   const [verifyError, setVerifyError] = useState<string | null>(null)
+
+  // Termination & Report state
+  const [terminationRequests, setTerminationRequests] = useState<any[]>([])
+  const [reportItems, setReportItems] = useState<any[]>([])
+  const [showTermination, setShowTermination] = useState(false)
+  const [showReports, setShowReports] = useState(false)
+  const [terminationLoading, setTerminationLoading] = useState(false)
+
+  // Modals for Termination & Report
+  const [showTermModal, setShowTermModal] = useState(false)
+  const [termReason, setTermReason] = useState('unilateral_termination')
+  const [termNote, setTermNote] = useState('')
+  const [termDate, setTermDate] = useState<Date | null>(null)
+  const [termFee, setTermFee] = useState('')
+
+  // Review Termination Modal
+  const [showReviewTermModal, setShowReviewTermModal] = useState(false)
+  const [reviewTermAction, setReviewTermAction] = useState<'approved' | 'rejected'>('approved')
+  const [reviewTermNote, setReviewTermNote] = useState('')
+
+  // Update Termination Modal
+  const [showUpdateTermModal, setShowUpdateTermModal] = useState(false)
+  const [updateTermStatus, setUpdateTermStatus] = useState<string>('resolved')
+  const [updateTermNote, setUpdateTermNote] = useState('')
+
+  
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportTitle, setReportTitle] = useState('')
+  const [reportDesc, setReportDesc] = useState('')
+  const [reportType, setReportType] = useState('other')
+  const [reportPriority, setReportPriority] = useState('medium')
+  const [reportAttachments, setReportAttachments] = useState<any[]>([])
 
   const finalizedRef = useRef(false)
 
@@ -170,6 +209,14 @@ const ContractDetail = () => {
       const items = Array.isArray(p) ? p : p?.items || p?.data || []
       setPayments(Array.isArray(items) ? items : [])
 
+      // Load termination & reports (non-blocking)
+      contractService.getTerminationRequests(resolvedId).then(r => {
+        const d = unwrap(r); setTerminationRequests(Array.isArray(d) ? d : d?.data || d?.items || [])
+      }).catch(() => {})
+      contractService.getReportsByContract(resolvedId).then(r => {
+        const d = unwrap(r); setReportItems(Array.isArray(d) ? d : d?.data || d?.items || [])
+      }).catch(() => {})
+
       // 1. If contract already has property object, use it
       if (c?.property) {
         setProperty(c.property)
@@ -203,7 +250,11 @@ const ContractDetail = () => {
     }
   }, [dispatch, resolvedId])
 
-  useEffect(() => { loadDetail() }, [loadDetail])
+  useFocusEffect(
+    useCallback(() => {
+      loadDetail()
+    }, [loadDetail])
+  )
 
   const onRefresh = useCallback(() => {
     setRefreshing(true)
@@ -343,7 +394,7 @@ const ContractDetail = () => {
   }
 
   const handleConfirmPayment = useCallback(async (method: string) => {
-    if (!method || method.trim() === ' ' || method === null) {
+    if (!method || method.trim() === '') {
       Alert.alert('Cảnh báo', 'Vui lòng chọn phương thức thanh toán')
       return
     }
@@ -362,10 +413,15 @@ const ContractDetail = () => {
         paidAmount: currentPayment.remainingAmount || currentPayment.amount,
       })
       const payload = unwrap(res)
+      console.log("kiem tra url payemtn payload:", JSON.stringify(payload, null, 2));
 
-      console.log("gvuv: ", payload);
-      
+      // Extract payment URL from multiple possible response shapes
       const target = payload?.paymentUrl || payload?.redirectUrl || payload?.payUrl
+        || payload?.data?.paymentUrl || payload?.data?.redirectUrl || payload?.data?.payUrl
+        || payload?.data?.data?.paymentUrl || payload?.data?.data?.payUrl;
+      
+      console.log("kiem tra url payemtn extracted:", target);
+
       if (target && /^https?:\/\//i.test(target)) {
         setPaymentUrl(target)
       } else if (target) {
@@ -375,19 +431,183 @@ const ContractDetail = () => {
         await loadDetail(false)
       }
     } catch (e: any) {
-      Alert.alert('Lỗi 123', e?.message || 'Thanh toán thất bại')
+      Alert.alert('Lỗi', e?.message || 'Thanh toán thất bại')
     } finally {
       setActionLoading(false)
     }
-  }, [currentPayment, loadDetail])
+  }, [currentPayment, loadDetail, walletOverview])
 
   const isValidUrl =
     typeof paymentUrl === 'string' &&
     paymentUrl.trim() !== '' &&
     /^https?:\/\//i.test(paymentUrl)
 
-    console.log("kiem tra url payemtn: ", paymentUrl);
-    
+  // ── Termination & Dispute Handlers ──────────────────────────────────────────
+  const TERMINATION_STATUS: Record<string, { label: string; color: string; bg: string }> = {
+    pending: { label: 'Đang chờ', color: '#B45309', bg: '#FFFBEB' },
+    approved: { label: 'Đã chấp thuận', color: '#166534', bg: '#F0FDF4' },
+    rejected: { label: 'Bị từ chối', color: '#B91C1C', bg: '#FEF2F2' },
+    negotiating: { label: 'Đang thương lượng', color: '#0369A1', bg: '#EFF6FF' },
+    admin_review: { label: 'Chờ admin', color: '#6D28D9', bg: '#F5F3FF' },
+    admin_processing: { label: 'Admin xử lý', color: '#1E40AF', bg: '#EFF6FF' },
+    resolved: { label: 'Đã giải quyết', color: '#166534', bg: '#F0FDF4' },
+    cancelled: { label: 'Đã hủy', color: '#6B7280', bg: '#F9FAFB' },
+  }
+
+  const REPORT_STATUS: Record<string, { label: string; color: string; bg: string }> = {
+    open: { label: 'Mới tạo', color: '#0369A1', bg: '#EFF6FF' },
+    admin: { label: 'Chờ admin', color: '#6D28D9', bg: '#F5F3FF' },
+    resolved: { label: 'Đã giải quyết', color: '#166534', bg: '#F0FDF4' },
+    cancelled: { label: 'Đã hủy', color: '#6B7280', bg: '#F9FAFB' },
+    negotiating: { label: 'Đang thương lượng', color: '#B45309', bg: '#FFFBEB' },
+  }
+
+  const latestTermination = terminationRequests[0] || null
+  const hasActiveTermination = latestTermination && ['pending', 'negotiating', 'admin_review', 'admin_processing'].includes(latestTermination.status)
+  const canRequestTermination = contract?.status === 'active' && !hasActiveTermination
+  const canReviewTermination = latestTermination?.status === 'pending' && latestTermination?.requestedBy !== user?.id
+
+  const handleCreateTermination = useCallback(() => {
+    setShowTermModal(true)
+  }, [])
+
+  const submitTermination = async () => {
+    if (!resolvedId) return
+    if (!termDate) {
+      Alert.alert('Lỗi', 'Vui lòng chọn ngày mong muốn chấm dứt')
+      return
+    }
+    setTerminationLoading(true)
+    try {
+      await contractService.createTerminationRequest({
+        rentalId: resolvedId,
+        reason: termReason,
+        note: termNote,
+        requestedTerminationDate: termDate.toISOString().split('T')[0],
+        earlyTerminationFee: termFee ? Number(termFee) : Number(contract?.earlyTerminationFee || 0),
+      })
+      Alert.alert('Thành công', 'Đã gửi yêu cầu chấm dứt hợp đồng.')
+      setShowTermModal(false)
+      setTermNote('')
+      setTermDate(null)
+      setTermFee('')
+      loadDetail(false)
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Gửi yêu cầu thất bại')
+    } finally {
+      setTerminationLoading(false)
+    }
+  }
+
+  const handleReviewTermination = useCallback((action: 'approved' | 'rejected') => {
+    if (!latestTermination?.terminationRequestId) return
+    setReviewTermAction(action)
+    setReviewTermNote('')
+    setShowReviewTermModal(true)
+  }, [latestTermination])
+
+  const submitReviewTermination = async () => {
+    if (!latestTermination?.terminationRequestId) return
+    if (reviewTermAction === 'rejected' && !reviewTermNote.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập lý do từ chối')
+      return
+    }
+    setTerminationLoading(true)
+    try {
+      await contractService.reviewTerminationRequest(latestTermination.terminationRequestId, { 
+        status: reviewTermAction,
+        reviewNote: reviewTermNote 
+      })
+      Alert.alert('Thành công', `Đã ${reviewTermAction === 'approved' ? 'chấp thuận' : 'từ chối'} yêu cầu.`)
+      setShowReviewTermModal(false)
+      loadDetail(false)
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Thao tác thất bại')
+    } finally {
+      setTerminationLoading(false)
+    }
+  }
+
+  const handleOpenUpdateTermination = (request: any, status: string) => {
+    setUpdateTermStatus(status)
+    setUpdateTermNote('')
+    setShowUpdateTermModal(true)
+  }
+
+  const submitUpdateTermination = async () => {
+    if (!latestTermination?.terminationRequestId) return
+    if (updateTermStatus === 'admin_review' && !updateTermNote.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập lý do gửi quản trị viên')
+      return
+    }
+    setTerminationLoading(true)
+    try {
+      await contractService.updateTerminationStatus(latestTermination.terminationRequestId, {
+        status: updateTermStatus,
+        note: updateTermNote,
+      })
+      Alert.alert('Thành công', 'Đã cập nhật trạng thái yêu cầu.')
+      setShowUpdateTermModal(false)
+      loadDetail(false)
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Thao tác thất bại')
+    } finally {
+      setTerminationLoading(false)
+    }
+  }
+
+  const handleCreateReport = useCallback(() => {
+    setShowReportModal(true)
+  }, [])
+
+  const handlePickDocument = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'application/pdf'],
+        multiple: true,
+      })
+      if (!res.canceled) {
+        setReportAttachments([...reportAttachments, ...res.assets])
+      }
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
+  const submitReport = async () => {
+    if (!resolvedId) return
+    if (!reportTitle.trim() || !reportDesc.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ tiêu đề và nội dung khiếu nại')
+      return
+    }
+    setTerminationLoading(true)
+    const againstId = isOwner ? contract.tenantId : contract.ownerId
+    try {
+      await contractService.createReport({
+        rentalId: resolvedId,
+        againstId: againstId,
+        type: 'contract',
+        reportType: reportType,
+        priority: reportPriority,
+        title: reportTitle,
+        description: reportDesc,
+        terminationRequestId: latestTermination?.terminationRequestId,
+        evidence: reportAttachments.map(f => ({ uri: f.uri, name: f.name, type: f.mimeType || 'application/octet-stream' }))
+      })
+      Alert.alert('Thành công', 'Đã gửi khiếu nại.')
+      setShowReportModal(false)
+      setReportTitle('')
+      setReportDesc('')
+      setReportType('other')
+      setReportPriority('medium')
+      setReportAttachments([])
+      loadDetail(false)
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Gửi khiếu nại thất bại')
+    } finally {
+      setTerminationLoading(false)
+    }
+  }
 
   // ── Render: Payment WebView ────────────────────────────────────────────────
   if (isValidUrl) {
@@ -451,22 +671,21 @@ const ContractDetail = () => {
   // ── Render: Main ──────────────────────────────────────────────────────────
   return (
     <AuthGuard>
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
-        <KeyboardSafeWrapper>
+      <SafeAreaView style={{ flex: 1, backgroundColor: current.background }}>
+        <KeyboardSafeWrapper scrollable={false} style={{ flex: 1, backgroundColor: current.background }}>
 
-          {/* ── Header ──────────────────────────────────────────────────── */}
-          <View style={{ backgroundColor: current.background, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: current.border, flexDirection: 'row', alignItems: 'center' }}>
-            <BackButton onPress={() => router.back()} />
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={{ fontSize: 16, fontWeight: '800', color: current.text }}>Chi tiết hợp đồng</Text>
-              {contract?.contractCode && <Text style={{ fontSize: 12, color: theme.textInactive, marginTop: 1 }}>{contract.contractCode}</Text>}
-            </View>
-            <TouchableOpacity onPress={onRefresh} disabled={refreshing} style={{ padding: 6 }}>
-              <RefreshCw size={18} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
+          <ScreenHeader 
+            title="Chi tiết hợp đồng" 
+            subtitle={contract?.contractCode ? contract.contractCode : undefined} 
+            rightComponent={
+              <TouchableOpacity onPress={onRefresh} disabled={refreshing} style={{ padding: 6 }}>
+                <RefreshCw size={18} color={colors.primary} />
+              </TouchableOpacity>
+            }
+          />
 
           <ScrollView
+            style={{ backgroundColor: isDark ? 'transparent' : '#F8FAFC' }}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 48 }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
@@ -519,10 +738,10 @@ const ContractDetail = () => {
               <View style={{ backgroundColor: current.card, borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: current.border }}>
                 {/* Owner */}
                 <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#C7D2FE' }}>
-                    {ownerInfo?.avatarUrl
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDark ? '#1F2937' : '#EEF2FF', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? '#374151' : '#C7D2FE' }}>
+                    {ownerInfo?.avatarUrl && ownerInfo?.avatarUrl !== "https://i.pravatar.cc/300"
                       ? <Image source={{ uri: ownerInfo.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
-                      : <Ionicons name="person-outline" size={20} color="#4338CA" />}
+                      : <User size={20} color={isDark ? '#9CA3AF' : '#4338CA'} />}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 11, color: theme.textInactive, fontWeight: '600' }}>BÊN CHO THUÊ (CHỦ NHÀ)</Text>
@@ -534,10 +753,10 @@ const ContractDetail = () => {
                 <View style={{ height: 1, backgroundColor: current.border, marginHorizontal: 16 }} />
                 {/* Tenant */}
                 <View style={{ padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#F0FDF4', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#86EFAC' }}>
-                    {tenantInfo?.avatarUrl
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: isDark ? '#1F2937' : '#F0FDF4', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDark ? '#374151' : '#86EFAC' }}>
+                    {tenantInfo?.avatarUrl && tenantInfo?.avatarUrl !== "https://i.pravatar.cc/300"
                       ? <Image source={{ uri: tenantInfo.avatarUrl }} style={{ width: 44, height: 44, borderRadius: 22 }} />
-                      : <Ionicons name="person-outline" size={20} color="#15803D" />}
+                      : <User size={20} color={isDark ? '#9CA3AF' : '#15803D'} />}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 11, color: theme.textInactive, fontWeight: '600' }}>BÊN THUÊ (NGƯỜI THUÊ)</Text>
@@ -833,6 +1052,183 @@ const ContractDetail = () => {
               </View>
             )}
 
+            {/* ── Termination Requests ─────────────────────────────────── */}
+            {contract?.status === 'active' && (
+              <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+                <TouchableOpacity
+                  onPress={() => setShowTermination(!showTermination)}
+                  style={{
+                    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+                    backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, padding: 16,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="exit-outline" size={18} color="#B91C1C" />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: current.text }}>Chấm dứt hợp đồng ({terminationRequests.length})</Text>
+                  </View>
+                  {showTermination ? <ChevronUp size={18} color={theme.textInactive} /> : <ChevronDown size={18} color={theme.textInactive} />}
+                </TouchableOpacity>
+
+                {showTermination && (
+                  <View style={{ backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, marginTop: 2, overflow: 'hidden' }}>
+                    {terminationRequests.length === 0 ? (
+                      <View style={{ padding: 20, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 13, color: theme.textInactive }}>Chưa có yêu cầu chấm dứt nào.</Text>
+                      </View>
+                    ) : (
+                      terminationRequests.map((t: any, i: number) => {
+                        const ts = TERMINATION_STATUS[t.status] || TERMINATION_STATUS.pending
+                        return (
+                          <View key={`term-${i}`}>
+                            <View style={{ padding: 14, gap: 6 }}>
+                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text style={{ fontSize: 13, fontWeight: '700', color: current.text }}>
+                                  {t.reason === 'unilateral_termination' ? 'Đơn phương chấm dứt' :
+                                   t.reason === 'mutual_agreement' ? 'Hai bên thỏa thuận' :
+                                   t.reason === 'breach_of_contract' ? 'Vi phạm hợp đồng' :
+                                   t.reason === 'force_majeure' ? 'Bất khả kháng' : t.reason}
+                                </Text>
+                                <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: ts.bg }}>
+                                  <Text style={{ fontSize: 11, fontWeight: '700', color: ts.color }}>{ts.label}</Text>
+                                </View>
+                              </View>
+                              {t.note && <Text style={{ fontSize: 12, color: theme.textInactive }}>{t.note}</Text>}
+                              <Text style={{ fontSize: 11, color: theme.textInactive }}>Ngày yêu cầu: {fmtDate(t.requestedTerminationDate || t.createdAt)}</Text>
+
+                              {/* Review actions */}
+                              {canReviewTermination && t === latestTermination && (
+                                <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+                                  <TouchableOpacity
+                                    onPress={() => handleReviewTermination('approved')}
+                                    style={{ flex: 1, backgroundColor: '#16A34A', borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}
+                                  >
+                                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Chấp thuận</Text>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                    onPress={() => handleReviewTermination('rejected')}
+                                    style={{ flex: 1, backgroundColor: '#DC2626', borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}
+                                  >
+                                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Từ chối</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              )}
+
+                              {/* Update Actions */}
+                              {t === latestTermination && ['rejected', 'negotiating'].includes(t.status) && (
+                                <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+                                  <TouchableOpacity
+                                    onPress={() => handleOpenUpdateTermination(t, 'resolved')}
+                                    style={{ flex: 1, backgroundColor: '#16A34A', borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}
+                                  >
+                                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Đã giải quyết</Text>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                    onPress={() => handleOpenUpdateTermination(t, 'admin_review')}
+                                    style={{ flex: 1, backgroundColor: '#6D28D9', borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}
+                                  >
+                                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Gửi Admin</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              )}
+
+                              {/* Update Actions */}
+                              {t === latestTermination && ['rejected', 'negotiating'].includes(t.status) && (
+                                <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
+                                  <TouchableOpacity
+                                    onPress={() => handleOpenUpdateTermination(t, 'resolved')}
+                                    style={{ flex: 1, backgroundColor: '#16A34A', borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}
+                                  >
+                                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Đã giải quyết</Text>
+                                  </TouchableOpacity>
+                                  <TouchableOpacity
+                                    onPress={() => handleOpenUpdateTermination(t, 'admin_review')}
+                                    style={{ flex: 1, backgroundColor: '#6D28D9', borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}
+                                  >
+                                    <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13 }}>Gửi Admin</Text>
+                                  </TouchableOpacity>
+                                </View>
+                              )}
+                            </View>
+                            {i < terminationRequests.length - 1 && <View style={{ height: 1, backgroundColor: current.border, marginHorizontal: 14 }} />}
+                          </View>
+                        )
+                      })
+                    )}
+
+                    {canRequestTermination && (
+                      <View style={{ padding: 14, borderTopWidth: 1, borderTopColor: current.border }}>
+                        <PrimaryButton
+                          title="Yêu cầu chấm dứt hợp đồng"
+                          loading={terminationLoading}
+                          onPress={handleCreateTermination}
+                          style={{ backgroundColor: '#B91C1C', borderColor: '#991B1B' }}
+                          icon={<Ionicons name="exit-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />}
+                        />
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* ── Disputes / Reports ──────────────────────────────────── */}
+            {contract?.status === 'active' && (
+              <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+                <TouchableOpacity
+                  onPress={() => setShowReports(!showReports)}
+                  style={{
+                    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+                    backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, padding: 16,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="warning-outline" size={18} color="#D97706" />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: current.text }}>Tranh chấp & khiếu nại ({reportItems.length})</Text>
+                  </View>
+                  {showReports ? <ChevronUp size={18} color={theme.textInactive} /> : <ChevronDown size={18} color={theme.textInactive} />}
+                </TouchableOpacity>
+
+                {showReports && (
+                  <View style={{ backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, marginTop: 2, overflow: 'hidden' }}>
+                    {reportItems.length === 0 ? (
+                      <View style={{ padding: 20, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 13, color: theme.textInactive }}>Chưa có khiếu nại nào.</Text>
+                      </View>
+                    ) : (
+                      reportItems.map((r: any, i: number) => {
+                        const rs = REPORT_STATUS[r.status] || REPORT_STATUS.open
+                        return (
+                          <View key={`report-${i}`}>
+                            <View style={{ padding: 14, gap: 4 }}>
+                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Text style={{ fontSize: 13, fontWeight: '700', color: current.text, flex: 1 }} numberOfLines={1}>{r.title || 'Khiếu nại'}</Text>
+                                <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: rs.bg, marginLeft: 8 }}>
+                                  <Text style={{ fontSize: 11, fontWeight: '700', color: rs.color }}>{rs.label}</Text>
+                                </View>
+                              </View>
+                              {r.description && <Text style={{ fontSize: 12, color: theme.textInactive }} numberOfLines={2}>{r.description}</Text>}
+                              <Text style={{ fontSize: 11, color: theme.textInactive }}>{fmtDate(r.createdAt)}</Text>
+                            </View>
+                            {i < reportItems.length - 1 && <View style={{ height: 1, backgroundColor: current.border, marginHorizontal: 14 }} />}
+                          </View>
+                        )
+                      })
+                    )}
+
+                    <View style={{ padding: 14, borderTopWidth: 1, borderTopColor: current.border }}>
+                      <PrimaryButton
+                        title="Gửi khiếu nại mới"
+                        loading={terminationLoading}
+                        onPress={handleCreateReport}
+                        style={{ backgroundColor: '#D97706', borderColor: '#B45309' }}
+                        icon={<Ionicons name="warning-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />}
+                      />
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* ── Actions ──────────────────────────────────────────────── */}
             <View style={{ marginHorizontal: 16, marginBottom: 8, gap: 10 }}>
               {contract?.signedContractUrl && (
@@ -883,6 +1279,279 @@ const ContractDetail = () => {
               )}
             </View>
           </ScrollView>
+
+          {/* ══════════════════════════════════════════════════════════════
+              MODAL: TERMINATION REQUEST
+          ══════════════════════════════════════════════════════════════ */}
+          <Modal visible={showTermModal} transparent animationType="slide">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+              <View style={{ backgroundColor: current.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+                <View style={{ width: 40, height: 4, backgroundColor: current.border, borderRadius: 2, alignSelf: 'center', marginBottom: 22 }} />
+                
+                <Text style={{ fontSize: 18, fontWeight: '900', color: current.text, marginBottom: 16 }}>Yêu cầu chấm dứt hợp đồng</Text>
+                
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Lý do chấm dứt:</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                  {[
+                    { id: 'mutual_agreement', label: 'Hai bên thỏa thuận' },
+                    { id: 'unilateral_termination', label: 'Đơn phương' },
+                    { id: 'breach_of_contract', label: 'Vi phạm HĐ' },
+                    { id: 'non_payment', label: 'Không thanh toán' },
+                    { id: 'force_majeure', label: 'Bất khả kháng' },
+                    { id: 'lease_end', label: 'Hết hạn hợp đồng' },
+                    { id: 'other', label: 'Lý do khác' }
+                  ].map(item => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => setTermReason(item.id)}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
+                        backgroundColor: termReason === item.id ? '#FEE2E2' : current.card,
+                        borderWidth: 1, borderColor: termReason === item.id ? '#DC2626' : current.border
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: termReason === item.id ? '#DC2626' : current.text }}>{item.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <CustomDatePicker
+                  label="Ngày mong muốn chấm dứt"
+                  placeholder="Chọn ngày"
+                  value={termDate}
+                  onChange={setTermDate}
+                  icon="calendar-outline"
+                  minimumDate={new Date()}
+                />
+
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Đề xuất phí chấm dứt sớm (VNĐ):</Text>
+                <SyncTextInput
+                  value={termFee}
+                  onChangeText={(val) => setTermFee(val.replace(/[^0-9]/g, ''))}
+                  placeholder="Để trống nếu không đề xuất (Mặc định theo hợp đồng)"
+                  placeholderTextColor={theme.textInactive}
+                  keyboardType="numeric"
+                  style={{
+                    borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                    fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 16
+                  }}
+                />
+
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Ghi chú thêm:</Text>
+                <SyncTextInput
+                  value={termNote}
+                  onChangeText={setTermNote}
+                  placeholder="Nhập ghi chú chi tiết..."
+                  placeholderTextColor={theme.textInactive}
+                  multiline
+                  numberOfLines={3}
+                  style={{
+                    borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                    fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 24, textAlignVertical: 'top', minHeight: 80
+                  }}
+                />
+
+                <PrimaryButton
+                  title="Gửi yêu cầu"
+                  loading={terminationLoading}
+                  onPress={submitTermination}
+                  style={{ backgroundColor: '#DC2626', borderColor: '#B91C1C' }}
+                />
+                <TouchableOpacity onPress={() => setShowTermModal(false)} disabled={terminationLoading} style={{ marginTop: 14, paddingVertical: 12, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, color: theme.textInactive, fontWeight: '700' }}>Hủy bỏ</Text>
+                </TouchableOpacity>
+              </View>
+              <FloatingKeyboardBar />
+            </View>
+          </Modal>
+
+          {/* ══════════════════════════════════════════════════════════════
+              MODAL: CREATE REPORT
+          ══════════════════════════════════════════════════════════════ */}
+          <Modal visible={showReportModal} transparent animationType="slide">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+              <View style={{ backgroundColor: current.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+                <View style={{ width: 40, height: 4, backgroundColor: current.border, borderRadius: 2, alignSelf: 'center', marginBottom: 22 }} />
+                
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Loại khiếu nại:</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                  {[
+                    { id: 'payment', label: 'Thanh toán' },
+                    { id: 'deposit', label: 'Tiền cọc' },
+                    { id: 'property', label: 'Hư hỏng TS' },
+                    { id: 'contract', label: 'Vi phạm HĐ' },
+                    { id: 'other', label: 'Khác' }
+                  ].map(item => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => setReportType(item.id)}
+                      style={{
+                        paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8,
+                        backgroundColor: reportType === item.id ? '#FEF3C7' : current.card,
+                        borderWidth: 1, borderColor: reportType === item.id ? '#D97706' : current.border
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: reportType === item.id ? '#D97706' : current.text }}>{item.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Mức độ ưu tiên:</Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                  {[
+                    { id: 'low', label: 'Thấp', color: '#64748b', bg: '#f1f5f9' },
+                    { id: 'medium', label: 'Trung bình', color: '#f59e0b', bg: '#fef3c7' },
+                    { id: 'high', label: 'Cao', color: '#ef4444', bg: '#fee2e2' }
+                  ].map(item => (
+                    <TouchableOpacity
+                      key={item.id}
+                      onPress={() => setReportPriority(item.id)}
+                      style={{
+                        paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8,
+                        backgroundColor: reportPriority === item.id ? item.bg : current.card,
+                        borderWidth: 1, borderColor: reportPriority === item.id ? item.color : current.border
+                      }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: '600', color: reportPriority === item.id ? item.color : current.text }}>{item.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Tiêu đề khiếu nại:</Text>
+                <SyncTextInput
+                  value={reportTitle}
+                  onChangeText={setReportTitle}
+                  placeholder="VD: Chủ nhà không hoàn cọc..."
+                  placeholderTextColor={theme.textInactive}
+                  style={{
+                    borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                    fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 16
+                  }}
+                />
+
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Nội dung chi tiết:</Text>
+                <SyncTextInput
+                  value={reportDesc}
+                  onChangeText={setReportDesc}
+                  placeholder="Mô tả chi tiết vấn đề..."
+                  placeholderTextColor={theme.textInactive}
+                  multiline
+                  numberOfLines={4}
+                  style={{
+                    borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                    fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 16, textAlignVertical: 'top', minHeight: 100
+                  }}
+                />
+
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Tài liệu đính kèm:</Text>
+                <TouchableOpacity onPress={handlePickDocument} style={{ borderWidth: 1, borderColor: current.border, borderStyle: 'dashed', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: reportAttachments.length ? 12 : 24 }}>
+                  <Ionicons name="cloud-upload-outline" size={24} color={theme.textInactive} />
+                  <Text style={{ fontSize: 13, color: theme.textInactive, marginTop: 4 }}>Tải lên hình ảnh, PDF...</Text>
+                </TouchableOpacity>
+                {reportAttachments.length > 0 && (
+                  <View style={{ gap: 8, marginBottom: 24 }}>
+                    {reportAttachments.map((f, i) => (
+                      <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: current.card, padding: 10, borderRadius: 8, borderWidth: 1, borderColor: current.border }}>
+                        <Ionicons name="document-text-outline" size={16} color={theme.textInactive} />
+                        <Text style={{ fontSize: 12, color: current.text, flex: 1, marginLeft: 8 }} numberOfLines={1}>{f.name}</Text>
+                        <TouchableOpacity onPress={() => setReportAttachments(reportAttachments.filter((_, idx) => idx !== i))}>
+                          <Ionicons name="close-circle" size={18} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                <PrimaryButton
+                  title="Gửi khiếu nại"
+                  loading={terminationLoading}
+                  onPress={submitReport}
+                  style={{ backgroundColor: '#D97706', borderColor: '#B45309' }}
+                />
+                <TouchableOpacity onPress={() => setShowReportModal(false)} disabled={terminationLoading} style={{ marginTop: 14, paddingVertical: 12, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, color: theme.textInactive, fontWeight: '700' }}>Hủy bỏ</Text>
+                </TouchableOpacity>
+              </View>
+              <FloatingKeyboardBar />
+            </View>
+          </Modal>
+
+          {/* ══════════════════════════════════════════════════════════════
+              MODAL: REVIEW TERMINATION
+          ══════════════════════════════════════════════════════════════ */}
+          <Modal visible={showReviewTermModal} transparent animationType="slide">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+              <View style={{ backgroundColor: current.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+                <View style={{ width: 40, height: 4, backgroundColor: current.border, borderRadius: 2, alignSelf: 'center', marginBottom: 22 }} />
+                
+                <Text style={{ fontSize: 18, fontWeight: '900', color: current.text, marginBottom: 16 }}>
+                  {reviewTermAction === 'approved' ? 'Chấp thuận yêu cầu chấm dứt' : 'Từ chối yêu cầu chấm dứt'}
+                </Text>
+
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Ghi chú / Lý do:</Text>
+                <SyncTextInput
+                  value={reviewTermNote}
+                  onChangeText={setReviewTermNote}
+                  placeholder={reviewTermAction === 'rejected' ? 'Bắt buộc nhập lý do từ chối...' : 'Nhập ghi chú thêm (không bắt buộc)...'}
+                  placeholderTextColor={theme.textInactive}
+                  multiline
+                  numberOfLines={4}
+                  style={{
+                    borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                    fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 24, textAlignVertical: 'top', minHeight: 100
+                  }}
+                />
+
+                <PrimaryButton
+                  title="Xác nhận"
+                  loading={terminationLoading}
+                  onPress={submitReviewTermination}
+                  style={{ backgroundColor: reviewTermAction === 'approved' ? '#16A34A' : '#DC2626', borderColor: reviewTermAction === 'approved' ? '#15803D' : '#B91C1C' }}
+                />
+                <TouchableOpacity onPress={() => setShowReviewTermModal(false)} disabled={terminationLoading} style={{ marginTop: 14, paddingVertical: 12, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, color: theme.textInactive, fontWeight: '700' }}>Hủy bỏ</Text>
+                </TouchableOpacity>
+              </View>
+              <FloatingKeyboardBar />
+            </View>
+          </Modal>
+
+          {/* ══════════════════════════════════════════════════════════════
+              MODAL: UPDATE TERMINATION
+          ══════════════════════════════════════════════════════════════ */}
+          <Modal visible={showUpdateTermModal} transparent animationType="slide">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+              <View style={{ backgroundColor: current.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+                <View style={{ width: 40, height: 4, backgroundColor: current.border, borderRadius: 2, alignSelf: 'center', marginBottom: 22 }} />
+                
+                <Text style={{ fontSize: 18, fontWeight: '900', color: current.text, marginBottom: 16 }}>Cập nhật yêu cầu chấm dứt</Text>
+
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Ghi chú cập nhật:</Text>
+                <SyncTextInput
+                  value={updateTermNote}
+                  onChangeText={setUpdateTermNote}
+                  placeholder={updateTermStatus === 'admin_review' ? 'Bắt buộc nhập lý do gửi quản trị viên...' : 'Nhập ghi chú chi tiết...'}
+                  placeholderTextColor={theme.textInactive}
+                  multiline
+                  numberOfLines={4}
+                  style={{
+                    borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                    fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 24, textAlignVertical: 'top', minHeight: 100
+                  }}
+                />
+
+                <PrimaryButton
+                  title="Cập nhật"
+                  loading={terminationLoading}
+                  onPress={submitUpdateTermination}
+                />
+                <TouchableOpacity onPress={() => setShowUpdateTermModal(false)} disabled={terminationLoading} style={{ marginTop: 14, paddingVertical: 12, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 14, color: theme.textInactive, fontWeight: '700' }}>Hủy bỏ</Text>
+                </TouchableOpacity>
+              </View>
+              <FloatingKeyboardBar />
+            </View>
+          </Modal>
 
           {/* ══════════════════════════════════════════════════════════════
               SMARTCA MODAL – Step 1: Confirm (IDLE)

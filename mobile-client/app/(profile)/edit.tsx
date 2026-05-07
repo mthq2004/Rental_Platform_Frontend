@@ -16,8 +16,8 @@ import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import DateTimePicker, { DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import CustomInput from "@/components/CustomInput";
+import CustomDatePicker from "@/components/CustomDatePicker";
 import { useAppDispatch, useAppSelector } from "@/store/hook";
 import { getProfile, updateAvatar, updateProfile, requestPhoneUpdateOtp, verifyPhoneUpdateOtp, requestEmailVerificationOtp, verifyEmailOtp } from "@/store/slices/auth.slice";
 import KeyboardSafeWrapper from "@/components/KeyboardSafeWrapper";
@@ -29,6 +29,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { CheckCircle, Shield, User, Camera, Fingerprint, X } from "lucide-react-native";
 import { validatePhoneRealtime, validateEmailRealtime, validateFullNameRealtime, validatePhone, validateEmail, validateFullName, formatFullName } from "@/utils/validation";
 import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
+import FloatingKeyboardBar from '@/components/common/FloatingKeyboardBar';
+import SyncTextInput from "@/components/common/SyncTextInput";
 
 const EditProfile = () => {
   useEnableFloatingKeyboard();
@@ -41,20 +43,19 @@ const EditProfile = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [error, setError] = useState("");
   const [phoneHint, setPhoneHint] = useState<string | null>(null);
   const [emailHint, setEmailHint] = useState<string | null>(null);
   const [nameHint, setNameHint] = useState<string | null>(null);
+  const [gender, setGender] = useState<"male" | "female" | "other" | "">("");
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   const [otpModalVisible, setOtpModalVisible] = useState(false);
   const [otpType, setOtpType] = useState<'phone' | 'email'>('phone');
   const [otpCode, setOtpCode] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
-  const [pendingChanges, setPendingChanges] = useState<{phone?: string, email?: string, otherPayload?: any}>({});
+  const [pendingChanges, setPendingChanges] = useState<{ phone?: string, email?: string, otherPayload?: any }>({});
 
   const isKycApproved = user?.kycStatus === 'approved' || user?.kycStatus === 'verified';
 
@@ -75,37 +76,20 @@ const EditProfile = () => {
     dispatch(resetMessage());
   }, [message, dispatch]);
 
-  const formatDate = (date: Date) => {
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, "0");
-    const day = `${date.getDate()}`.padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
 
-  const formatDisplayDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    const parts = dateStr.split('-');
-    if (parts.length !== 3) return dateStr;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  };
-
-  const pickerValue = useMemo(() => {
-    if (!dateOfBirth) {
-      return new Date(2000, 0, 1);
-    }
-    const parsed = new Date(dateOfBirth);
-    return Number.isNaN(parsed.getTime()) ? new Date(2000, 0, 1) : parsed;
-  }, [dateOfBirth]);
 
   useEffect(() => {
     if (!user) return;
-    setAvatar(user.avatarUrl || "https://i.pravatar.cc/300");
+    setAvatar(user.avatarUrl || "");
     setFullName(user.fullName || "");
     setEmail(user.email || "");
     setPhone(user.phone || "");
-    setDateOfBirth(user.dateOfBirth ? String(user.dateOfBirth).slice(0, 10) : "");
+    const initialDob = user.dateOfBirth ? new Date(user.dateOfBirth) : null;
+    setDateOfBirth(initialDob);
     setGender(user.gender || "");
   }, [user]);
+
+
 
   const doPickFromLibrary = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -199,13 +183,15 @@ const EditProfile = () => {
       }
     }
 
-    const normalizedDob = dateOfBirth.trim();
+    let normalizedDob = "";
+    if (dateOfBirth) {
+      const year = dateOfBirth.getFullYear();
+      const month = `${dateOfBirth.getMonth() + 1}`.padStart(2, "0");
+      const day = `${dateOfBirth.getDate()}`.padStart(2, "0");
+      normalizedDob = `${year}-${month}-${day}`;
+    }
+
     if (normalizedDob) {
-      const dobPattern = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dobPattern.test(normalizedDob)) {
-        setError("Ngày sinh phải đúng định dạng YYYY-MM-DD");
-        return;
-      }
       const parsedDob = new Date(normalizedDob);
       if (Number.isNaN(parsedDob.getTime()) || parsedDob > new Date()) {
         setError("Ngày sinh không hợp lệ");
@@ -271,7 +257,7 @@ const EditProfile = () => {
     try {
       if (otpType === 'phone') {
         await dispatch(verifyPhoneUpdateOtp({ phone: pendingChanges.phone!, otp: otpCode })).unwrap();
-        
+
         // Success phone, check email
         if (pendingChanges.email) {
           await dispatch(requestEmailVerificationOtp(pendingChanges.email)).unwrap();
@@ -288,7 +274,7 @@ const EditProfile = () => {
         }
       } else {
         await dispatch(verifyEmailOtp({ email: pendingChanges.email, otp: otpCode })).unwrap();
-        
+
         // Success email, save rest of profile
         if (Object.keys(pendingChanges.otherPayload).length > 0) {
           await dispatch(updateProfile(pendingChanges.otherPayload)).unwrap();
@@ -304,18 +290,7 @@ const EditProfile = () => {
     }
   };
 
-  const handleDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    if (event.type === "dismissed") {
-      setShowDatePicker(false);
-      return;
-    }
-    if (selectedDate) {
-      setDateOfBirth(formatDate(selectedDate));
-    }
-    if (event.type === "set") {
-      setShowDatePicker(false);
-    }
-  };
+
 
   const genderLabel = (val: string) => {
     if (val === 'male') return 'Nam';
@@ -329,14 +304,42 @@ const EditProfile = () => {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#19191a' : '#FFFFFF'} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={22} color={isDark ? '#fff' : '#1f2937'} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: COLORS.primary }]}>
-          Chỉnh sửa trang cá nhân
-        </Text>
-        <View style={{ width: 36 }} />
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        height: 60,
+        backgroundColor: isDark ? '#111827' : '#FFF',
+        borderBottomWidth: 1,
+        borderBottomColor: isDark ? '#1F2937' : '#F3F4F6',
+        zIndex: 1000
+      }}>
+        <View style={{ zIndex: 10 }}>
+          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#374151'} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{
+          position: 'absolute',
+          left: 0, right: 0, top: 0, bottom: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 5,
+          pointerEvents: 'none'
+        }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '700',
+            color: isDark ? '#FFF' : '#111827',
+            letterSpacing: -0.3
+          }}>
+            Chỉnh sửa trang cá nhân
+          </Text>
+        </View>
+
+        <View style={{ width: 40, zIndex: 10 }} />
       </View>
 
       <KeyboardSafeWrapper
@@ -347,7 +350,7 @@ const EditProfile = () => {
         <View style={styles.avatarSection}>
           <TouchableOpacity onPress={handleEditAvatar} activeOpacity={0.8} style={styles.avatarTouchable}>
             <View style={styles.avatarRing}>
-              {avatar ? (
+              {avatar && avatar !== "https://i.pravatar.cc/300" ? (
                 <Image source={{ uri: avatar }} style={styles.avatarImage} />
               ) : (
                 <View style={[styles.avatarImage, styles.avatarPlaceholder]}>
@@ -368,68 +371,51 @@ const EditProfile = () => {
         {/* Form */}
         <View style={styles.formSection}>
           {/* Full Name */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel} className="text-gray-500 dark:text-gray-400">Họ và tên</Text>
-            <View style={[styles.fieldInput, { borderColor: isDark ? '#374151' : '#e5e7eb', backgroundColor: isDark ? '#1f2937' : '#fff' }]}>
-              <Text
-                style={[styles.fieldValue, { color: isDark ? '#f9fafb' : '#1f2937' }]}
-                numberOfLines={1}
-              >
-                {fullName || 'Chưa cập nhật'}
-              </Text>
-            </View>
-            <CustomInput
-              label=""
-              placeholder="Nhập họ và tên"
-              value={fullName}
-              onChangeText={(text) => {
-                setFullName(text);
-                setNameHint(validateFullNameRealtime(text));
-              }}
-              onBlur={() => {
-                const formatted = formatFullName(fullName);
-                setFullName(formatted);
-                setNameHint(validateFullNameRealtime(formatted));
-              }}
-              icon="person-outline"
-              error={nameHint ?? undefined}
-            />
-          </View>
+          <CustomInput
+            label="Họ và tên"
+            placeholder="Nhập họ và tên"
+            value={fullName}
+            onChangeText={(text) => {
+              setFullName(text);
+              setNameHint(validateFullNameRealtime(text));
+            }}
+            onBlur={() => {
+              const formatted = formatFullName(fullName);
+              setFullName(formatted);
+              setNameHint(validateFullNameRealtime(formatted));
+            }}
+            icon="person-outline"
+            error={nameHint ?? undefined}
+          />
 
           {/* Phone */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel} className="text-gray-500 dark:text-gray-400">Số điện thoại</Text>
-            <CustomInput
-              label=""
-              placeholder="VD: 0912345678"
-              value={phone}
-              onChangeText={(text) => {
-                setPhone(text);
-                setPhoneHint(validatePhoneRealtime(text));
-              }}
-              keyboardType="phone-pad"
-              icon="call-outline"
-              maxLength={12}
-              error={phoneHint ?? undefined}
-            />
-          </View>
+          <CustomInput
+            label="Số điện thoại"
+            placeholder="VD: 0912345678"
+            value={phone}
+            onChangeText={(text) => {
+              setPhone(text);
+              setPhoneHint(validatePhoneRealtime(text));
+            }}
+            keyboardType="phone-pad"
+            icon="call-outline"
+            maxLength={12}
+            error={phoneHint ?? undefined}
+          />
 
           {/* Email */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel} className="text-gray-500 dark:text-gray-400">Email</Text>
-            <CustomInput
-              label=""
-              placeholder="VD: example@gmail.com"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setEmailHint(validateEmailRealtime(text));
-              }}
-              keyboardType="email-address"
-              icon="mail-outline"
-              error={emailHint ?? undefined}
-            />
-          </View>
+          <CustomInput
+            label="Email"
+            placeholder="VD: example@gmail.com"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              setEmailHint(validateEmailRealtime(text));
+            }}
+            keyboardType="email-address"
+            icon="mail-outline"
+            error={emailHint ?? undefined}
+          />
 
           {/* Gender */}
           <View style={styles.fieldGroup}>
@@ -469,36 +455,14 @@ const EditProfile = () => {
           </View>
 
           {/* Date of Birth */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.fieldLabel} className="text-gray-500 dark:text-gray-400">Ngày sinh</Text>
-            <Pressable
-              onPress={() => setShowDatePicker(true)}
-              style={[styles.datePickerButton, { borderColor: isDark ? '#374151' : '#e5e7eb', backgroundColor: isDark ? '#1f2937' : '#fff' }]}
-            >
-              <Text style={{ color: dateOfBirth ? (isDark ? '#f9fafb' : '#1f2937') : '#9ca3af', fontSize: 15 }}>
-                {dateOfBirth ? formatDisplayDate(dateOfBirth) : 'Chọn ngày sinh'}
-              </Text>
-              <Ionicons name="calendar-outline" size={20} color="#9CA3AF" />
-            </Pressable>
-
-            {showDatePicker ? (
-              <View style={[styles.datePickerContainer, { borderColor: isDark ? '#374151' : '#e5e7eb', backgroundColor: isDark ? '#1f2937' : '#fff' }]}>
-                <DateTimePicker
-                  value={pickerValue}
-                  mode="date"
-                  display="default"
-                  maximumDate={new Date()}
-                  onChange={handleDateChange}
-                />
-                <TouchableOpacity
-                  onPress={() => setShowDatePicker(false)}
-                  style={[styles.datePickerDone, { borderTopColor: isDark ? '#374151' : '#e5e7eb' }]}
-                >
-                  <Text style={{ color: COLORS.primary, fontWeight: '600' }}>Xong</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-          </View>
+          <CustomDatePicker
+            label="Ngày sinh"
+            placeholder="Chọn ngày sinh"
+            value={dateOfBirth}
+            onChange={setDateOfBirth}
+            icon="calendar-outline"
+            maximumDate={new Date()}
+          />
 
           {/* eKYC / Verification Badge */}
           {isKycApproved ? (
@@ -560,6 +524,63 @@ const EditProfile = () => {
           </TouchableOpacity>
         </View>
       </KeyboardSafeWrapper>
+
+      <Modal visible={otpModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: isDark ? '#1f2937' : '#fff', borderRadius: 20, padding: 24, alignItems: 'center' }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: isDark ? 'rgba(37,99,235,0.2)' : '#EFF6FF', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <Shield size={32} color={COLORS.primary} />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: '800', color: isDark ? '#f9fafb' : '#111827', marginBottom: 8, textAlign: 'center' }}>
+              Xác thực OTP
+            </Text>
+            <Text style={{ fontSize: 14, color: isDark ? '#9ca3af' : '#6b7280', textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
+              Mã xác thực đã được gửi đến {otpType === 'phone' ? 'số điện thoại' : 'email'} của bạn. Vui lòng nhập mã để tiếp tục.
+            </Text>
+
+            <SyncTextInput
+              value={otpCode}
+              onChangeText={setOtpCode}
+              placeholder="Nhập mã 6 chữ số"
+              placeholderTextColor={isDark ? '#6b7280' : '#9ca3af'}
+              keyboardType="number-pad"
+              maxLength={6}
+              style={{
+                width: '100%',
+                backgroundColor: isDark ? '#374151' : '#F3F4F6',
+                borderRadius: 12,
+                padding: 16,
+                fontSize: 18,
+                fontWeight: '600',
+                letterSpacing: 4,
+                textAlign: 'center',
+                color: isDark ? '#f9fafb' : '#111827',
+                marginBottom: 24,
+                borderWidth: 1,
+                borderColor: isDark ? '#4b5563' : '#e5e7eb'
+              }}
+            />
+
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => setOtpModalVisible(false)}
+                style={{ flex: 1, paddingVertical: 14, backgroundColor: isDark ? '#374151' : '#F3F4F6', borderRadius: 12, alignItems: 'center' }}
+              >
+                <Text style={{ fontWeight: '700', color: isDark ? '#d1d5db' : '#4b5563' }}>Hủy bỏ</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleVerifyOtp}
+                disabled={otpCode.length !== 6 || otpLoading}
+                style={{ flex: 1, paddingVertical: 14, backgroundColor: otpCode.length !== 6 || otpLoading ? '#9CA3AF' : COLORS.primary, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+              >
+                {otpLoading ? <ActivityIndicator size="small" color="#fff" /> : null}
+                <Text style={{ fontWeight: '700', color: '#fff' }}>Xác nhận</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <FloatingKeyboardBar />
+        </View>
+      </Modal>
 
       <Toast
         visible={toast.visible}
@@ -643,22 +664,20 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 6,
   },
-  fieldInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 4,
-    display: 'none', // hidden, we use CustomInput
-  },
   fieldValue: {
     fontSize: 15,
   },
+  fieldInput: {
+    height: 50,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   genderRow: {
     flexDirection: 'row',
-    gap: 10,
     marginBottom: 8,
-    flexDirection: "row",
     gap: 12,
   },
   genderChip: {
@@ -668,26 +687,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-  },
-  datePickerButton: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  datePickerContainer: {
-    borderWidth: 1,
-    borderRadius: 12,
-    marginTop: 8,
-    overflow: 'hidden',
-  },
-  datePickerDone: {
-    padding: 12,
-    alignItems: 'center',
-    borderTopWidth: 1,
   },
   verificationBadge: {
     flexDirection: "row",

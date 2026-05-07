@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -29,6 +29,40 @@ import {
 } from '@/store/slices/location.slice';
 import AdvancedFilterModal from '@/components/post/filters/AdvancedFilterModal';
 import GooeyRefreshScrollView from '@/components/common/GooeyRefreshScrollView';
+import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
+
+/** Generate page number array with ellipsis, e.g. [1, 2, 3, '...', 10] */
+function generatePageNumbers(current: number, totalPages: number): (number | "...")[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const pages: (number | "...")[] = [];
+
+  // Always show first page
+  pages.push(1);
+
+  if (current <= 4) {
+    // Show first 5 pages + ellipsis + last
+    for (let i = 2; i <= 5; i++) pages.push(i);
+    pages.push("...");
+    pages.push(totalPages);
+  } else if (current >= totalPages - 3) {
+    // Show first + ellipsis + last 5 pages
+    pages.push("...");
+    for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+  } else {
+    // Show first + ellipsis + current-1, current, current+1 + ellipsis + last
+    pages.push("...");
+    pages.push(current - 1);
+    pages.push(current);
+    pages.push(current + 1);
+    pages.push("...");
+    pages.push(totalPages);
+  }
+
+  return pages;
+}
 
 interface LocationParams {
   provinces?: Item[];
@@ -77,6 +111,7 @@ const buildKeyword = (parts: Array<string | undefined>): string => {
 };
 
 const FilterSearch: React.FC = () => {
+  useEnableFloatingKeyboard();
   const {
     keyword,
     propertyType,
@@ -138,8 +173,7 @@ const FilterSearch: React.FC = () => {
   );
   const [addressKeyword, setAddressKeyword] = useState('');
 
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null]);
+  const scrollRef = useRef<ScrollView>(null);
   const [pageIndex, setPageIndex] = useState(1);
 
   useEffect(() => {
@@ -176,8 +210,6 @@ const FilterSearch: React.FC = () => {
   }, [selectedLocation]);
 
   const locationKeyword = useMemo(() => {
-    // Use the most specific selected level to avoid over-constrained keyword
-    // queries that return empty results.
     return wardParam || districtParam || cityParam;
   }, [wardParam, districtParam, cityParam]);
 
@@ -189,14 +221,10 @@ const FilterSearch: React.FC = () => {
     ]);
   }, [searchText, addressKeyword, locationKeyword]);
 
-  // Always keep location matching in keyword mode to support relative matches
-  // (e.g. "Thành phố Hồ Chí Minh" vs "Hồ Chí Minh").
   const cityQueryParam = '';
   const districtQueryParam = '';
 
   const resetPaging = useCallback(() => {
-    setCursor(null);
-    setCursorHistory([null]);
     setPageIndex(1);
   }, []);
 
@@ -214,7 +242,7 @@ const FilterSearch: React.FC = () => {
           district: districtQueryParam,
           bedrooms: selectedBedrooms,
           sortBy: sort,
-          cursor,
+          page: pageIndex,
           limit: 10,
         })
       );
@@ -233,7 +261,7 @@ const FilterSearch: React.FC = () => {
     districtQueryParam,
     selectedBedrooms,
     sort,
-    cursor,
+    pageIndex,
   ]);
 
   const handleRefresh = () => {
@@ -252,7 +280,7 @@ const FilterSearch: React.FC = () => {
         district: districtQueryParam,
         bedrooms: selectedBedrooms,
         sortBy: sort,
-        cursor: null,
+        page: 1,
         limit: 10,
       })
     ).finally(() => setRefreshing(false));
@@ -331,24 +359,9 @@ const FilterSearch: React.FC = () => {
     resetPaging();
   };
 
-  const goToNextPage = () => {
-    if (!nextCursor || !hasMore) return;
-
-    setCursor(nextCursor);
-    setCursorHistory((prev) => [...prev, nextCursor]);
-    setPageIndex((prev) => prev + 1);
-  };
-
-  const goToPrevPage = () => {
-    if (pageIndex <= 1) return;
-
-    setCursorHistory((prev) => {
-      const newHistory = prev.slice(0, -1);
-      const prevCursor = newHistory[newHistory.length - 1] ?? null;
-      setCursor(prevCursor);
-      return newHistory;
-    });
-    setPageIndex((prev) => prev - 1);
+  const goToPage = (page: number) => {
+    setPageIndex(page);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   const visibleData = useMemo(() => {
@@ -414,6 +427,10 @@ const FilterSearch: React.FC = () => {
     });
   };
 
+  const limit = 10;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const pages = generatePageNumbers(pageIndex, totalPages);
+
   return (
     <View className="flex-1 bg-gray-50 dark:bg-background-dark">
       <SearchHeader
@@ -440,6 +457,7 @@ const FilterSearch: React.FC = () => {
       />
 
       <GooeyRefreshScrollView
+        ref={scrollRef}
         refreshing={refreshing}
         onRefresh={handleRefresh}
         stickyHeaderIndices={[0, 1]}
@@ -484,25 +502,45 @@ const FilterSearch: React.FC = () => {
                 Trang {pageIndex} • Tổng {total} kết quả
               </Text>
 
-              <View className="flex-row gap-3">
+              <View className="flex-row justify-center gap-2">
                 <TouchableOpacity
                   disabled={pageIndex <= 1}
-                  onPress={goToPrevPage}
-                  className={`flex-1 py-3 rounded-xl items-center ${
-                    pageIndex <= 1 ? 'bg-gray-200 dark:bg-gray-700' : 'bg-gray-900 dark:bg-gray-700'
-                  }`}
+                  onPress={() => goToPage(pageIndex - 1)}
+                  className={`w-10 h-10 items-center justify-center rounded-xl ${pageIndex <= 1 ? 'bg-gray-200' : 'bg-white border border-gray-200'}`}
                 >
-                  <Text className="text-white font-semibold">Trang trước</Text>
+                  <Text className={pageIndex <= 1 ? 'text-gray-400' : 'text-gray-700'}>{"<"}</Text>
                 </TouchableOpacity>
 
+                {pages.map((page, idx) => {
+                  if (page === "...") {
+                    return (
+                      <View key={`ellipsis-${idx}`} className="w-10 h-10 items-center justify-center">
+                        <Text className="text-gray-400">···</Text>
+                      </View>
+                    );
+                  }
+                  return (
+                    <TouchableOpacity
+                      key={page}
+                      onPress={() => goToPage(page as number)}
+                      className={`w-10 h-10 items-center justify-center rounded-xl ${page === pageIndex
+                          ? 'bg-blue-600'
+                          : 'bg-white border border-gray-200'
+                        }`}
+                    >
+                      <Text className={`font-semibold ${page === pageIndex ? 'text-white' : 'text-gray-700'}`}>
+                        {page}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+
                 <TouchableOpacity
-                  disabled={!hasMore || !nextCursor}
-                  onPress={goToNextPage}
-                  className={`flex-1 py-3 rounded-xl items-center ${
-                    !hasMore || !nextCursor ? 'bg-gray-200 dark:bg-gray-700' : 'bg-blue-600'
-                  }`}
+                  disabled={pageIndex >= totalPages}
+                  onPress={() => goToPage(pageIndex + 1)}
+                  className={`w-10 h-10 items-center justify-center rounded-xl ${pageIndex >= totalPages ? 'bg-gray-200' : 'bg-white border border-gray-200'}`}
                 >
-                  <Text className="text-white font-semibold">Trang sau</Text>
+                  <Text className={pageIndex >= totalPages ? 'text-gray-400' : 'text-gray-700'}>{">"}</Text>
                 </TouchableOpacity>
               </View>
             </View>

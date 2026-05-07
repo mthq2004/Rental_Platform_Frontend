@@ -16,6 +16,8 @@ const ResetPasswordScreen = () => {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string>("");
   const dispatch = useAppDispatch();
   const { loading } = useAppSelector((state) => state.auth);
@@ -72,15 +74,21 @@ const ResetPasswordScreen = () => {
         placeholder="Nhập mật khẩu mới"
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
+        secureTextEntry={!showPassword}
+        showPasswordToggle
+        onTogglePassword={() => setShowPassword(!showPassword)}
+        icon="lock-closed-outline"
       />
 
       <CustomInput
         label="Nhập lại mật khẩu"
-        placeholder="Nhập lại mật khẩu mớis"
+        placeholder="Nhập lại mật khẩu mới"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
-        secureTextEntry
+        secureTextEntry={!showConfirmPassword}
+        showPasswordToggle
+        onTogglePassword={() => setShowConfirmPassword(!showConfirmPassword)}
+        icon="lock-closed-outline"
       />
 
       {error ? <Text className="text-red-500 text-sm mb-4">{error}</Text> : null}

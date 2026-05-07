@@ -10,6 +10,7 @@ import {
   Dimensions,
   StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import {
   Heart,
   Bookmark,
@@ -28,6 +29,7 @@ import {
   Key,
   Fingerprint,
   Wallet,
+  Users,
 } from 'lucide-react-native';
 import DarkModeToggle from '@/components/ThemeToggle';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
@@ -38,6 +40,7 @@ import { useCallback } from 'react';
 import { useColorScheme } from 'nativewind';
 import { COLORS } from '@/utils/colors';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { getMyContracts, getOwnerRequests } from '@/store/slices/contract.slice';
 
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -157,6 +160,8 @@ const AuthenticatedProfile = () => {
   useFocusEffect(
     useCallback(() => {
       dispatch(getWalletOverview());
+      dispatch(getMyContracts({ limit: 100 }));
+      dispatch(getOwnerRequests());
     }, [dispatch])
   );
 
@@ -198,6 +203,11 @@ const AuthenticatedProfile = () => {
     },
   ];
 
+  const { contracts, ownerRequests } = useAppSelector(state => state.contract);
+  const isLandlord = user?.role === 'admin' || 
+                     (Array.isArray(ownerRequests) && ownerRequests.length > 0) || 
+                     (Array.isArray(contracts) && contracts.some(c => c.ownerId === user?.id));
+
   const ACTIVITY_MENU = [
     {
       icon: Heart,
@@ -212,23 +222,23 @@ const AuthenticatedProfile = () => {
       iconColor: '#2563eb',
     },
     {
+      icon: Clock,
+      title: 'Lịch xem nhà',
+      onPress: () => router.push('/(rental)/bookings' as any),
+      iconColor: '#10b981',
+    },
+    {
       icon: FileText,
       title: 'Quản lý hợp đồng',
       onPress: () => router.push('/(rental)/contracts'),
       iconColor: '#8b5cf6',
     },
-    {
-      icon: Search,
-      title: 'Tìm kiếm đã lưu',
-      onPress: () => Alert.alert('Tìm kiếm đã lưu'),
-      iconColor: '#a855f7',
-    },
-    {
-      icon: Clock,
-      title: 'Lịch sử đã xem',
-      onPress: () => Alert.alert('Lịch sử xem tin'),
+    ...(isLandlord ? [{
+      icon: Users,
+      title: 'Quản lý khách hàng',
+      onPress: () => router.push('/(profile)/customers'),
       iconColor: '#f59e0b',
-    },
+    }] : []),
   ];
 
   return (
@@ -240,7 +250,7 @@ const AuthenticatedProfile = () => {
       {/* Profile Header */}
       <View className="items-center pt-6 pb-4">
         <View style={styles.avatarWrapper}>
-          {user?.avatarUrl ? (
+          {user?.avatarUrl && user?.avatarUrl !== "https://i.pravatar.cc/300" ? (
             <Image
               source={{ uri: user.avatarUrl }}
               style={styles.avatar}
@@ -338,11 +348,11 @@ const AuthenticatedProfile = () => {
               Ví EstatePro
             </Text>
             {walletOverviewLoading ? (
-               <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1">Đang tải...</Text>
+              <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1">Đang tải...</Text>
             ) : (
-               <Text className="text-teal-600 dark:text-teal-500 font-bold text-sm mt-1">
-                 {walletOverview?.availableBalance?.toLocaleString('vi-VN')} VND
-               </Text>
+              <Text className="text-teal-600 dark:text-teal-500 font-bold text-sm mt-1">
+                {walletOverview?.availableBalance?.toLocaleString('vi-VN')} VND
+              </Text>
             )}
           </View>
           <ChevronRight size={18} color="#9CA3AF" />
@@ -424,14 +434,46 @@ const ProfileScreen = () => {
       />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.canGoBack() && router.back()} activeOpacity={0.7}>
-          <Text className="text-primary text-base">{'‹'}</Text>
-        </TouchableOpacity>
-        <Text className="text-foreground dark:text-foreground-dark text-lg font-bold">
-          Tài khoản
-        </Text>
-        <View style={{ width: 20 }} />
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        height: 60,
+        backgroundColor: isDark ? '#111827' : '#FFF',
+        borderBottomWidth: 1,
+        borderBottomColor: isDark ? '#1F2937' : '#F3F4F6',
+        zIndex: 1000
+      }}>
+        <View style={{ zIndex: 10 }}>
+          {router.canGoBack() ? (
+            <TouchableOpacity onPress={() => router.back()} style={{ width: 44, height: 44, justifyContent: 'center' }}>
+              <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#374151'} />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 44, height: 44 }} />
+          )}
+        </View>
+
+        <View style={{
+          position: 'absolute',
+          left: 0, right: 0, top: 0, bottom: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 5,
+          pointerEvents: 'none'
+        }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '700',
+            color: isDark ? '#FFF' : '#111827',
+            letterSpacing: -0.3
+          }}>
+            Tài khoản
+          </Text>
+        </View>
+
+        <View style={{ width: 44, zIndex: 10 }} />
       </View>
 
       {isAuth ? <AuthenticatedProfile /> : <GuestProfile />}

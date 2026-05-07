@@ -1,6 +1,8 @@
 import { View, Text, Image, TouchableOpacity, ScrollView, Alert, TextInput, useColorScheme } from 'react-native'
 import React, { useState } from 'react'
+import { useAppSelector } from '@/store/hook'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
+import { User } from 'lucide-react-native'
 import { PropertyListItem } from '@/types/property.type';
 
 export interface PropertyReview {
@@ -377,9 +379,9 @@ const OwnerCardSection = ({
     >
       <View className="flex-row items-start gap-4 mb-4">
         <View
-          className="w-16 h-16 rounded-full items-center justify-center"
+          className="w-16 h-16 rounded-full items-center justify-center overflow-hidden"
           style={{
-            backgroundColor: colors.accent.yellow,
+            backgroundColor: owner.avatarUrl && owner.avatarUrl !== "https://i.pravatar.cc/300" ? 'transparent' : colors.accent.yellow,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.1,
@@ -387,9 +389,11 @@ const OwnerCardSection = ({
             elevation: 3,
           }}
         >
-          <Text className="font-bold text-white text-xl">
-            {owner.fullName.charAt(0).toUpperCase()}
-          </Text>
+          {owner.avatarUrl && owner.avatarUrl !== "https://i.pravatar.cc/300" ? (
+            <Image source={{ uri: owner.avatarUrl }} className="w-16 h-16" />
+          ) : (
+            <User size={32} color="#FFF" />
+          )}
         </View>
 
         <View className="flex-1">
@@ -634,6 +638,7 @@ const RulesSection = ({ rules }: { rules: { text: string; order: number }[] }) =
 const CommentsSection = ({ reviews, isOwner }: { reviews: PropertyReview[]; isOwner: boolean }) => {
   const [comment, setComment] = useState('')
   const colors = useThemeColors()
+  const { user } = useAppSelector(state => state.auth)
 
   if (isOwner) return null
 
@@ -676,11 +681,17 @@ const CommentsSection = ({ reviews, isOwner }: { reviews: PropertyReview[]; isOw
               className="flex-row gap-2 pb-3 border-b last:border-0"
               style={{ borderBottomColor: colors.border.light }}
             >
-              <Image
-                source={{ uri: review.reviewer.avatarUrl }}
-                className="w-8 h-8 rounded-full"
-                style={{ backgroundColor: colors.bg.secondary }}
-              />
+              {review.reviewer.avatarUrl && review.reviewer.avatarUrl !== "https://i.pravatar.cc/300" ? (
+                <Image
+                  source={{ uri: review.reviewer.avatarUrl }}
+                  className="w-8 h-8 rounded-full"
+                  style={{ backgroundColor: colors.bg.secondary }}
+                />
+              ) : (
+                <View className="w-8 h-8 rounded-full items-center justify-center" style={{ backgroundColor: colors.bg.secondary }}>
+                  <User size={16} color={colors.text.tertiary} />
+                </View>
+              )}
               <View className="flex-1">
                 <View className="flex-row items-center justify-between">
                   <Text className="text-sm font-semibold" style={{ color: colors.text.primary }}>
@@ -708,11 +719,17 @@ const CommentsSection = ({ reviews, isOwner }: { reviews: PropertyReview[]; isOw
           backgroundColor: colors.bg.secondary,
         }}
       >
-        <Image
-          source={{ uri: 'https://via.placeholder.com/32' }}
-          className="w-6 h-6 rounded-full"
-          style={{ backgroundColor: colors.bg.tertiary }}
-        />
+        {user?.avatarUrl && user?.avatarUrl !== "https://i.pravatar.cc/300" ? (
+          <Image
+            source={{ uri: user.avatarUrl }}
+            className="w-6 h-6 rounded-full"
+            style={{ backgroundColor: colors.bg.tertiary }}
+          />
+        ) : (
+          <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: colors.bg.tertiary }}>
+            <User size={12} color={colors.text.tertiary} />
+          </View>
+        )}
         <TextInput
           placeholder="Bình luận..."
           placeholderTextColor={colors.text.tertiary}

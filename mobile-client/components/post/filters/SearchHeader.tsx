@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { ChevronDown, ChevronLeft, Heart, MessageCircle, Search } from "lucide-react-native";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import SyncTextInput from "@/components/common/SyncTextInput";
 
 const SearchHeader: React.FC<{
     searchText: string;
@@ -20,10 +21,10 @@ const SearchHeader: React.FC<{
                 <TouchableOpacity onPress={() => router.back()} className="p-1">
                     <ChevronLeft size={24} color="#9CA3AF" strokeWidth={2.5} />
                 </TouchableOpacity>
-
+ 
                 <View className="flex-1 flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-full px-4 py-2">
                     <Search size={18} color="#9CA3AF" strokeWidth={2} />
-                    <TextInput
+                    <SyncTextInput
                         placeholder="Tìm kiếm bất động sản"
                         placeholderTextColor="#D1D5DB"
                         value={searchText}

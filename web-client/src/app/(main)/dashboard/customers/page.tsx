@@ -548,7 +548,7 @@ export default function CustomersPage() {
       <Drawer
         title={null}
         placement="right"
-        width={600}
+        size="large"
         onClose={() => setSelectedCustomer(null)}
         open={!!selectedCustomer}
         closable={false}

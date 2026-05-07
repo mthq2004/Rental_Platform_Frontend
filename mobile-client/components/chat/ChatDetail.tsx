@@ -41,7 +41,11 @@ const ChatDetail = () => {
   const conversation: Conversation = {
     id: params.id,
     status: (params.status as Conversation['status']) ?? 'ACTIVE',
-    participantId: params.participantId,
+    participant: {
+      id: params.participantId,
+      fullName: params.name || '',
+      avatarUrl: params.avatar || ''
+    },
     lastMessage: {
       content: null,
       type: null,
@@ -102,6 +106,7 @@ const ChatDetail = () => {
       duration: null,
       thumbnailUrl: null,
       replyToId: null,
+      replyTo: null,
       isDelivered: false,
       isDeleted: false,
       deletedAt: null,

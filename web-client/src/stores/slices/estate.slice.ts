@@ -238,9 +238,11 @@ export const estateSlice = createSlice({
       .addCase(searchPropertiesThunk.fulfilled, (state, action) => {
         state.search.loading = false;
         state.search.data = action.payload.data;
-        state.search.nextCursor = action.payload.nextCursor;
-        state.search.hasMore = action.payload.hasMore;
-        state.search.total = action.payload.total;
+        // Fix: extract from meta since backend returns { data, meta }
+        const meta = (action.payload as any).meta;
+        state.search.nextCursor = meta?.nextCursor ?? action.payload.nextCursor ?? null;
+        state.search.hasMore = meta?.hasMore ?? action.payload.hasMore ?? false;
+        state.search.total = meta?.total ?? action.payload.total ?? 0;
       })
       .addCase(searchPropertiesThunk.rejected, (state, action) => {
         state.search.loading = false;

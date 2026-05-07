@@ -12,6 +12,7 @@ import PrimaryButton from '@/components/PrimaryButton'
 import WebView from 'react-native-webview'
 import { LinearGradient } from 'expo-linear-gradient'
 import { format } from 'date-fns'
+import ScreenHeader from '@/components/common/ScreenHeader'
 
 const HOLDING_PAYMENT_OPTIONS = [
   { value: 'vnpay', label: 'Cổng thanh toán VNPay', description: 'Thanh toán an toàn qua VNPAY', icon: require('../../assets/images/vnpay.png') },
@@ -59,7 +60,14 @@ const PayDepositScreen = () => {
     if (!requestId) return
     try {
       const result = await dispatch(payHoldingDeposit({ requestId, method: selectedMethod })).unwrap()
-      const paymentTarget = result?.paymentUrl || result?.redirectUrl || result?.payUrl || result?.data?.paymentUrl || result?.data?.redirectUrl || result?.data?.payUrl
+      console.log("kiem tra url payemtn result:", JSON.stringify(result, null, 2));
+      
+      const paymentTarget = result?.paymentUrl || result?.redirectUrl || result?.payUrl 
+        || result?.data?.paymentUrl || result?.data?.redirectUrl || result?.data?.payUrl
+        || result?.data?.data?.paymentUrl || result?.data?.data?.payUrl;
+
+      console.log("kiem tra url payemtn extracted:", paymentTarget);
+
       if (paymentTarget) {
         if (/^https?:\/\//i.test(paymentTarget)) {
           setPaymentUrl(paymentTarget)
@@ -77,7 +85,7 @@ const PayDepositScreen = () => {
 
   if (paymentUrl) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: current.background }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: '#fff' }}>
           <TouchableOpacity onPress={() => setPaymentUrl(null)} style={{ padding: 4 }}>
             <Ionicons name="close" size={24} color={current.text} />
@@ -116,15 +124,10 @@ const PayDepositScreen = () => {
     : 'Hệ thống tự động thiết lập';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
-      {/* Premium Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-        <BackButton onPress={() => router.back()} />
-        <Text style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: '#111827' }}>Thanh toán cọc giữ chỗ</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+      <ScreenHeader title="Thanh toán cọc giữ chỗ" />
 
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ backgroundColor: '#F8F9FA' }} contentContainerStyle={{ padding: 20, paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: fadeAnim.interpolate({ inputRange: [0, 1], outputRange: [20, 0] }) }] }}>
 
           {/* Invoice Card */}

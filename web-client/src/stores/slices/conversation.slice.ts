@@ -7,6 +7,7 @@ type ConversationState = {
   loading: boolean;
   error: string | null;
   conversations: Conversation[];
+  archivedConversations: Conversation[];
   currentConversationId?: string,
   onlineUsers: string[]
 };
@@ -15,6 +16,7 @@ const initialState: ConversationState = {
   loading: false,
   error: null,
   conversations: [],
+  archivedConversations: [],
   onlineUsers: []
 };
 
@@ -72,6 +74,54 @@ export const markAsRead = createAsyncThunk<
     );
   }
 });
+
+export const archiveConversation = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string }
+>(
+  "conversation/archive",
+  async (conversationId, { rejectWithValue }) => {
+    try {
+      await apiClient.post(`/chat/conversations/${conversationId}/archive`);
+      return conversationId;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || "Archive failed");
+    }
+  }
+);
+
+export const deleteConversation = createAsyncThunk<
+  string,
+  string,
+  { rejectValue: string }
+>(
+  "conversation/delete",
+  async (conversationId, { rejectWithValue }) => {
+    try {
+      await apiClient.delete(`/chat/conversations/${conversationId}`);
+      return conversationId;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || "Delete failed");
+    }
+  }
+);
+
+export const fetchArchivedConversations = createAsyncThunk<
+  Conversation[],
+  void,
+  { rejectValue: string }
+>(
+  "conversation/fetchArchived",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await apiClient.get("/chat/conversations/archived");
+      return res.data;
+    } catch (err: any) {
+      return rejectWithValue(err.response?.data?.message || "Fetch archived failed");
+    }
+  }
+);
 
 const conversationSlice = createSlice({
   name: "conversation",
@@ -191,6 +241,28 @@ const conversationSlice = createSlice({
       if (conversation) {
         conversation.unreadCount = 0;
       }
+    });
+
+    builder.addCase(archiveConversation.fulfilled, (state, action) => {
+      state.conversations = state.conversations.filter(c => c.id !== action.payload);
+      state.archivedConversations = state.archivedConversations.filter(c => c.id !== action.payload);
+    });
+
+    builder.addCase(deleteConversation.fulfilled, (state, action) => {
+      state.conversations = state.conversations.filter(c => c.id !== action.payload);
+      state.archivedConversations = state.archivedConversations.filter(c => c.id !== action.payload);
+    });
+
+    builder.addCase(fetchArchivedConversations.pending, (state) => {
+      state.loading = true;
+    })
+    .addCase(fetchArchivedConversations.fulfilled, (state, action) => {
+      state.loading = false;
+      state.archivedConversations = action.payload;
+    })
+    .addCase(fetchArchivedConversations.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload || "Error";
     });
   },
 });

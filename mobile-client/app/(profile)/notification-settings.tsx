@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StatusBar, useColorScheme, Switch } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const NotificationSettingsScreen = () => {
   const colorScheme = useColorScheme();
@@ -42,20 +43,49 @@ const NotificationSettingsScreen = () => {
   );
 
   return (
-    <View className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#111827' : '#FFF' }}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor={colors.current.background}
       />
 
       {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-gray-100 dark:border-gray-700 mt-12 gap-3">
-        <TouchableOpacity onPress={() => router.back()} className="p-1">
-          <Ionicons name="arrow-back" size={24} color={colors.current.icon} />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-foreground dark:text-foreground-dark">
-          Cài đặt thông báo
-        </Text>
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        height: 60,
+        backgroundColor: isDark ? '#111827' : '#FFF',
+        borderBottomWidth: 1,
+        borderBottomColor: isDark ? '#1F2937' : '#F3F4F6',
+        zIndex: 1000
+      }}>
+        <View style={{ zIndex: 10 }}>
+          <TouchableOpacity onPress={() => router.back()} className="w-11 h-11 items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-full active:bg-gray-200 dark:active:bg-gray-700">
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#374151'} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{
+          position: 'absolute',
+          left: 0, right: 0, top: 0, bottom: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 5,
+          pointerEvents: 'none'
+        }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '700',
+            color: isDark ? '#FFF' : '#111827',
+            letterSpacing: -0.3
+          }}>
+            Cài đặt thông báo
+          </Text>
+        </View>
+
+        <View style={{ width: 40, zIndex: 10 }} />
       </View>
 
       <ScrollView className="flex-1 px-4 pt-2">
@@ -81,7 +111,7 @@ const NotificationSettingsScreen = () => {
           </View>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

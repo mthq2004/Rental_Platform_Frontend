@@ -4,6 +4,7 @@ import contractService from '@/services/contract.service'
 interface ContractState {
   loading: boolean
   myRequests: any[]
+  ownerRequests: any[]
   contracts: any[]
   contractDetail: any | null
   error?: string | null
@@ -12,6 +13,7 @@ interface ContractState {
 const initialState: ContractState = {
   loading: false,
   myRequests: [],
+  ownerRequests: [],
   contracts: [],
   contractDetail: null,
   error: null,
@@ -226,7 +228,11 @@ const slice = createSlice({
       .addCase(getMyRentalRequests.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
 
       .addCase(getOwnerRequests.pending, (state) => { state.loading = true; state.error = null })
-      .addCase(getOwnerRequests.fulfilled, (state) => { state.loading = false })
+      .addCase(getOwnerRequests.fulfilled, (state, action) => {
+        state.loading = false
+        const payload = action.payload
+        state.ownerRequests = Array.isArray(payload) ? payload : payload?.items || payload?.data || []
+      })
       .addCase(getOwnerRequests.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
 
       .addCase(getRequestDetail.pending, (state) => { state.loading = true; state.error = null })

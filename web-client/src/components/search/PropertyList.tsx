@@ -9,8 +9,7 @@ import PropertySearchCard from "./PropertySearchCard";
 
 interface PropertyListProps {
   filters: SearchFilters;
-  onNextPage: (nextCursor: string) => void;
-  onPrevPage: () => void;
+  onGoToPage: (page: number) => void;
   onFilterChange: (partial: Partial<SearchFilters>) => void;
 }
 
@@ -66,7 +65,7 @@ function generatePageNumbers(current: number, totalPages: number): (number | "..
   return pages;
 }
 
-export default function PropertyList({ filters, onNextPage, onPrevPage, onFilterChange }: PropertyListProps) {
+export default function PropertyList({ filters, onGoToPage, onFilterChange }: PropertyListProps) {
   const dispatch = useAppDispatch();
   const { data: properties, loading, error, total, nextCursor, hasMore } =
     useAppSelector((state) => state.estate.search);
@@ -81,7 +80,7 @@ export default function PropertyList({ filters, onNextPage, onPrevPage, onFilter
       areaMax: filters.areaMax,
       city: filters.city || undefined,
       district: filters.district || undefined,
-      cursor: filters.cursor,
+      page: filters.pageIndex,
       limit: 20,
       sortBy: filters.sortBy,
     }));
@@ -89,8 +88,12 @@ export default function PropertyList({ filters, onNextPage, onPrevPage, onFilter
     dispatch,
     filters.keyword, filters.propertyType, filters.priceMin, filters.priceMax,
     filters.areaMin, filters.areaMax, filters.city, filters.district,
-    filters.sortBy, filters.cursor,
+    filters.sortBy, filters.pageIndex,
   ]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [filters.pageIndex]);
 
   const PAGE_SIZE = 20;
   const currentStart = (filters.pageIndex - 1) * PAGE_SIZE + 1;
@@ -110,7 +113,7 @@ export default function PropertyList({ filters, onNextPage, onPrevPage, onFilter
   if (error) {
     return (
       <div className="text-center py-16">
-        <div className="text-5xl mb-4">⚠️</div>
+        {/* <div className="text-5xl mb-4">⚠️</div> */}
         <h3 className="text-lg font-medium text-gray-700 mb-2">{error}</h3>
         <button
           className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600 transition-colors"
@@ -172,10 +175,7 @@ export default function PropertyList({ filters, onNextPage, onPrevPage, onFilter
         <div className="flex items-center justify-center gap-1 mt-8 mb-4">
           {/* Previous button */}
           <button
-            onClick={() => {
-              onFilterChange({ pageIndex: filters.pageIndex - 1 });
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
+            onClick={() => onGoToPage(filters.pageIndex - 1)}
             disabled={filters.pageIndex <= 1}
             className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
               ${filters.pageIndex <= 1
@@ -202,10 +202,7 @@ export default function PropertyList({ filters, onNextPage, onPrevPage, onFilter
                 <button
                   key={page}
                   disabled={isActive}
-                  onClick={() => {
-                    onFilterChange({ pageIndex: page as number });
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
+                  onClick={() => onGoToPage(page as number)}
                   className={`w-10 h-10 rounded-xl text-sm font-medium transition-all duration-200
                     ${isActive
                       ? "bg-blue-500 text-white shadow-lg shadow-blue-200 scale-105"
@@ -220,10 +217,7 @@ export default function PropertyList({ filters, onNextPage, onPrevPage, onFilter
 
           {/* Next button */}
           <button
-            onClick={() => {
-              onFilterChange({ pageIndex: filters.pageIndex + 1 });
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
+            onClick={() => onGoToPage(filters.pageIndex + 1)}
             disabled={filters.pageIndex >= totalPages}
             className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
               ${filters.pageIndex >= totalPages

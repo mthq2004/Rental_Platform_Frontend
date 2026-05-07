@@ -114,9 +114,7 @@ export default function DashboardLayout({
       type: "group",
       label: "QUẢN LÝ",
       children: [
-        ...(menuVisibility.customers
-          ? [{ key: "/dashboard/customers", icon: <TeamOutlined />, label: "Khách hàng" }]
-          : []),
+        { key: "/dashboard/customers", icon: <TeamOutlined />, label: "Khách hàng" },
         ...(menuVisibility.posts
           ? [{ key: "/dashboard/posts", icon: <FileTextOutlined />, label: "Tin đăng" }]
           : []),

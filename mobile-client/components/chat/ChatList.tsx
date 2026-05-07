@@ -1,5 +1,5 @@
-import { Text, View, TouchableOpacity, FlatList, Alert, ScrollView } from 'react-native';
-import React, { useRef, useState } from 'react';
+import { Text, View, TouchableOpacity, FlatList, Alert, RefreshControl } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
 import ChatHeader from './ChatHeader';
 import ChatListItem from './ChatListItem';
 import { Conversation } from '@/types/conversation.type';
@@ -7,7 +7,8 @@ import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import TagModal from './TagModal';
-import { addConversationToCategory } from '@/store/slices/customer-category.slice';
+import { getAllCustomerCategories, addConversationToCategory } from '@/store/slices/customer-category.slice';
+import { fetchConversations, archiveConversation, deleteConversation } from '@/store/slices/conversation.slice';
 import { useColorScheme } from 'nativewind';
 import { router } from 'expo-router';
 
@@ -23,6 +24,7 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('all');
   const [searchText, setSearchText] = useState('');
   const { conversations, loading } = useAppSelector(state => state.conversation);
+  const [refreshing, setRefreshing] = useState(false);
   const [tagModalVisible, setTagModalVisible] = useState(false)
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
   const dispatch = useAppDispatch()
@@ -33,6 +35,20 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
 
   const swipeableRefs = useRef<Map<string, Swipeable | null>>(new Map());
   const currentlyOpenId = useRef<string | null>(null);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        dispatch(fetchConversations()).unwrap(),
+        dispatch(getAllCustomerCategories()).unwrap()
+      ]);
+    } catch (error) {
+      console.error("Refresh error:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [dispatch]);
 
   const closeCurrentSwipeable = () => {
     if (currentlyOpenId.current) {
@@ -50,8 +66,7 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
 
   const handleArchive = (id: string) => {
     closeCurrentSwipeable();
-    // dispatch(archiveConversation(id))
-    console.log('Archive:', id);
+    dispatch(archiveConversation(id));
   };
 
   const handleDelete = (id: string) => {
@@ -65,7 +80,7 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
           text: 'Xóa',
           style: 'destructive',
           onPress: () => {
-            // dispatch(deleteConversation(id))
+            dispatch(deleteConversation(id));
           },
         },
       ]
@@ -179,7 +194,7 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
   const showAISection = activeTab === 'all' || activeTab === 'ai';
   const showUserSection = activeTab !== 'ai';
 
-  if (loading) {
+  if (loading && conversations.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-background-dark">
         <Text className="text-gray-500 dark:text-gray-400">Đang tải...</Text>
@@ -259,6 +274,14 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
       <FlatList
         data={showUserSection ? displayedConversations : []}
         onScrollBeginDrag={closeCurrentSwipeable}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#185FA5']}
+            tintColor={isDark ? '#fff' : '#185FA5'}
+          />
+        }
         ListHeaderComponent={
           showAISection ? (
             <View>

@@ -138,6 +138,7 @@ export interface SearchPropertyParams {
   city?: string;
   district?: string;
   bedrooms?: number | null;
+  page?: number;
   cursor?: string | null;
   limit?: number;
   sortBy?: string;

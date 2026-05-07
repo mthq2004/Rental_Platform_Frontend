@@ -209,18 +209,38 @@ export default function EkycCaptureScreen() {
 
       {/* Header */}
       <SafeAreaView edges={['top']} style={S.headerWrap}>
-        <View style={S.header}>
-          <TouchableOpacity
-            onPress={() => step > 1 ? setStep((p) => (p - 1) as Step) : router.back()}
-            style={S.backBtn}
-          >
-            <Ionicons name="arrow-back" size={22} color="#fff" />
-          </TouchableOpacity>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Identity Verification</Text>
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: 16,
+          height: 60,
+          zIndex: 1000
+        }}>
+          <View style={{ zIndex: 10 }}>
+            <TouchableOpacity
+              onPress={() => step > 1 ? setStep((p) => (p - 1) as Step) : router.back()}
+              style={S.backBtn}
+            >
+              <Ionicons name="arrow-back" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={{
+            position: 'absolute',
+            left: 0, right: 0, top: 0, bottom: 0,
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 5,
+            pointerEvents: 'none'
+          }}>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700', letterSpacing: -0.3 }}>Identity Verification</Text>
             <Text style={{ color: '#0d9488', fontSize: 11, fontWeight: '600', marginTop: 2 }}>{cfg.sub}</Text>
           </View>
-          <Shield size={22} color="#0d9488" />
+          
+          <View style={{ zIndex: 10 }}>
+            <Shield size={22} color="#0d9488" />
+          </View>
         </View>
 
         {/* Progress */}

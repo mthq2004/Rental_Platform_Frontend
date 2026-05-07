@@ -64,14 +64,44 @@ const EkycIntroScreen = () => {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={isDark ? '#fff' : '#1f2937'} />
-        </TouchableOpacity>
-        <Text className="text-foreground dark:text-foreground-dark text-lg font-bold">
-          Identity Verification
-        </Text>
-        <Shield size={22} color="#0d9488" />
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        height: 60,
+        backgroundColor: isDark ? '#111827' : '#FFF',
+        borderBottomWidth: 1,
+        borderBottomColor: isDark ? '#1F2937' : '#F3F4F6',
+        zIndex: 1000
+      }}>
+        <View style={{ zIndex: 10 }}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#374151'} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{
+          position: 'absolute',
+          left: 0, right: 0, top: 0, bottom: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 5,
+          pointerEvents: 'none'
+        }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '700',
+            color: isDark ? '#FFF' : '#111827',
+            letterSpacing: -0.3
+          }}>
+            Identity Verification
+          </Text>
+        </View>
+
+        <View style={{ zIndex: 10 }}>
+          <Shield size={22} color="#0d9488" />
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>

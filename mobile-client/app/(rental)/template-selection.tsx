@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import BackButton from '@/components/BackButton'
 import { Ionicons } from '@expo/vector-icons'
 import { LinearGradient } from 'expo-linear-gradient'
+import ScreenHeader from '@/components/common/ScreenHeader'
 
 type Template = {
   templateId: string
@@ -120,7 +121,7 @@ const TemplateSelectionScreen = () => {
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 17, fontWeight: '700', color: '#111827', marginBottom: 6 }}>{item.name}</Text>
             <Text style={{ fontSize: 13, color: '#6B7280', lineHeight: 20 }} numberOfLines={3}>{item.description}</Text>
-            
+
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 16 }}>
               <View style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#F3F4F6', borderRadius: 8 }}>
                 <Text style={{ fontSize: 11, fontWeight: '600', color: '#4B5563', textTransform: 'uppercase' }}>
@@ -164,52 +165,50 @@ const TemplateSelectionScreen = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-        <BackButton onPress={() => router.back()} />
-        <Text style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: '#111827' }}>Chọn mẫu hợp đồng</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
+      <ScreenHeader title="Chọn mẫu hợp đồng" />
 
-      <View style={{ padding: 20, paddingBottom: 10 }}>
-        <Text style={{ fontSize: 24, fontWeight: '800', color: '#111827', marginBottom: 8 }}>Mẫu hợp đồng thuê nhà</Text>
-        <Text style={{ fontSize: 14, color: '#6B7280', lineHeight: 22 }}>
-          Vui lòng chọn một mẫu hợp đồng phù hợp với nhu cầu của bạn để tiếp tục. Các mẫu đã được soạn sẵn điều khoản chuẩn xác.
-        </Text>
-      </View>
-
-      <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 4 }}>
-          <FilterButton value="all" label="Tất cả" />
-          <FilterButton value="standard" label="Tiêu chuẩn" />
-          <FilterButton value="government" label="Pháp lý" />
-          <FilterButton value="custom" label="Tùy chỉnh" />
-        </ScrollView>
-      </View>
-
-      {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color="#4F46E5" />
-          <Text style={{ marginTop: 12, color: '#6B7280' }}>Đang tải danh sách mẫu...</Text>
+      <View style={{ flex: 1, backgroundColor: '#F8F9FA' }}>
+        <View style={{ padding: 20, paddingBottom: 10 }}>
+          <Text style={{ fontSize: 24, fontWeight: '800', color: '#111827', marginBottom: 8 }}>Mẫu hợp đồng thuê nhà</Text>
+          <Text style={{ fontSize: 14, color: '#6B7280', lineHeight: 22 }}>
+            Vui lòng chọn một mẫu hợp đồng phù hợp với nhu cầu của bạn để tiếp tục. Các mẫu đã được soạn sẵn điều khoản chuẩn xác.
+          </Text>
         </View>
-      ) : (
-        <FlatList
-          data={filteredTemplates}
-          renderItem={renderTemplateItem}
-          keyExtractor={(item, index) => item.templateId || `${item.name}-${index}`}
-          contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={() => (
-            <View style={{ alignItems: 'center', marginTop: 60, padding: 20, backgroundColor: '#FFF', borderRadius: 24, borderWidth: 1, borderColor: '#F3F4F6' }}>
-              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-                <Ionicons name="document-outline" size={40} color="#9CA3AF" />
+
+        <View style={{ paddingHorizontal: 16, paddingVertical: 12 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 4 }}>
+            <FilterButton value="all" label="Tất cả" />
+            <FilterButton value="standard" label="Tiêu chuẩn" />
+            <FilterButton value="government" label="Pháp lý" />
+            <FilterButton value="custom" label="Tùy chỉnh" />
+          </ScrollView>
+        </View>
+
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#4F46E5" />
+            <Text style={{ marginTop: 12, color: '#6B7280' }}>Đang tải danh sách mẫu...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredTemplates}
+            renderItem={renderTemplateItem}
+            keyExtractor={(item, index) => item.templateId || `${item.name}-${index}`}
+            contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={() => (
+              <View style={{ alignItems: 'center', marginTop: 60, padding: 20, backgroundColor: '#FFF', borderRadius: 24, borderWidth: 1, borderColor: '#F3F4F6' }}>
+                <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                  <Ionicons name="document-outline" size={40} color="#9CA3AF" />
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 8 }}>Không có mẫu hợp đồng</Text>
+                <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>Không tìm thấy mẫu hợp đồng phù hợp với bộ lọc hiện tại.</Text>
               </View>
-              <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 8 }}>Không có mẫu hợp đồng</Text>
-              <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center' }}>Không tìm thấy mẫu hợp đồng phù hợp với bộ lọc hiện tại.</Text>
-            </View>
-          )}
-        />
-      )}
+            )}
+          />
+        )}
+      </View>
     </SafeAreaView>
   )
 }

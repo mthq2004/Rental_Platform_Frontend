@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -17,7 +17,7 @@ interface GooeyRefreshScrollViewProps extends Omit<ScrollViewProps, 'refreshCont
   maxPull?: number;
 }
 
-const GooeyRefreshScrollView: React.FC<GooeyRefreshScrollViewProps> = ({
+const GooeyRefreshScrollView = forwardRef<ScrollView, GooeyRefreshScrollViewProps>(({
   children,
   refreshing,
   onRefresh,
@@ -29,7 +29,7 @@ const GooeyRefreshScrollView: React.FC<GooeyRefreshScrollViewProps> = ({
   onMomentumScrollEnd,
   scrollEventThrottle = 16,
   ...rest
-}) => {
+}, ref) => {
   const [pullDistance, setPullDistance] = useState(0);
   const refreshingRef = useRef(refreshing);
   const triggeredRef = useRef(false);
@@ -110,6 +110,7 @@ const GooeyRefreshScrollView: React.FC<GooeyRefreshScrollViewProps> = ({
       </View>
 
       <ScrollView
+        ref={ref}
         {...rest}
         style={styles.scrollLayer}
         contentContainerStyle={[styles.contentContainer, contentContainerStyle]}
@@ -124,7 +125,7 @@ const GooeyRefreshScrollView: React.FC<GooeyRefreshScrollViewProps> = ({
       </ScrollView>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   outerContainer: {

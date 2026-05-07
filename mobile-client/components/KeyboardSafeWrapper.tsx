@@ -12,6 +12,7 @@ import {
 interface KeyboardSafeWrapperProps {
   children: React.ReactNode;
   className?: string;
+  style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
   scrollable?: boolean;
   keyboardShouldPersistTaps?: ScrollViewProps['keyboardShouldPersistTaps'];
@@ -31,6 +32,7 @@ interface KeyboardSafeWrapperProps {
 const KeyboardSafeWrapper: React.FC<KeyboardSafeWrapperProps> = ({
   children,
   className = '',
+  style,
   contentContainerStyle,
   scrollable = true,
   keyboardShouldPersistTaps = 'handled',
@@ -40,6 +42,7 @@ const KeyboardSafeWrapper: React.FC<KeyboardSafeWrapperProps> = ({
       {scrollable ? (
         <ScrollView
           className={`flex-1 ${className}`}
+          style={style}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps={keyboardShouldPersistTaps}
           keyboardDismissMode="interactive"
@@ -50,7 +53,7 @@ const KeyboardSafeWrapper: React.FC<KeyboardSafeWrapperProps> = ({
           {children}
         </ScrollView>
       ) : (
-        <View className={`flex-1 ${className}`}>{children}</View>
+        <View className={`flex-1 ${className}`} style={style}>{children}</View>
       )}
     </TouchableWithoutFeedback>
   );

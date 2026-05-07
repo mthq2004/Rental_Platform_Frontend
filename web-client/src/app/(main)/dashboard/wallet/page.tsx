@@ -483,7 +483,7 @@ export default function WalletDashboardPage() {
               precision={0}
               formatter={(value) => formatCurrency(Number(value))}
               prefix={<WalletOutlined className="text-[#5750F1]" />}
-              style={{ color: "#1E3FA0", fontWeight: 700 }}
+              styles={{ content: { color: "#1E3FA0", fontWeight: 700 } }}
             />
           </Card>
         </Col>
@@ -495,7 +495,7 @@ export default function WalletDashboardPage() {
               precision={0}
               formatter={(value) => formatCurrency(Number(value))}
               prefix={<ClockCircleOutlined className="text-[#1A9A5F]" />}
-              style={{ color: "#1A9A5F", fontWeight: 700 }}
+              styles={{ content: { color: "#1A9A5F", fontWeight: 700 } }}
             />
           </Card>
         </Col>
@@ -680,7 +680,7 @@ export default function WalletDashboardPage() {
                 controls={false}
                 placeholder="Nhập số tiền cần nạp"
                 formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-                parser={(value) => Number(String(value || "").replace(/,/g, "")) || 0}
+                parser={(value) => Number(String(value || "").replace(/,/g, "")) as any}
               />
               <Input
                 size="large"

@@ -1,18 +1,22 @@
 "use client";
 
-import { Input, Avatar, Badge, Typography, Tag, Spin } from "antd";
-import { SearchOutlined, PushpinFilled } from "@ant-design/icons";
+import { Input, Avatar, Badge, Typography, Tag, Spin, Dropdown, MenuProps, Modal, Button } from "antd";
+import { SearchOutlined, PushpinFilled, MoreOutlined, EyeInvisibleOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { Conversation } from "@/types/conversation.type";
+import { archiveConversation, deleteConversation } from "@/stores/slices/conversation.slice";
+import { useAppDispatch } from "@/stores/hooks";
+
+import Link from "next/link";
 
 const { Text } = Typography;
 
-type FilterTab = "all" | "unread" | "spam";
+type FilterTab = "all" | "unread" | "archived";
 
 const TABS: { key: FilterTab; label: string }[] = [
   { key: "all", label: "Tất cả" },
   { key: "unread", label: "Chưa đọc" },
-  { key: "spam", label: "Tin rác / Bỏ qua" },
+  { key: "archived", label: "Hội thoại bị ẩn" },
 ];
 
 function formatTime(isoString: string | null): string {
@@ -50,26 +54,48 @@ function getLastMessagePreview(
 
 interface ChatSidebarProps {
   conversations?: Conversation[];
+  archivedConversations?: Conversation[];
   loading?: boolean;
   selectedId?: string;
   currentUserId?: string;
   onlineUsers?: string[];
   onSelect?: (conversation: Conversation) => void;
+  onTabChange?: (tab: FilterTab) => void;
 }
 
 export default function ChatSidebar({
   conversations = [],
+  archivedConversations = [],
   loading,
   selectedId,
   currentUserId = "me",
   onlineUsers = [],
   onSelect,
+  onTabChange,
 }: ChatSidebarProps) {
+  const dispatch = useAppDispatch();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
 
+  const handleArchive = (id: string) => {
+    dispatch(archiveConversation(id));
+  };
+
+  const handleDelete = (id: string) => {
+    Modal.confirm({
+      title: "Xóa hội thoại",
+      content: "Bạn có chắc chắn muốn xóa hội thoại này không?",
+      okText: "Xóa",
+      okType: "danger",
+      cancelText: "Hủy",
+      onOk: () => {
+        dispatch(deleteConversation(id));
+      },
+    });
+  };
+
   const filtered = useMemo(() => {
-    let list = conversations;
+    let list = activeTab === "archived" ? archivedConversations : conversations;
 
     // Search filter
     if (search.trim()) {
@@ -82,18 +108,28 @@ export default function ChatSidebar({
     // Tab filter
     if (activeTab === "unread") {
       list = list.filter((c) => c.unreadCount > 0);
-    } else if (activeTab === "spam") {
-      list = list.filter((c) => c.isArchived);
     }
 
     return list;
-  }, [conversations, search, activeTab]);
+  }, [conversations, archivedConversations, search, activeTab]);
 
   return (
     <div className="flex flex-col h-full bg-white border-r border-gray-100 w-80 min-w-70 max-w-90 lg:w-85">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 shrink-0">
-        <h2 className="text-lg font-bold text-gray-900 mb-3">Tin nhắn</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-gray-900 mb-0">Tin nhắn</h2>
+          <Link href="/chat/archived">
+            <Button
+              type="text"
+              size="small"
+              icon={<EyeInvisibleOutlined />}
+              className="text-gray-400 hover:text-blue-500"
+            >
+              Hội thoại ẩn
+            </Button>
+          </Link>
+        </div>
         <Input
           prefix={<SearchOutlined className="text-gray-400" />}
           placeholder="Tìm kiếm hội thoại..."
@@ -111,13 +147,15 @@ export default function ChatSidebar({
         {TABS.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => {
+              setActiveTab(tab.key);
+              onTabChange?.(tab.key);
+            }}
             className={`
               px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150 border-none cursor-pointer
-              ${
-                activeTab === tab.key
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              ${activeTab === tab.key
+                ? "bg-blue-500 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }
             `}
           >
@@ -150,15 +188,15 @@ export default function ChatSidebar({
                 key={item.id}
                 onClick={() => onSelect?.(item)}
                 className={`
-                  flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-100
+                  flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors duration-100 group
                   ${isSelected ? "bg-blue-50" : "hover:bg-gray-50"}
                   ${isSelected ? "border-l-[3px] border-l-blue-500" : "border-l-[3px] border-l-transparent"}
                 `}
               >
                 {/* Avatar with online indicator */}
                 <div className="relative shrink-0">
-                  <Avatar size={48} src={item.participant.avatarUrl}>
-                    {item.participant.fullName.charAt(0)}
+                  <Avatar size={48} src={item.participant?.avatarUrl}>
+                    {item.participant?.fullName?.charAt(0) || "?"}
                   </Avatar>
                   {isOnline && (
                     <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
@@ -174,28 +212,61 @@ export default function ChatSidebar({
                       )}
                       <Text
                         ellipsis
-                        className={`text-[14px] leading-tight ${
-                          hasUnread
+                        className={`text-[14px] leading-tight ${hasUnread
                             ? "font-semibold text-gray-900"
                             : "font-medium text-gray-800"
-                        }`}
+                          }`}
                       >
-                        {item.participant.fullName}
+                        {item.participant?.fullName || "Người dùng"}
                       </Text>
                     </div>
-                    <span className="text-[11px] text-gray-400 shrink-0 whitespace-nowrap">
-                      {formatTime(item.lastMessage.createdAt)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-gray-400 shrink-0 whitespace-nowrap">
+                        {formatTime(item.lastMessage.createdAt)}
+                      </span>
+                      <Dropdown
+                        menu={{
+                          items: [
+                            {
+                              key: "archive",
+                              label: activeTab === "archived" ? "Hiện hội thoại" : "Ẩn hội thoại",
+                              icon: activeTab === "archived" ? <EyeOutlined /> : <EyeInvisibleOutlined />,
+                              onClick: (e) => {
+                                e.domEvent.stopPropagation();
+                                handleArchive(item.id);
+                              },
+                            },
+                            {
+                              key: "delete",
+                              label: "Xóa hội thoại",
+                              icon: <DeleteOutlined />,
+                              danger: true,
+                              onClick: (e) => {
+                                e.domEvent.stopPropagation();
+                                handleDelete(item.id);
+                              },
+                            },
+                          ],
+                        }}
+                        trigger={["click"]}
+                      >
+                        <div
+                          className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreOutlined />
+                        </div>
+                      </Dropdown>
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-2">
                     <Text
                       ellipsis
-                      className={`text-[12.5px] leading-tight ${
-                        hasUnread
+                      className={`text-[12.5px] leading-tight ${hasUnread
                           ? "font-medium text-gray-700"
                           : "text-gray-500"
-                      }`}
+                        }`}
                     >
                       {preview}
                     </Text>

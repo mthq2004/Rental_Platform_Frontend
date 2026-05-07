@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
+import { useAppSelector } from '@/store/hook';
 
 const { width, height } = Dimensions.get('window');
 
@@ -59,6 +60,13 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { isAuth } = useAppSelector((state) => state.auth);
+
+  React.useEffect(() => {
+    if (isAuth) {
+      router.replace('/(tab)');
+    }
+  }, [isAuth]);
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);

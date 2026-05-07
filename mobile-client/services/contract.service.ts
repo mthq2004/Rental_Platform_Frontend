@@ -137,6 +137,108 @@ export const confirmPayment = async (paymentId: string, data: { paymentMethod: s
   return res.data
 }
 
+// ── Termination ────────────────────────────────────────────────────────────
+
+export const createTerminationRequest = async (data: {
+  rentalId: string
+  reason: string
+  note?: string
+  requestedTerminationDate: string
+  earlyTerminationFee?: number
+}) => {
+  const res = await apiClient.post('/contract/terminations', data)
+  return res.data
+}
+
+export const getTerminationRequests = async (rentalId: string) => {
+  const res = await apiClient.get(`/contract/terminations/contract/${rentalId}`)
+  return res.data
+}
+
+export const reviewTerminationRequest = async (terminationId: string, data: { status: 'approved' | 'rejected'; reviewNote?: string }) => {
+  const res = await apiClient.put(`/contract/terminations/${terminationId}/review`, data)
+  return res.data
+}
+
+export const updateTerminationStatus = async (terminationId: string, data: { status: string; resolution?: string; note?: string }) => {
+  const res = await apiClient.put(`/contract/terminations/${terminationId}/status`, data)
+  return res.data
+}
+
+// ── Reports / Disputes ─────────────────────────────────────────────────────
+
+export const createReport = async (data: {
+  rentalId: string
+  againstId: string
+  type: string
+  reportType?: string
+  priority: string
+  title: string
+  description: string
+  terminationRequestId?: string
+  evidence?: { uri: string; name: string; type: string }[]
+}) => {
+  const formData = new FormData()
+  formData.append('rentalId', data.rentalId)
+  formData.append('againstId', data.againstId)
+  formData.append('type', data.type)
+  if (data.reportType) formData.append('reportType', data.reportType)
+  formData.append('priority', data.priority)
+  formData.append('title', data.title)
+  formData.append('description', data.description)
+  if (data.terminationRequestId) formData.append('terminationRequestId', data.terminationRequestId)
+  if (data.evidence?.length) {
+    data.evidence.forEach((file) => {
+      formData.append('evidence', {
+        uri: file.uri,
+        name: file.name || 'evidence.jpg',
+        type: file.type || 'image/jpeg',
+      } as any)
+    })
+  }
+  const res = await apiClient.post('/contract/reports', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return res.data
+}
+
+export const getReportsByContract = async (rentalId: string) => {
+  const res = await apiClient.get(`/contract/reports/contract/${rentalId}`)
+  return res.data
+}
+
+export const updateReportStatus = async (reportId: string, data: { status: string; adminNote?: string; resolution?: string }) => {
+  const res = await apiClient.put(`/contract/reports/${reportId}/status`, data)
+  return res.data
+}
+
+// ── Bookings ───────────────────────────────────────────────────────────────
+
+export const getMyBookings = async () => {
+  const res = await apiClient.get('/estate/booking/my')
+  return res.data
+}
+
+export const getOwnerBookings = async () => {
+  const res = await apiClient.get('/estate/booking/owner')
+  return res.data
+}
+
+export const confirmBooking = async (bookingId: string, landlordNote?: string) => {
+  const res = await apiClient.put(`/estate/booking/${bookingId}/confirm`, { landlordNote })
+  return res.data
+}
+
+export const rejectBooking = async (bookingId: string, reason?: string) => {
+  const res = await apiClient.put(`/estate/booking/${bookingId}/reject`, { reason })
+  return res.data
+}
+
+export const cancelBooking = async (bookingId: string) => {
+  const res = await apiClient.put(`/estate/booking/${bookingId}/cancel`)
+  return res.data
+}
+
 export default {
   createRentalRequest,
   openHoldingDeposit,
@@ -159,4 +261,16 @@ export default {
   sendContractToTenant,
   tenantSignContract,
   ownerSignContract,
+  createTerminationRequest,
+  getTerminationRequests,
+  reviewTerminationRequest,
+  updateTerminationStatus,
+  createReport,
+  getReportsByContract,
+  updateReportStatus,
+  getMyBookings,
+  getOwnerBookings,
+  confirmBooking,
+  rejectBooking,
+  cancelBooking,
 }

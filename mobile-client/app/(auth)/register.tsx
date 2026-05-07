@@ -8,6 +8,7 @@ import {
   Animated,
   StatusBar,
   Keyboard,
+  Image,
 } from 'react-native';
 import { Ionicons, AntDesign, FontAwesome } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -27,7 +28,7 @@ import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
 import { validatePhone, validatePhoneRealtime, validateFullNameRealtime } from '@/utils/validation';
 import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
 
-type Step = 'phone' | 'otp' | 'profile';
+type Step = 'phone' | 'otp' | 'password';
 
 interface PasswordValidation {
   hasMinLength: boolean;
@@ -65,20 +66,18 @@ const RegisterFlow: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<Step>('phone');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
-  const [fullName, setFullName] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [timer, setTimer] = useState<number>(60);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState<{
     phone?: string;
-    fullName?: string;
     password?: string;
     confirmPassword?: string;
   }>({});
   const [phoneHint, setPhoneHint] = useState<string | null>(null);
-  const [nameHint, setNameHint] = useState<string | null>(null);
 
   const otpInputs = useRef<(TextInput | null)[]>([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -92,7 +91,7 @@ const RegisterFlow: React.FC = () => {
 
   const passwordsMatch = password === confirmPassword && confirmPassword.length > 0;
   const isPasswordValid = Object.values(passwordValidation).every(Boolean);
-  const isFormValid = fullName.trim() && isPasswordValid && passwordsMatch;
+  const isFormValid = isPasswordValid && passwordsMatch;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -183,14 +182,9 @@ const RegisterFlow: React.FC = () => {
       return;
     }
 
-    dispatch(
-      otpVerified({
-        phone: phoneNumber,
-        otp: otpCode,
-      })
-    );
+    // Go directly to password step
+    setCurrentStep('password');
   };
-
 
   const handleResendOTP = (): void => {
     setTimer(60);
@@ -200,13 +194,8 @@ const RegisterFlow: React.FC = () => {
     showToast('Đã gửi lại mã OTP', 'success');
   };
 
-
-  const validateProfile = (): boolean => {
+  const validatePasswordStep = (): boolean => {
     const newErrors: any = {};
-
-    if (!fullName.trim()) {
-      newErrors.fullName = 'Vui lòng nhập họ và tên';
-    }
 
     if (!password) {
       newErrors.password = 'Vui lòng nhập mật khẩu';
@@ -226,16 +215,16 @@ const RegisterFlow: React.FC = () => {
 
   const handleRegister = (): void => {
     Keyboard.dismiss();
-    if (!validateProfile()) return;
+    if (!validatePasswordStep()) return;
 
-    dispatch(register({ phone: phoneNumber, fullName, password }))
+    dispatch(register({ phone: phoneNumber, otp: otp.join(''), password }));
   };
 
   const handleGoBack = (): void => {
     fadeAnim.setValue(0);
     if (currentStep === 'otp') {
       setCurrentStep('phone');
-    } else if (currentStep === 'profile') {
+    } else if (currentStep === 'password') {
       setCurrentStep('otp');
     }
   };
@@ -249,18 +238,13 @@ const RegisterFlow: React.FC = () => {
 
     if (message.type === 'success') {
       showToast(message.message, 'success');
-
-      if (verified && currentStep === 'otp') {
-        setCurrentStep('profile');
-        setOtp(['', '', '', '', '', '']);
-      }
     }
 
     if (message.type === 'error') {
       showToast(message.message, 'error');
     }
     dispatch(resetMessage())
-  }, [message, verified]);
+  }, [message]);
 
   useEffect(() => {
     if (isAuth && user) {
@@ -320,11 +304,27 @@ const RegisterFlow: React.FC = () => {
             maxLength={12}
           />
 
+          <TouchableOpacity
+            className="flex-row items-center mb-5 mt-1"
+            onPress={() => setAgreedToTerms(!agreedToTerms)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={agreedToTerms ? "checkbox" : "square-outline"}
+              size={22}
+              color={agreedToTerms ? "#2563EB" : "#9CA3AF"}
+            />
+            <Text className="ml-2 flex-1 text-[13px] text-gray-500 leading-tight">
+              Tôi đã đọc và đồng ý với <Text className="text-blue-600 font-medium">Điều khoản sử dụng</Text>, <Text className="text-blue-600 font-medium">Chính sách bảo mật</Text>
+            </Text>
+          </TouchableOpacity>
+
           <PrimaryButton
-            title="Tiếp tục"
+            title="Gửi mã OTP"
             onPress={handlePhoneSubmit}
-            disabled={phoneNumber.length < 10}
+            disabled={phoneNumber.length < 10 || !agreedToTerms}
             loading={loading}
+            style={{ backgroundColor: (phoneNumber.length < 10 || !agreedToTerms || loading) ? '#D1D5DB' : '#2563EB' }}
           />
         </View>
 
@@ -336,14 +336,21 @@ const RegisterFlow: React.FC = () => {
 
         <View className="mb-8">
           <SocialLoginButton
-            iconName="google"
-            iconLibrary="AntDesign"
             title="Tiếp tục với Google"
             bgColor="bg-white"
             textColor="text-gray-700"
-            iconColor="#DB4437"
             borderColor={true}
+            iconName="google"
+            iconLibrary="FontAwesome"
+            iconColor="#EA4335"
             onPress={() => handleSocialLogin('Google')}
+            customIcon={
+              <Image
+                source={{ uri: 'https://developers.google.com/identity/images/g-logo.png' }}
+                style={{ width: 20, height: 20 }}
+                resizeMode="contain"
+              />
+            }
           />
 
           <SocialLoginButton
@@ -355,28 +362,7 @@ const RegisterFlow: React.FC = () => {
             iconColor="#FFFFFF"
             onPress={() => handleSocialLogin('Facebook')}
           />
-
-          <SocialLoginButton
-            iconName="apple"
-            iconLibrary="AntDesign"
-            title="Tiếp tục với Apple"
-            bgColor="bg-black"
-            textColor="text-white"
-            iconColor="#FFFFFF"
-            onPress={() => handleSocialLogin('Apple')}
-          />
-
-          <SocialLoginButton
-            iconName="wechat"
-            iconLibrary="AntDesign"
-            title="Tiếp tục với Zalo"
-            bgColor="bg-blue-500"
-            textColor="text-white"
-            iconColor="#FFFFFF"
-            onPress={() => handleSocialLogin('Zalo')}
-          />
         </View>
-
         <View className="flex-row justify-center items-center mb-10">
           <Text className="text-gray-600 text-base">Đã có tài khoản? </Text>
           <TouchableOpacity onPress={handleLogin} activeOpacity={0.7}>
@@ -409,17 +395,18 @@ const RegisterFlow: React.FC = () => {
         <TimerComponent timer={timer} onResend={handleResendOTP} />
 
         <PrimaryButton
-          title="Xác nhận"
+          title="Xác nhận OTP"
           onPress={handleVerifyOTP}
           disabled={otp.join('').length !== 6 || loading}
           loading={loadingOtp}
+          style={{ backgroundColor: (otp.join('').length !== 6 || loading) ? '#D1D5DB' : '#2563EB' }}
         />
 
       </View>
     </Animated.View>
   );
 
-  const renderProfileStep = () => (
+  const renderPasswordStep = () => (
     <Animated.View style={{ opacity: fadeAnim }} className="flex-1">
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="px-6 pt-12 pb-8">
@@ -427,23 +414,10 @@ const RegisterFlow: React.FC = () => {
 
           <Header
             title="Hoàn tất đăng ký"
-            subtitle="Vui lòng điền thông tin để hoàn tất"
+            subtitle="Tạo mật khẩu an toàn cho tài khoản của bạn"
           />
 
           <View className="mb-6">
-            <CustomInput
-              label="Họ và tên"
-              placeholder="Nhập họ và tên"
-              value={fullName}
-              onChangeText={(text) => {
-                setFullName(text);
-                setNameHint(validateFullNameRealtime(text));
-                if (errors.fullName) setErrors({ ...errors, fullName: undefined });
-              }}
-              icon="person-outline"
-              error={errors.fullName || (nameHint ?? undefined)}
-            />
-
             <CustomInput
               label="Mật khẩu"
               placeholder="Nhập mật khẩu"
@@ -504,17 +478,8 @@ const RegisterFlow: React.FC = () => {
               onPress={handleRegister}
               disabled={!isFormValid}
               loading={loading}
+              style={{ backgroundColor: !isFormValid || loading ? '#D1D5DB' : '#2563EB' }}
             />
-          </View>
-
-          <View className="bg-gray-50 p-4 rounded-xl mb-10">
-            <Text className="text-center text-xs text-gray-600 leading-5">
-              Bằng việc đăng ký, bạn đồng ý với{' '}
-              <Text className="text-blue-600 font-semibold">Điều khoản sử dụng</Text>
-              {' và '}
-              <Text className="text-blue-600 font-semibold">Chính sách bảo mật</Text>
-              {' của chúng tôi'}
-            </Text>
           </View>
         </View>
       </ScrollView>
@@ -525,9 +490,9 @@ const RegisterFlow: React.FC = () => {
     <>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={isDark ? '#19191a' : '#FFFFFF'} />
       <KeyboardSafeWrapper className="bg-white dark:bg-background-dark" contentContainerStyle={{ paddingBottom: 24 }}>
-            {currentStep === 'phone' && renderPhoneStep()}
-            {currentStep === 'otp' && renderOTPStep()}
-            {currentStep === 'profile' && renderProfileStep()}
+        {currentStep === 'phone' && renderPhoneStep()}
+        {currentStep === 'otp' && renderOTPStep()}
+        {currentStep === 'password' && renderPasswordStep()}
 
         <Toast
           visible={toast.visible}

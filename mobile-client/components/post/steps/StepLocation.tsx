@@ -4,7 +4,7 @@ import { StepProps } from "@/types/property.type";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { Text, View, TouchableOpacity, Modal, FlatList, Platform } from "react-native";
-import DateTimePicker from '@react-native-community/datetimepicker';
+import CustomDatePicker from "@/components/CustomDatePicker";
 import SyncTextInput from "@/components/common/SyncTextInput";
 
 const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
@@ -14,8 +14,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
     const [showProvinceModal, setShowProvinceModal] = useState(false);
     const [showDistrictModal, setShowDistrictModal] = useState(false);
     const [showWardModal, setShowWardModal] = useState(false);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const availableFromDate = formData.availableFrom ? new Date(formData.availableFrom) : null;
 
     useEffect(() => {
         dispatch(getProvinces());
@@ -47,30 +46,9 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
         setShowWardModal(false);
     };
 
-    const handleDateChange = (event: any, date?: Date) => {
-        if (Platform.OS === 'android') {
-            setShowDatePicker(false);
-        }
-
-        if (date) {
-            setSelectedDate(date);
-            updateFormData({
-                availableFrom: date.toISOString()
-            });
-        }
-    };
-
-    const handleDateConfirm = () => {
-        setShowDatePicker(false);
-    };
-
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
+    const handleDateChange = (date: Date) => {
+        updateFormData({
+            availableFrom: date.toISOString()
         });
     };
 
@@ -202,27 +180,15 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                         )}
                     </View>
 
-                    <View className="mb-2">
-                        <Text className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            Ngày có thể bắt đầu thuê <Text className="text-red-500">*</Text>
-                        </Text>
-                        <TouchableOpacity
-                            onPress={() => setShowDatePicker(true)}
-                            className={`px-4 py-3 border rounded-xl flex-row justify-between items-center ${errors.availableFrom ? 'border-red-500' : 'border-gray-300'
-                                }`}
-                        >
-                            <View className="flex-row items-center">
-                                <Ionicons name="calendar-outline" size={20} color="#6B7280" />
-                                <Text className={`ml-2 ${formData.availableFrom ? "text-gray-900 dark:text-gray-100" : "text-gray-400"}`}>
-                                    {formData.availableFrom ? formatDate(formData.availableFrom) : "Chọn ngày"}
-                                </Text>
-                            </View>
-                            <Ionicons name="chevron-down" size={20} color="#9CA3AF" />
-                        </TouchableOpacity>
-                        {errors.availableFrom && (
-                            <Text className="text-red-500 text-sm mt-1">{errors.availableFrom}</Text>
-                        )}
-                    </View>
+                    <CustomDatePicker
+                        label="Ngày có thể bắt đầu thuê"
+                        placeholder="Chọn ngày"
+                        value={availableFromDate}
+                        onChange={handleDateChange}
+                        icon="calendar-outline"
+                        minimumDate={new Date()}
+                        error={errors.availableFrom}
+                    />
                 </View>
             </View>
 
@@ -233,51 +199,7 @@ const StepLocation = ({ formData, updateFormData, errors }: StepProps) => {
                 </Text>
             </View>
 
-            {showDatePicker && (
-                <Modal
-                    visible={showDatePicker}
-                    transparent={true}
-                    animationType="fade"
-                    onRequestClose={() => setShowDatePicker(false)}
-                >
-                    <View className="flex-1 justify-center items-center bg-black/50">
-                        <View className="bg-white dark:bg-secondary-dark rounded-2xl p-4 w-11/12 max-w-md">
-                            <View className="flex-row justify-between items-center mb-4">
-                                <Text className="text-lg font-bold text-gray-800 dark:text-foreground-dark">Chọn ngày</Text>
-                                <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                                    <Ionicons name="close" size={24} color="#6B7280" />
-                                </TouchableOpacity>
-                            </View>
 
-                            <DateTimePicker
-                                value={selectedDate}
-                                mode="date"
-                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                                onChange={handleDateChange}
-                                minimumDate={new Date()}
-                                locale="vi-VN"
-                            />
-
-                            {Platform.OS === 'ios' && (
-                                <View className="mt-4 flex-row justify-end">
-                                    <TouchableOpacity
-                                        onPress={() => setShowDatePicker(false)}
-                                        className="px-4 py-2 mr-2"
-                                    >
-                                        <Text className="text-gray-600 dark:text-gray-300 font-semibold">Hủy</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        onPress={handleDateConfirm}
-                                        className="px-4 py-2 bg-blue-500 rounded-lg"
-                                    >
-                                        <Text className="text-white font-semibold">Xác nhận</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            )}
-                        </View>
-                    </View>
-                </Modal>
-            )}
 
             <DropdownModal
                 visible={showProvinceModal}

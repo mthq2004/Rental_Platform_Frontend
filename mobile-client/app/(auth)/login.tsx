@@ -233,7 +233,7 @@ const LoginScreen = () => {
                       setErrors({ ...errors, password: undefined });
                     }
                   }}
-                  // secureTextEntry={showPassword ? false : true}
+                  secureTextEntry={!showPassword}
                   icon="lock-closed-outline"
                   error={errors.password}
                   showPasswordToggle={true}
@@ -255,6 +255,7 @@ const LoginScreen = () => {
                   onPress={handleLogin}
                   disabled={!isFormValid || isRedirecting}
                   loading={loading || isRedirecting}
+                  style={{ backgroundColor: !isFormValid || isRedirecting || loading ? '#D1D5DB' : '#2563EB' }}
                 />
 
               </View>

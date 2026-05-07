@@ -6,6 +6,7 @@ import ChatWindow from "@/components/chat/ChatWindow";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import {
   fetchConversations,
+  fetchArchivedConversations,
   markAsRead,
   setCurrentConversation,
 } from "@/stores/slices/conversation.slice";
@@ -22,7 +23,7 @@ export default function ChatPage() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
 
-  const { conversations = [], loading: conversationLoading } = useAppSelector(
+  const { conversations = [], archivedConversations = [], loading: conversationLoading } = useAppSelector(
     (state) => state.conversation
   );
   const {
@@ -102,11 +103,19 @@ export default function ChatPage() {
     <div className="flex w-full h-full overflow-hidden bg-gray-50">
       <ChatSidebar
         conversations={conversations}
+        archivedConversations={archivedConversations}
         loading={conversationLoading}
         selectedId={selectedId ?? undefined}
         currentUserId={user?.id}
         onlineUsers={onlineUsers}
         onSelect={(conv) => setSelectedId(conv.id)}
+        onTabChange={(tab) => {
+          if (tab === "archived") {
+            dispatch(fetchArchivedConversations());
+          } else {
+            dispatch(fetchConversations());
+          }
+        }}
       />
 
       {selectedConversation && user?.id && selectedId ? (

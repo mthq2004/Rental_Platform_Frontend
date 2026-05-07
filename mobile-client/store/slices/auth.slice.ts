@@ -252,7 +252,7 @@ export const authSlice = createSlice({
             state.error = null;
             state.message = {
                 type: "success_logout",
-                message: "Đã đăng xuất thành công",
+                message: "Đã đăng xuất",
             };
 
             clearAuthStorage();

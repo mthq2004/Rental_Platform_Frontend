@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, Alert, ActivityIndicator, TouchableOpacity, Modal, Pressable } from 'react-native'
+import { View, Text, Alert, ActivityIndicator, TouchableOpacity, Modal, Pressable, SafeAreaView } from 'react-native'
 import AuthGuard from '@/components/AuthGuard'
 import { router, useLocalSearchParams } from 'expo-router'
 import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper'
@@ -8,16 +8,12 @@ import PrimaryButton from '@/components/PrimaryButton'
 import BackButton from '@/components/BackButton'
 import { useAppDispatch } from '@/store/hook'
 import { createRentalRequest as createRentalRequestThunk } from '@/store/slices/contract.slice'
-import DateTimePicker from '@react-native-community/datetimepicker'
+import ScreenHeader from '@/components/common/ScreenHeader'
+import CustomDatePicker from '@/components/CustomDatePicker'
 
 type DateField = 'startDate' | 'endDate' | null
 
-const formatDisplayDate = (date: Date) => {
-  const day = String(date.getDate()).padStart(2, '0')
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
-  return `${day}-${month}-${year}`
-}
+
 
 const formatApiDate = (date: Date) => {
   const year = date.getFullYear()
@@ -33,33 +29,12 @@ const CreateRentalRequest = () => {
   const [proposedRent, setProposedRent] = useState('')
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(false)
-  const [pickerVisible, setPickerVisible] = useState(false)
-  const [activeDateField, setActiveDateField] = useState<DateField>(null)
-  const [tempDate, setTempDate] = useState(new Date())
 
   const dispatch = useAppDispatch()
 
   const canSubmit = useMemo(() => !!startDate && !!endDate && !!proposedRent, [startDate, endDate, proposedRent])
 
-  const openDatePicker = (field: DateField) => {
-    setActiveDateField(field)
-    setTempDate(field === 'endDate' && endDate ? endDate : field === 'startDate' && startDate ? startDate : new Date())
-    setPickerVisible(true)
-  }
 
-  const confirmDate = () => {
-    if (!activeDateField) return
-    if (activeDateField === 'startDate') {
-      setStartDate(tempDate)
-      if (endDate && endDate < tempDate) {
-        setEndDate(tempDate)
-      }
-    } else {
-      setEndDate(tempDate)
-    }
-    setPickerVisible(false)
-    setActiveDateField(null)
-  }
 
   const handleSubmit = async () => {
     if (!propertyId || !ownerId) {
@@ -101,15 +76,11 @@ const CreateRentalRequest = () => {
 
   return (
     <AuthGuard>
-      <KeyboardSafeWrapper className="bg-white dark:bg-gray-950 pt-10">
+      <KeyboardSafeWrapper style={{ flex: 1, backgroundColor: '#FFF' }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}>
+          <ScreenHeader title="Gửi yêu cầu thuê" />
+
         <View className="p-4">
-          <View className="flex-row items-center mb-4">
-            <BackButton onPress={() => router.back()} />
-            <View className="flex-1">
-              <Text className="text-2xl font-bold text-gray-900 dark:text-white">Gửi yêu cầu thuê</Text>
-              <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">Tạo yêu cầu, sau đó theo dõi tại màn quản lý yêu cầu</Text>
-            </View>
-          </View>
 
           <View className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-2xl p-4 mb-5">
             <Text className="text-blue-700 dark:text-blue-200 font-semibold">Luồng đúng</Text>
@@ -118,25 +89,30 @@ const CreateRentalRequest = () => {
             </Text>
           </View>
 
-          <TouchableOpacity onPress={() => openDatePicker('startDate')} className="mb-5">
-            <View className="border border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-gray-50 dark:bg-gray-900">
-              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Ngày bắt đầu</Text>
-              <Text className={`text-base ${startDate ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
-                {startDate ? formatDisplayDate(startDate) : 'Chọn ngày bắt đầu'}
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <CustomDatePicker
+            label="Ngày bắt đầu"
+            placeholder="Chọn ngày bắt đầu"
+            value={startDate}
+            onChange={(date) => {
+              setStartDate(date);
+              if (endDate && endDate < date) {
+                setEndDate(date);
+              }
+            }}
+            icon="calendar-outline"
+            minimumDate={new Date()}
+          />
 
-          <TouchableOpacity onPress={() => openDatePicker('endDate')} className="mb-5">
-            <View className="border border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-gray-50 dark:bg-gray-900">
-              <Text className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Ngày kết thúc</Text>
-              <Text className={`text-base ${endDate ? 'text-gray-900 dark:text-white' : 'text-gray-400'}`}>
-                {endDate ? formatDisplayDate(endDate) : 'Chọn ngày kết thúc'}
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <CustomDatePicker
+            label="Ngày kết thúc"
+            placeholder="Chọn ngày kết thúc"
+            value={endDate}
+            onChange={setEndDate}
+            icon="calendar-outline"
+            minimumDate={startDate || new Date()}
+          />
 
-          <CustomInput label="Giá đề xuất" placeholder="5000000" value={proposedRent} onChangeText={setProposedRent} keyboardType="numeric" />
+          <CustomInput label="Giá đề xuất" placeholder="5000000" value={proposedRent} onChangeText={setProposedRent} keyboardType="number-pad" />
           <CustomInput label="Lời nhắn" placeholder="Nhập lời nhắn cho chủ nhà" value={message} onChangeText={setMessage} />
 
           <View className="mt-6">
@@ -146,33 +122,8 @@ const CreateRentalRequest = () => {
           </View>
         </View>
 
-        <Modal visible={pickerVisible} transparent animationType="fade" onRequestClose={() => setPickerVisible(false)}>
-          <View className="flex-1 bg-black/50 justify-end">
-            <Pressable className="flex-1" onPress={() => setPickerVisible(false)} />
-            <View className="bg-white dark:bg-gray-950 rounded-t-3xl p-4 border-t border-gray-200 dark:border-gray-800">
-              <Text className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-                {activeDateField === 'startDate' ? 'Chọn ngày bắt đầu' : 'Chọn ngày kết thúc'}
-              </Text>
-              <View className="items-center">
-                <DateTimePicker
-                  value={tempDate}
-                  mode="date"
-                  display="spinner"
-                  onChange={(_, date) => date && setTempDate(date)}
-                  minimumDate={activeDateField === 'endDate' && startDate ? startDate : new Date()}
-                />
-              </View>
-              <View className="flex-row gap-3 mt-4">
-                <View className="flex-1">
-                  <PrimaryButton title="Hủy" onPress={() => setPickerVisible(false)} />
-                </View>
-                <View className="flex-1">
-                  <PrimaryButton title="Xác nhận" onPress={confirmDate} />
-                </View>
-              </View>
-            </View>
-          </View>
-        </Modal>
+
+        </SafeAreaView>
       </KeyboardSafeWrapper>
     </AuthGuard>
   )

@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   Keyboard,
   Platform,
   StyleSheet,
   Dimensions,
+  TouchableOpacity,
   type KeyboardEvent,
 } from 'react-native';
 import Animated, {
@@ -17,24 +17,16 @@ import Animated, {
   withSequence,
   Easing,
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
 import { useFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
 
 /**
  * FloatingKeyboardBar
- *
- * Chỉ hiện khi:
- * 1. Page hiện tại đã bật (useEnableFloatingKeyboard())
- * 2. Keyboard đang mở
- * 3. Input đang focus BỊ CHE bởi keyboard (input bottom > keyboard top)
- *
- * Hiển thị:
- * - Label: tên trường đang nhập (từ placeholder)
- * - Text: nội dung đang gõ real-time
- * - Cursor nhấp nháy
+ * 
+ * A professional, enterprise-grade input overlay that appears when the native keyboard
+ * obscures the focused input field.
  */
 const FloatingKeyboardBar = () => {
-  const { 
+  const {
     enabled,
     currentText,
     fieldLabel,
@@ -70,11 +62,10 @@ const FloatingKeyboardBar = () => {
       return;
     }
 
-    // Check if the focused input is hidden by the keyboard
     if (typeof focusedInputRef.current.measureInWindow === 'function') {
       focusedInputRef.current.measureInWindow((_x: number, y: number, _w: number, h: number) => {
         const inputBottom = y + h;
-        const GAP = 8;
+        const GAP = 20; // Increased gap for comfort
         if (inputBottom + GAP > Dimensions.get('window').height - keyboardHeight) {
           setShouldShow(true);
         } else {
@@ -113,18 +104,16 @@ const FloatingKeyboardBar = () => {
     };
   }, [enabled]);
 
-  // Show/hide animation
   useEffect(() => {
     if (shouldShow && enabled) {
-      slideY.value = withTiming(0, { duration: 220, easing: Easing.out(Easing.cubic) });
-      barOpacity.value = withTiming(1, { duration: 180 });
+      slideY.value = withTiming(0, { duration: 250, easing: Easing.out(Easing.back(0.5)) });
+      barOpacity.value = withTiming(1, { duration: 200 });
     } else {
       slideY.value = withTiming(80, { duration: 150 });
       barOpacity.value = withTiming(0, { duration: 100 });
     }
   }, [shouldShow, enabled]);
 
-  // Animated styles
   const containerStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: slideY.value }],
     opacity: barOpacity.value,
@@ -134,13 +123,16 @@ const FloatingKeyboardBar = () => {
     opacity: cursorOpacity.value,
   }));
 
-  // Không render gì nếu page chưa bật hoặc không cần show
   if (!enabled || !shouldShow) return null;
 
   const hasText = currentText.length > 0;
   const displayText = isSecureField && hasText
     ? '•'.repeat(Math.min(currentText.length, 30))
     : currentText;
+
+  const handleDone = () => {
+    Keyboard.dismiss();
+  };
 
   return (
     <Animated.View
@@ -149,33 +141,35 @@ const FloatingKeyboardBar = () => {
         { bottom: keyboardHeight },
         containerStyle,
       ]}
-      pointerEvents="none"
+      pointerEvents="box-none"
     >
       <View style={styles.card}>
-        {/* Label — trường đang nhập */}
-        {fieldLabel ? (
-          <View style={styles.labelRow}>
-            <Ionicons name="create-outline" size={13} color="#0077b6" />
-            <Text style={styles.labelText} numberOfLines={1}>
-              {fieldLabel}
-            </Text>
+        <View style={styles.header}>
+          <Text style={styles.labelText} numberOfLines={1}>
+            {fieldLabel || 'Đang nhập...'}
+          </Text>
+          <TouchableOpacity 
+            onPress={handleDone} 
+            activeOpacity={0.7}
+            style={styles.doneButton}
+          >
+            <Text style={styles.doneText}>Xong</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputArea}>
+          <View style={styles.textWrapper}>
+            {hasText ? (
+              <Text style={styles.inputText} numberOfLines={1}>
+                {displayText}
+              </Text>
+            ) : (
+              <Text style={styles.placeholderText} numberOfLines={1}>
+                Bắt đầu nhập...
+              </Text>
+            )}
+            <Animated.View style={[styles.cursor, cursorStyle]} />
           </View>
-        ) : null}
-
-        {/* Input ảo — giống TextInput thật */}
-        <View style={styles.inputContainer}>
-          {hasText ? (
-            <Text style={styles.inputText} numberOfLines={1}>
-              {displayText}
-            </Text>
-          ) : (
-            <Text style={styles.placeholderText} numberOfLines={1}>
-              {fieldLabel || 'Nhập nội dung...'}
-            </Text>
-          )}
-
-          {/* Cursor nhấp nháy */}
-          <Animated.View style={[styles.cursor, cursorStyle]} />
         </View>
       </View>
     </Animated.View>
@@ -187,70 +181,74 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    zIndex: 99998,
-    paddingHorizontal: 12,
+    zIndex: 99999,
+    paddingHorizontal: 0, // Edge-to-edge for cleaner look
   },
-
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderTopWidth: 1,
+    borderColor: '#e2e8f0',
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 12,
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 8 : 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 12,
-    borderWidth: 1.2,
-    borderColor: '#0077b6',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 10,
   },
-
-  labelRow: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
-    gap: 5,
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
   labelText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0077b6',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+    flex: 1,
+    marginRight: 10,
   },
-
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
+  doneButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  doneText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2563eb', // Professional enterprise blue
+  },
+  inputArea: {
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    minHeight: 42,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  textWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   inputText: {
     fontSize: 16,
-    color: '#1e293b',
-    fontWeight: '400',
-    flex: 1,
+    color: '#0f172a',
+    fontWeight: '500',
+    flexShrink: 1,
   },
   placeholderText: {
     fontSize: 16,
     color: '#94a3b8',
     fontWeight: '400',
-    flex: 1,
-    fontStyle: 'italic',
+    flexShrink: 1,
   },
-
   cursor: {
     width: 2,
     height: 20,
-    backgroundColor: '#0077b6',
+    backgroundColor: '#2563eb',
     borderRadius: 1,
-    marginLeft: 1,
+    marginLeft: 2,
   },
 });
 

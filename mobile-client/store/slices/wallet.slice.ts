@@ -104,7 +104,7 @@ export const getWalletOverview = createAsyncThunk(
 export const getWalletTransactions = createAsyncThunk(
   'wallet/getWalletTransactions',
   async (
-    params?: { page?: number; limit?: number; type?: WalletTransactionType; status?: WalletTransactionStatus },
+    params: { page?: number; limit?: number; type?: WalletTransactionType; status?: WalletTransactionStatus } | void,
     { rejectWithValue }
   ) => {
     try {
@@ -187,7 +187,7 @@ export const createWithdrawalRequest = createAsyncThunk(
 export const getWithdrawalRequests = createAsyncThunk(
   'wallet/getWithdrawalRequests',
   async (
-    params?: { page?: number; limit?: number; status?: WithdrawalStatus },
+    params: { page?: number; limit?: number; status?: WithdrawalStatus } | void,
     { rejectWithValue }
   ) => {
     try {

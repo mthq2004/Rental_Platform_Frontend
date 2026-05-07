@@ -1,6 +1,8 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, Image, Dimensions, Modal, TextInput, Linking, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import WebView from 'react-native-webview';
 import { router, useFocusEffect } from 'expo-router';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
 import { getWalletOverview, getWalletTransactions, initiateWalletTopup } from '@/store/slices/wallet.slice';
@@ -14,21 +16,22 @@ import {
   MoreHorizontal,
   AlertCircle,
   History,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react-native';
 import { COLORS } from '@/utils/colors';
 
 const { width } = Dimensions.get('window');
 
 const WALLET_TYPE_MAP: Record<string, string> = {
-  topup: 'Nạp tiền',
   withdraw: 'Rút tiền về ngân hàng',
-  payment: 'Thanh toán',
   refund: 'Hoàn tiền',
-  commission: 'Hoa hồng',
-  transfer: 'Chuyển khoản',
-  rental_payment: 'Thanh toán thuê nhà',
-  deposit: 'Đặt cọc',
+  pay_rent: 'Thanh toán thuê nhà',
+  receive_rent: 'Nhận tiền thuê nhà',
+  deposit: 'Nạp tiền',
+  hold_deposit: 'Đặt cọc',
+  security_deposit: 'Ký quỹ',
+  fee: 'Phí',
 };
 
 const WALLET_STATUS_MAP: Record<string, string> = {
@@ -54,6 +57,7 @@ export default function WalletScreen() {
   const [topupModalVisible, setTopupModalVisible] = useState(false);
   const [topupMethod, setTopupMethod] = useState<'momo' | 'vnpay'>('vnpay');
   const [topupAmount, setTopupAmount] = useState('');
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     dispatch(getWalletOverview());
@@ -73,11 +77,24 @@ export default function WalletScreen() {
         setTopupModalVisible(false);
         setTopupAmount('');
         const data: any = resultAction.payload;
-        const url = data?.paymentUrl || data?.data?.paymentUrl;
-        if (url) {
-          Linking.openURL(url);
+        console.log("kiem tra url payemtn data:", JSON.stringify(data, null, 2));
+
+        // Deep search for payment URL since different gateways/interceptors wrap it differently
+        let url = null;
+        if (data?.paymentUrl) url = data.paymentUrl;
+        else if (data?.data?.paymentUrl) url = data.data.paymentUrl;
+        else if (data?.payUrl) url = data.payUrl;
+        else if (data?.data?.payUrl) url = data.data.payUrl;
+        else if (data?.redirectUrl) url = data.redirectUrl;
+        else if (data?.data?.redirectUrl) url = data.data.redirectUrl;
+        else if (typeof data === 'string' && /^https?:\/\//i.test(data)) url = data;
+
+        console.log("kiem tra url payemtn extracted:", url);
+
+        if (url && /^https?:\/\//i.test(String(url))) {
+          setPaymentUrl(url);
         } else {
-          Alert.alert('Thành công', 'Đã tạo lệnh nạp tiền nhưng không tìm thấy link thanh toán.');
+          Alert.alert('Thành công', 'Đã tạo lệnh nạp tiền. Vui lòng kiểm tra trạng thái trong ít phút.');
         }
       } else {
         Alert.alert('Lỗi', resultAction.payload as string || 'Khởi tạo nạp tiền thất bại');
@@ -162,17 +179,73 @@ export default function WalletScreen() {
     );
   };
 
+  if (paymentUrl) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? '#111827' : '#fff' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: isDark ? '#1F2937' : '#eee', backgroundColor: isDark ? '#111827' : '#fff' }}>
+          <TouchableOpacity onPress={() => setPaymentUrl(null)} style={{ padding: 4 }}>
+            <Ionicons name="close" size={24} color={isDark ? '#fff' : '#111827'} />
+          </TouchableOpacity>
+          <Text style={{ flex: 1, textAlign: 'center', fontSize: 16, fontWeight: '700', color: isDark ? '#fff' : '#111827' }}>Cổng thanh toán</Text>
+        </View>
+        <WebView
+          source={{ uri: paymentUrl }}
+          onNavigationStateChange={(navState) => {
+            if (navState.url.includes('/payment/vnpay_return') || navState.url.includes('returnUrl') || navState.url.includes('vnpay_return')) {
+              setPaymentUrl(null)
+              Alert.alert('Thông báo', 'Giao dịch của bạn đang được xử lý. Vui lòng kiểm tra lại trạng thái trong ít phút.', [
+                { text: 'OK', onPress: () => loadData() },
+              ])
+            }
+          }}
+        />
+      </SafeAreaView>
+    )
+  }
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: isDark ? '#111827' : '#f8fafc' }}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#111827' : '#f8fafc' }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
-          <ArrowLeft size={24} color={isDark ? '#f9fafb' : '#1e3a8a'} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: isDark ? '#f9fafb' : '#111827' }]}>Ví cá nhân</Text>
-        <TouchableOpacity style={styles.iconBtn}>
-          <HelpCircle size={24} color="#64748b" />
-        </TouchableOpacity>
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        height: 60,
+        backgroundColor: isDark ? '#111827' : '#FFF',
+        borderBottomWidth: 1,
+        borderBottomColor: isDark ? '#1F2937' : '#F3F4F6',
+        zIndex: 1000
+      }}>
+        <View style={{ zIndex: 10 }}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+            <Ionicons name="arrow-back" size={24} color={isDark ? '#FFF' : '#374151'} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={{
+          position: 'absolute',
+          left: 0, right: 0, top: 0, bottom: 0,
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 5,
+          pointerEvents: 'none'
+        }}>
+          <Text style={{
+            fontSize: 18,
+            fontWeight: '700',
+            color: isDark ? '#FFF' : '#111827',
+            letterSpacing: -0.3
+          }}>
+            Ví cá nhân
+          </Text>
+        </View>
+
+        <View style={{ zIndex: 10 }}>
+          <TouchableOpacity style={styles.iconBtn}>
+            <HelpCircle size={24} color="#64748b" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -304,8 +377,8 @@ export default function WalletScreen() {
               <Text style={[styles.modalTitle, { color: isDark ? '#f9fafb' : '#111827' }]}>
                 Nạp tiền ({topupMethod === 'momo' ? 'MoMo' : 'VNPay'})
               </Text>
-              <TouchableOpacity onPress={() => setTopupModalVisible(false)}>
-                <AlertCircle size={24} color="#9ca3af" style={{ transform: [{ rotate: '45deg' }] }} />
+              <TouchableOpacity onPress={() => setTopupModalVisible(false)} style={{ padding: 4 }}>
+                <X size={24} color={isDark ? "#d1d5db" : "#6b7280"} />
               </TouchableOpacity>
             </View>
 

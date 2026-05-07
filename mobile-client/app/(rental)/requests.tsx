@@ -11,6 +11,9 @@ import { getPropertyById as getPropertyByIdThunk } from '@/store/slices/property
 import { useRouter } from 'expo-router'
 import { FileText, MapPin, RefreshCw, CheckCircle, Clock, XCircle, Home, Building, ChevronRight, Inbox } from 'lucide-react-native'
 import { useThemeColors } from '@/utils/colors'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
+import ScreenHeader from '@/components/common/ScreenHeader'
 
 // Simple status labels
 const STATUS_LABELS: Record<string, string> = {
@@ -85,7 +88,8 @@ const PropertyGroupHeader: React.FC<{ title: string; address?: string; imageUrl?
 const RequestsScreen: React.FC = () => {
   const dispatch = useAppDispatch()
   const router = useRouter()
-  const { current } = useThemeColors()
+  const colors = useThemeColors()
+  const { current } = colors
   const { myRequests, loading, error } = useAppSelector((s) => s.contract)
   const [ownerRequests, setOwnerRequests] = useState<RequestItem[]>([])
   const [activeTab, setActiveTab] = useState<TabType>('my')
@@ -306,25 +310,25 @@ const RequestsScreen: React.FC = () => {
 
         {/* Khung lưới thông tin dạng Web */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#F1F5F9' }}>
-            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#94A3B8', fontWeight: '700' }}>Giá đề xuất</Text>
+          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: current.card === '#FFFFFF' ? '#F8FAFC' : 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: current.border }}>
+            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: current.textInactive, fontWeight: '700' }}>Giá đề xuất</Text>
             <Text style={{ fontSize: 14, fontWeight: '800', color: '#4F46E5', marginTop: 4 }}>{formatMoney(item.proposedRent)} đ</Text>
           </View>
-          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#F1F5F9' }}>
-            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#94A3B8', fontWeight: '700' }}>Thời hạn thuê</Text>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#111827', marginTop: 4 }}>
+          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: current.card === '#FFFFFF' ? '#F8FAFC' : 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: current.border }}>
+            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: current.textInactive, fontWeight: '700' }}>Thời hạn thuê</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: current.text, marginTop: 4 }}>
               {new Date(item.startDate).toLocaleDateString('vi-VN')} → {new Date(item.endDate).toLocaleDateString('vi-VN')}
             </Text>
           </View>
-          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#F1F5F9' }}>
-            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#94A3B8', fontWeight: '700' }}>Hạn đặt cọc</Text>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#111827', marginTop: 4 }}>
+          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: current.card === '#FFFFFF' ? '#F8FAFC' : 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: current.border }}>
+            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: current.textInactive, fontWeight: '700' }}>Hạn đặt cọc</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: current.text, marginTop: 4 }}>
               {item.holdingDepositExpiresAt ? new Date(item.holdingDepositExpiresAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
             </Text>
           </View>
-          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: '#F8FAFC', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#F1F5F9' }}>
-            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: '#94A3B8', fontWeight: '700' }}>Ngày tạo</Text>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#111827', marginTop: 4 }}>
+          <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: current.card === '#FFFFFF' ? '#F8FAFC' : 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: current.border }}>
+            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: current.textInactive, fontWeight: '700' }}>Ngày tạo</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: current.text, marginTop: 4 }}>
               {new Date(item.createdAt).toLocaleDateString('vi-VN')}
             </Text>
           </View>
@@ -378,8 +382,8 @@ const RequestsScreen: React.FC = () => {
   const renderGroupedRequests = (groups: any[], kind: TabType) => {
     if (!groups || groups.length === 0) return (
       <View style={{ padding: 40, alignItems: 'center' }}>
-        <Inbox size={48} color="#9CA3AF" />
-        <Text style={{ marginTop: 12, fontSize: 15, color: '#374151', fontWeight: '600' }}>{kind === 'my' ? 'Chưa có yêu cầu nào' : 'Chưa có yêu cầu nhận được'}</Text>
+        <Inbox size={48} color={current.textInactive} />
+        <Text style={{ marginTop: 12, fontSize: 15, color: current.text, fontWeight: '600' }}>{kind === 'my' ? 'Chưa có yêu cầu nào' : 'Chưa có yêu cầu nhận được'}</Text>
       </View>
     )
 
@@ -407,7 +411,7 @@ const RequestsScreen: React.FC = () => {
             <View key={req.requestId || req.id || idx}>
               {renderRequestRow(req, kind)}
               {/* Add divider between items, not after last */}
-              {idx < group.requests.length - 1 && <View style={{ height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 12 }} />}
+              {idx < group.requests.length - 1 && <View style={{ height: 1, backgroundColor: current.border, marginHorizontal: 12 }} />}
             </View>
           ))}
         </View>
@@ -419,17 +423,11 @@ const RequestsScreen: React.FC = () => {
 
   return (
     <AuthGuard>
-      <KeyboardSafeWrapper className="flex-1 bg-white">
-        <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className='mt-10' refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} />}>
-          <View style={{ padding: 16, paddingTop: 20 }}>
-            <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
-              <BackButton onPress={() => router.back()} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 24, fontWeight: '700', color: '#111827' }}>Quản lý yêu cầu</Text>
-                <Text style={{ color: '#6B7280', marginTop: 4, fontSize: 13 }}>Đặt cọc, thanh toán và hợp đồng</Text>
-              </View>
-            </View>
+      <KeyboardSafeWrapper scrollable={false} style={{ flex: 1, backgroundColor: current.background }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: current.background }}>
+          <ScreenHeader title="Quản lý yêu cầu" />
 
+          <View style={{ padding: 16, paddingTop: 16, paddingBottom: 0 }}>
             {/* Tab Navigation */}
             <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16, backgroundColor: current.card, padding: 4, borderRadius: 14, borderWidth: 1, borderColor: current.border }}>
               <TouchableOpacity onPress={() => setActiveTab('my')} style={{ flex: 1, paddingVertical: 10, borderRadius: 10, backgroundColor: activeTab === 'my' ? '#0040d1' : 'transparent' }}>
@@ -453,7 +451,7 @@ const RequestsScreen: React.FC = () => {
           </View>
 
           {activeTab === 'owner' ? (
-            <View style={{ marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: 16, backgroundColor: '#F8FAFF', borderWidth: 1, borderColor: '#D6E4FF' }}>
+            <View style={{ marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: 16, backgroundColor: current.card === '#FFFFFF' ? '#F8FAFF' : 'rgba(0,64,209,0.1)', borderWidth: 1, borderColor: current.card === '#FFFFFF' ? '#D6E4FF' : 'rgba(0,64,209,0.3)' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 13, fontWeight: '800', color: current.text }}>Chọn nhiều yêu cầu</Text>
@@ -461,8 +459,8 @@ const RequestsScreen: React.FC = () => {
                     Đang chọn {selectedEligibleOwnerRequestIds.length}/{eligibleOwnerRequestIds.length} yêu cầu đủ điều kiện mở cọc
                   </Text>
                 </View>
-                <TouchableOpacity onPress={toggleSelectAllEligible} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: allEligibleSelected ? '#E5E7EB' : '#0040d1' }}>
-                  <Text style={{ color: allEligibleSelected ? '#374151' : '#fff', fontSize: 12, fontWeight: '700' }}>{allEligibleSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</Text>
+                <TouchableOpacity onPress={toggleSelectAllEligible} style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: allEligibleSelected ? current.border : '#0040d1' }}>
+                  <Text style={{ color: allEligibleSelected ? current.text : '#fff', fontSize: 12, fontWeight: '700' }}>{allEligibleSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -470,43 +468,47 @@ const RequestsScreen: React.FC = () => {
                 title={selectedEligibleOwnerRequestIds.length > 0 ? `Mở cọc ${selectedEligibleOwnerRequestIds.length} yêu cầu` : 'Chưa chọn yêu cầu nào'}
                 onPress={handleOpenSelectedDeposits}
                 disabled={selectedEligibleOwnerRequestIds.length === 0}
-                style={{ marginTop: 12, borderRadius: 14, backgroundColor: '#0040d1' }}
+                style={{ marginTop: 12, borderRadius: 14, backgroundColor: selectedEligibleOwnerRequestIds.length === 0 ? current.border : '#0040d1' }}
               />
             </View>
           ) : null}
 
-          {isLoading ? (
-            <View style={{ padding: 40, alignItems: 'center' }}>
-              <ActivityIndicator size="large" color="#0040d1" />
-              <Text style={{ marginTop: 12, color: current.textInactive, fontSize: 13 }}>Đang tải dữ liệu...</Text>
-            </View>
-          ) : (
-            <View style={{ paddingHorizontal: 16 }}>
-              {activeTab === 'my' ? renderGroupedRequests(myGroups, 'my') : renderGroupedRequests(ownerGroups, 'owner')}
-              {error ? (
-                <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' }}>
-                  <Text style={{ color: '#B91C1C', fontSize: 12, fontWeight: '600' }}>{String(error)}</Text>
-                </View>
-              ) : null}
-            </View>
-          )}
-        </ScrollView>
+          <ScrollView contentContainerStyle={{ paddingBottom: 120 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} tintColor={colors.primary} />}>
+
+            {isLoading ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#0040d1" />
+                <Text style={{ marginTop: 12, color: current.textInactive, fontSize: 13 }}>Đang tải dữ liệu...</Text>
+              </View>
+            ) : (
+              <View style={{ paddingHorizontal: 16 }}>
+                {activeTab === 'my' ? renderGroupedRequests(myGroups, 'my') : renderGroupedRequests(ownerGroups, 'owner')}
+                {error ? (
+                  <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' }}>
+                    <Text style={{ color: '#B91C1C', fontSize: 12, fontWeight: '600' }}>{String(error)}</Text>
+                  </View>
+                ) : null}
+              </View>
+            )}
+          </ScrollView>
+        </SafeAreaView>
 
         <Modal visible={rejectModalOpen} transparent animationType="fade">
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
-            <View style={{ backgroundColor: '#fff', borderRadius: 20, padding: 20 }}>
-              <Text style={{ fontSize: 18, fontWeight: '800', marginBottom: 10, color: '#111827' }}>Từ chối yêu cầu</Text>
-              <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>Vui lòng nhập lý do từ chối để khách hàng có thể biết được vấn đề của họ.</Text>
+            <View style={{ backgroundColor: current.card, borderRadius: 20, padding: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', marginBottom: 10, color: current.text }}>Từ chối yêu cầu</Text>
+              <Text style={{ fontSize: 14, color: current.textInactive, marginBottom: 16 }}>Vui lòng nhập lý do từ chối để khách hàng có thể biết được vấn đề của họ.</Text>
               <TextInput
                 value={rejectReason}
                 onChangeText={setRejectReason}
                 placeholder="Nhập lý do từ chối..."
+                placeholderTextColor={current.textInactive}
                 multiline
-                style={{ backgroundColor: '#F3F4F6', borderRadius: 12, padding: 14, minHeight: 100, textAlignVertical: 'top', color: '#111827' }}
+                style={{ backgroundColor: current.background, borderRadius: 12, padding: 14, minHeight: 100, textAlignVertical: 'top', color: current.text, borderWidth: 1, borderColor: current.border }}
               />
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
-                <TouchableOpacity onPress={() => setRejectModalOpen(false)} style={{ flex: 1, paddingVertical: 14, backgroundColor: '#F3F4F6', borderRadius: 12, alignItems: 'center' }}>
-                  <Text style={{ fontWeight: '700', color: '#4B5563' }}>Hủy bỏ</Text>
+                <TouchableOpacity onPress={() => setRejectModalOpen(false)} style={{ flex: 1, paddingVertical: 14, backgroundColor: current.border, borderRadius: 12, alignItems: 'center' }}>
+                  <Text style={{ fontWeight: '700', color: current.text }}>Hủy bỏ</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={submitReject} style={{ flex: 1, paddingVertical: 14, backgroundColor: '#DC2626', borderRadius: 12, alignItems: 'center' }}>
                   <Text style={{ fontWeight: '700', color: '#fff' }}>Xác nhận từ chối</Text>

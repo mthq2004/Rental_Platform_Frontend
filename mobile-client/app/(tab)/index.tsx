@@ -118,8 +118,8 @@ const Home = () => {
       >
         <HeaderBanner />
         <SearchFilter />
-        <Categories />
-        <View className="mb-6">
+        {/* <Categories /> */}
+        <View className="mb-6 mt-6 py-4">
           <Text className="text-xl font-bold text-gray-900 dark:text-foreground-dark mb-4 px-4">
             Nhà cho thuê mới nhất
           </Text>

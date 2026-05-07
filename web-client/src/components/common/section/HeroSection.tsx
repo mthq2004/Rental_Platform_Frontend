@@ -17,7 +17,7 @@ const HeroSection = () => {
   const [activeTab, setActiveTab] = useState<"rent" | "project">(
     "rent"
   );
-  
+
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedPropertyType, setSelectedPropertyType] = useState<string | undefined>(undefined);
 
@@ -140,12 +140,12 @@ const HeroSection = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      
+
       // Bỏ qua nếu click vào button (để button tự handle toggle)
       if (buttonRef.current && buttonRef.current.contains(target)) {
         return;
       }
-      
+
       // Đóng modal nếu click bên ngoài modal
       if (modalRef.current && !modalRef.current.contains(target)) {
         setIsLocationModalOpen(false);
@@ -190,15 +190,15 @@ const HeroSection = () => {
     router.push(`/search${queryString ? `?${queryString}` : ""}`);
   };
 
-const [isFocused, setIsFocused] = useState(false);
-const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused);
+  const [isFocused, setIsFocused] = useState(false);
+  const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused);
   /* ===================== RENDER ===================== */
 
   return (
     <section
-        // CHỈNH Ở ĐÂY: Sử dụng overflow-visible khi CÓ BẤT KỲ dropdown nào mở
-        className={`py-4 relative w-full ${isAnyDropdownOpen ? "overflow-visible" : "overflow-hidden"}`}
-        style={{ zIndex: isAnyDropdownOpen ? 100 : 1 }}
+      // CHỈNH Ở ĐÂY: Sử dụng overflow-visible khi CÓ BẤT KỲ dropdown nào mở
+      className={`py-4 relative w-full ${isAnyDropdownOpen ? "overflow-visible" : "overflow-hidden"}`}
+      style={{ zIndex: isAnyDropdownOpen ? 100 : 1 }}
     >
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-blue-500 via-blue-300 to-blue-100">
@@ -223,17 +223,29 @@ const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused)
 
       {/* Content */}
       <div className="relative z-10 mx-auto max-w-300 px-8 py-14 md:py-12">
-        {/* Slogan */}
-        <h1 className="text-center text-2xl md:text-4xl font-bold text-white mt-10 mb-10 italic">
-          Cho thuê vừa ý, giá hợp lý!
-        </h1>
+        <div className="text-center mb-10 space-y-3">
+          {/* Chữ lớn - Chỉnh lại màu sắc sắc nét và kích thước vừa vặn */}
+          <h1 className="text-4xl md:text-6xl font-black tracking-tight uppercase">
+            <span className="
+              text-white
+              /* Đổ bóng tối giúp chữ tách biệt hoàn toàn khỏi nền xanh sáng */
+              [text-shadow:_0_4px_8px_rgba(0,0,0,0.3)]
+              drop-shadow-md"
+            >
+              TÌM NƠI Ở - CHỌN NIỀM TIN
+            </span>
+          </h1>
 
-        
+          {/* Chữ nhỏ - Tăng độ đậm và tương phản */}
+          <p className="text-white/90 text-base md:text-4xl font-medium italic tracking-wide">
+            "Cho thuê vừa ý, giá cả hợp lý"
+          </p>
+        </div>
       </div>
 
       {/* Search Box */}
-      <div 
-      // CHỈNH Ở ĐÂY: Thêm overflow-visible để Dropdown không bị cắt cụt
+      <div
+        // CHỈNH Ở ĐÂY: Thêm overflow-visible để Dropdown không bị cắt cụt
         className="bg-white rounded-xl shadow-lg p-3 md:p-4 max-w-[900px] mx-auto relative z-[999] overflow-visible"
       >
         <div className="flex flex-col md:flex-row gap-3">
@@ -278,9 +290,9 @@ const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused)
                   {getLocationDisplayText()}
                 </span>
               </div>
-              <DownOutlined 
+              <DownOutlined
                 className={`text-xs transition-transform duration-300 ease-out
-                  ${isLocationModalOpen ? 'rotate-180 text-blue-500' : 'rotate-0'}`} 
+                  ${isLocationModalOpen ? 'rotate-180 text-blue-500' : 'rotate-0'}`}
               />
             </button>
 
@@ -291,8 +303,8 @@ const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused)
                 w-[320px] bg-white rounded-xl shadow-xl 
                 border border-red-100 z-[9999]
                 transition-all duration-300 ease-out origin-top
-                ${isLocationModalOpen 
-                  ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' 
+                ${isLocationModalOpen
+                  ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
                   : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}
             >
               {/* Header */}
@@ -310,24 +322,24 @@ const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused)
                   <label className="block text-sm text-gray-600 mb-1 font-medium">
                     Chọn tỉnh thành <span className="text-red-500">*</span>
                   </label>
-                    <Select
-                      size="large"
-                      placeholder="Chọn tỉnh thành"
-                      className="w-full"
-                      showSearch
-                      getPopupContainer={() => modalRef.current!}
-                      filterOption={(input, option) =>
-                        (option?.label ?? "")
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
-                      loading={loadingProvinces}
-                      value={selectedProvince}
-                      onChange={(value) => setSelectedProvince(value)}
-                      options={provinces.map((p) => ({
-                        value: p.code,
-                        label: p.name,
-                      }))}
+                  <Select
+                    size="large"
+                    placeholder="Chọn tỉnh thành"
+                    className="w-full"
+                    showSearch
+                    getPopupContainer={() => modalRef.current!}
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    loading={loadingProvinces}
+                    value={selectedProvince}
+                    onChange={(value) => setSelectedProvince(value)}
+                    options={provinces.map((p) => ({
+                      value: p.code,
+                      label: p.name,
+                    }))}
                     notFoundContent={
                       loadingProvinces ? <Spin size="small" /> : null
                     }
@@ -340,25 +352,25 @@ const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused)
                   <label className="block text-sm text-gray-600 mb-1 font-medium">
                     Chọn quận huyện <span className="text-red-500">*</span>
                   </label>
-                    <Select
-                      size="large"
-                      placeholder="Chọn quận huyện"
-                      className="w-full"
-                      showSearch
-                      getPopupContainer={() => modalRef.current!}
-                      filterOption={(input, option) =>
-                        (option?.label ?? "")
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
-                      loading={loadingDistricts}
-                      value={selectedDistrict}
-                      onChange={(value) => setSelectedDistrict(value)}
-                      disabled={!selectedProvince}
-                      options={districts.map((d) => ({
-                        value: d.code,
-                        label: d.name,
-                      }))}
+                  <Select
+                    size="large"
+                    placeholder="Chọn quận huyện"
+                    className="w-full"
+                    showSearch
+                    getPopupContainer={() => modalRef.current!}
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    loading={loadingDistricts}
+                    value={selectedDistrict}
+                    onChange={(value) => setSelectedDistrict(value)}
+                    disabled={!selectedProvince}
+                    options={districts.map((d) => ({
+                      value: d.code,
+                      label: d.name,
+                    }))}
                     notFoundContent={
                       loadingDistricts ? <Spin size="small" /> : null
                     }
@@ -371,25 +383,25 @@ const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused)
                   <label className="block text-sm text-gray-600 mb-1 font-medium">
                     Chọn phường xã <span className="text-red-500">*</span>
                   </label>
-                    <Select
-                      size="large"
-                      placeholder="Chọn phường xã"
-                      className="w-full"
-                      showSearch
-                      getPopupContainer={() => modalRef.current!}
-                      filterOption={(input, option) =>
-                        (option?.label ?? "")
-                          .toLowerCase()
-                          .includes(input.toLowerCase())
-                      }
-                      loading={loadingWards}
-                      value={selectedWard}
-                      onChange={(value) => setSelectedWard(value)}
-                      disabled={!selectedDistrict}
-                      options={wards.map((w) => ({
-                        value: w.code,
-                        label: w.name,
-                      }))}
+                  <Select
+                    size="large"
+                    placeholder="Chọn phường xã"
+                    className="w-full"
+                    showSearch
+                    getPopupContainer={() => modalRef.current!}
+                    filterOption={(input, option) =>
+                      (option?.label ?? "")
+                        .toLowerCase()
+                        .includes(input.toLowerCase())
+                    }
+                    loading={loadingWards}
+                    value={selectedWard}
+                    onChange={(value) => setSelectedWard(value)}
+                    disabled={!selectedDistrict}
+                    options={wards.map((w) => ({
+                      value: w.code,
+                      label: w.name,
+                    }))}
                     notFoundContent={
                       loadingWards ? <Spin size="small" /> : null
                     }
@@ -416,60 +428,71 @@ const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused)
           </div>
 
           {/* Type Select */}
-        <div className="relative w-full md:w-[180px]" ref={typeRef}>
-           {/* Trigger Button */}
-           <div
-            onClick={() => setIsOpenType(!isOpenType)}
-            className={`relative w-full h-12 pl-10 pr-10 bg-white rounded-lg border 
+          <div className="relative w-full md:w-[180px]" ref={typeRef}>
+            {/* Trigger Button */}
+            <div
+              onClick={() => setIsOpenType(!isOpenType)}
+              className={`relative w-full h-12 pl-10 pr-10 bg-white rounded-lg border 
               flex items-center cursor-pointer transition-all duration-300 shadow-sm
               ${isOpenType ? 'border-blue-500 ring-2 ring-blue-50' : 'border-gray-200 hover:border-blue-500'}`}
-           >
-            <AppstoreOutlined className={`absolute left-3 text-blue-500 transition-transform duration-300 ${isOpenType ? 'scale-110 rotate-12' : ''}`} />
-            <span className={`text-sm truncate select-none ${!selectedPropertyType ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
-              {propertyOptions.find(o => o.value === selectedPropertyType)?.label || "Loại hình BĐS"}
-            </span>
-            <DownOutlined className={`absolute right-3 text-[10px] text-gray-400 transition-all duration-300 ${isOpenType ? 'rotate-180 text-blue-500' : ''}`} />
-           </div>
+            >
+              <AppstoreOutlined className={`absolute left-3 text-blue-500 transition-transform duration-300 ${isOpenType ? 'scale-110 rotate-12' : ''}`} />
+              <span className={`text-sm truncate select-none ${!selectedPropertyType ? 'text-gray-400' : 'text-gray-700 font-medium'}`}>
+                {propertyOptions.find(o => o.value === selectedPropertyType)?.label || "Loại hình BĐS"}
+              </span>
+              <DownOutlined className={`absolute right-3 text-[10px] text-gray-400 transition-all duration-300 ${isOpenType ? 'rotate-180 text-blue-500' : ''}`} />
+            </div>
 
-           {/* Dropdown Menu - CỰC KỲ QUAN TRỌNG */}
-           <div
-            className={`absolute top-[calc(100%+6px)] left-0 w-full bg-white rounded-xl shadow-2xl border border-gray-100 
+            {/* Dropdown Menu - CỰC KỲ QUAN TRỌNG */}
+            <div
+              className={`absolute top-[calc(100%+6px)] left-0 w-full bg-white rounded-xl shadow-2xl border border-gray-100 
               z-[99999] /* Tăng hẳn lên mức tối đa */
               transition-all duration-300 ease-out origin-top
-              ${isOpenType 
-                ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto' 
-                : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}
-           >
-            <div className="py-1.5 px-1.5 max-h-[250px] overflow-y-auto">
-              {propertyOptions.map((option) => (
-                <div
-                  key={option.value}
-                  onClick={() => {
-                    setSelectedPropertyType(option.value);
-                    setIsOpenType(false);
-                  }}
-                  className={`px-3 py-2.5 text-sm rounded-lg transition-all duration-200 cursor-pointer
+              ${isOpenType
+                  ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
+                  : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}
+            >
+              <div className="py-1.5 px-1.5 max-h-[250px] overflow-y-auto">
+                {propertyOptions.map((option) => (
+                  <div
+                    key={option.value}
+                    onClick={() => {
+                      setSelectedPropertyType(option.value);
+                      setIsOpenType(false);
+                    }}
+                    className={`px-3 py-2.5 text-sm rounded-lg transition-all duration-200 cursor-pointer
                     flex items-center justify-between
-                    ${selectedPropertyType === option.value 
-                      ? 'bg-blue-50 text-blue-600 font-semibold' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-blue-500'}`}
-                >
-                  {option.label}
-                </div>
-              ))}
+                    ${selectedPropertyType === option.value
+                        ? 'bg-blue-50 text-blue-600 font-semibold'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-blue-500'}`}
+                  >
+                    {option.label}
+                  </div>
+                ))}
+              </div>
             </div>
-           </div>
-        </div>
+          </div>
 
           {/* Search Button */}
           <button
             onClick={handleSearchNavigate}
-            className="h-12 px-8 rounded-lg font-semibold text-white
-                      bg-blue-500 hover:bg-blue-600
-                      /* bg-gradient-to-r from-blue-500 to-blue-300 hover:from-blue-600 hover:to-purple-600 */
-                      transition-all duration-200 active:scale-95
-                      shadow-md hover:shadow-lg
-                      flex items-center justify-center min-w-[120px]"
+            className="
+              h-12 px-8 rounded-lg
+              font-semibold text-white
+              bg-blue-800
+              
+              transition-all duration-500
+              active:scale-95
+              
+              shadow-md
+              flex items-center justify-center
+              min-w-[120px]
+
+              /* Hover: Pha trộn Tím và Xanh biển */
+              hover:bg-blue-700
+                hover:shadow-[0_0_20px_rgba(168,85,247,0.4),_0_0_40px_rgba(59,130,246,0.3)]
+                hover:ring-1 hover:ring-blue-500/30
+            "
           >
             Tìm kiếm
           </button>

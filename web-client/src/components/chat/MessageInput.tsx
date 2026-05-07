@@ -21,15 +21,7 @@ interface MessageInputProps {
   onTyping?: (isTyping: boolean) => void;
 }
 
-// ── Quick reply suggestions ──
-const QUICK_REPLIES = [
-  "Giá phòng như thế nào ạ?",
-  "Cho mình xem hình thêm được không?",
-  "Còn phòng trống không ạ?",
-  "Mình muốn đặt lịch xem phòng",
-  "Phòng có nội thất không ạ?",
-  "Tiền điện nước tính thế nào?",
-];
+
 
 // ── Icons ──
 const IconImage = () => (
@@ -105,7 +97,6 @@ export default function MessageInput({
   const [loading, setLoading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [showSuggestions, setShowSuggestions] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -276,14 +267,7 @@ export default function MessageInput({
     }
   };
 
-  const handleQuickReply = (reply: string) => {
-    onSend?.({
-      conversationId,
-      messageType: "TEXT",
-      content: reply,
-      replyToId: null,
-    });
-  };
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -323,36 +307,7 @@ export default function MessageInput({
 
   return (
     <div className="bg-white border-t border-gray-100 shrink-0">
-      {/* Quick reply suggestions */}
-      <div className="px-4 pt-3 pb-1">
-        <button
-          onClick={() => setShowSuggestions((prev) => !prev)}
-          className="flex items-center gap-1.5 mb-2 cursor-pointer bg-transparent border-none p-0 group"
-        >
-          <IconSuggestion />
-          <span className="text-xs text-gray-500 font-medium group-hover:text-blue-500 transition-colors">
-            Gợi ý tin nhắn
-          </span>
-          <span className="text-gray-400 group-hover:text-blue-500 transition-colors">
-            {showSuggestions ? <IconChevronUp /> : <IconChevronDown />}
-          </span>
-        </button>
-        <div
-          className={`flex flex-wrap gap-2 overflow-hidden transition-all duration-300 ease-in-out ${
-            showSuggestions ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
-          {QUICK_REPLIES.map((reply, i) => (
-            <button
-              key={i}
-              onClick={() => handleQuickReply(reply)}
-              className="px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-xs hover:bg-blue-100 hover:border-blue-300 transition-colors cursor-pointer whitespace-nowrap"
-            >
-              {reply}
-            </button>
-          ))}
-        </div>
-      </div>
+
 
       <div className="px-4 pb-3 pt-2">
         {/* Reply banner */}

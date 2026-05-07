@@ -22,6 +22,7 @@ import {
   selectFavoritesState,
 } from '@/store/slices/estate.slice';
 import { COLORS } from '@/utils/colors';
+import ScreenHeader from '@/components/common/ScreenHeader';
 
 const FavoritesScreen = () => {
   const dispatch = useAppDispatch();
@@ -142,16 +143,7 @@ const FavoritesScreen = () => {
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color={isDark ? '#fff' : '#1f2937'} />
-        </TouchableOpacity>
-        <Text className="text-foreground dark:text-foreground-dark text-lg font-bold">
-          Tin đăng đã lưu
-        </Text>
-        <View style={{ width: 36 }} />
-      </View>
+      <ScreenHeader title="Tin đăng đã lưu" />
 
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>

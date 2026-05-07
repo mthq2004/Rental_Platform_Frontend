@@ -142,7 +142,7 @@ const DashboardPage = () => {
               title={<span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>Số dư khả dụng</span>}
               value={walletOverview ? formatMoney(walletOverview.availableBalance) : "0"}
               suffix="đ"
-              valueStyle={{ color: "#fff", fontSize: 22, fontWeight: 700 }}
+              styles={{ content: { color: "#fff", fontSize: 22, fontWeight: 700 } }}
             />
           </Col>
           <Col xs={12} md={8}>
@@ -150,7 +150,7 @@ const DashboardPage = () => {
               title={<span style={{ color: "rgba(255,255,255,0.6)", fontSize: 12 }}>Tiền đang giữ</span>}
               value={walletOverview ? formatMoney(walletOverview.pendingBalance) : "0"}
               suffix="đ"
-              valueStyle={{ color: "#fbbf24", fontSize: 22, fontWeight: 700 }}
+              styles={{ content: { color: "#fbbf24", fontSize: 22, fontWeight: 700 } }}
             />
           </Col>
           <Col xs={24} md={8} style={{ display: "flex", alignItems: "center" }}>

@@ -11,6 +11,8 @@ import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper'
 import PrimaryButton from '@/components/PrimaryButton'
 import { useThemeColors } from '@/utils/colors'
 import { Calendar, Clock3, FileText, Handshake, Home, Landmark, Wallet } from 'lucide-react-native'
+import { Ionicons } from '@expo/vector-icons'
+import ScreenHeader from '@/components/common/ScreenHeader'
 
 const STATUS_TABS = [
   { key: 'all', label: 'Tất cả' },
@@ -128,64 +130,58 @@ const ContractsScreen = () => {
 
   return (
     <AuthGuard>
-      <KeyboardSafeWrapper className="bg-slate-50 dark:bg-slate-950 pt-10">
+      <KeyboardSafeWrapper scrollable={false} style={{ flex: 1, backgroundColor: current.background }}>
         <SafeAreaView style={{ flex: 1, backgroundColor: current.background }}>
+          <ScreenHeader title="Quản lý hợp đồng" />
+
+          <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+            <View style={{ backgroundColor: '#0F172A', borderRadius: 28, padding: 18, marginBottom: 16, overflow: 'hidden' }}>
+            <View style={{ position: 'absolute', right: -20, top: -20, width: 120, height: 120, borderRadius: 999, backgroundColor: 'rgba(59,130,246,0.18)' }} />
+            <View style={{ position: 'absolute', right: 40, bottom: -30, width: 90, height: 90, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.18)' }} />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+              <View style={{ flexGrow: 1, minWidth: 120, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 14 }}>
+                <Text style={{ color: '#93C5FD', fontSize: 12 }}>Tổng hợp đồng</Text>
+                <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 4 }}>{summary.total}</Text>
+              </View>
+              <View style={{ flexGrow: 1, minWidth: 120, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 14 }}>
+                <Text style={{ color: '#86EFAC', fontSize: 12 }}>Đang hiệu lực</Text>
+                <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 4 }}>{summary.active}</Text>
+              </View>
+              <View style={{ flexGrow: 1, minWidth: 120, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 14 }}>
+                <Text style={{ color: '#FDE68A', fontSize: 12 }}>Chờ xử lý</Text>
+                <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 4 }}>{summary.signing}</Text>
+              </View>
+            </View>
+          </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
+              {STATUS_TABS.map((tab) => {
+                const active = activeTab === tab.key
+                return (
+                  <TouchableOpacity
+                    key={tab.key}
+                    onPress={() => setActiveTab(tab.key)}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 999,
+                      backgroundColor: active ? colors.primary : current.card,
+                      borderWidth: 1,
+                      borderColor: active ? colors.primary : current.border,
+                    }}
+                  >
+                    <Text style={{ color: active ? '#fff' : current.text, fontWeight: '700', fontSize: 12 }}>{tab.label}</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          </View>
+
           <ScrollView
             contentContainerStyle={{ paddingBottom: 32 }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
           >
-            <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                <BackButton onPress={() => router.back()} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 24, fontWeight: '900', color: current.text }}>Quản lý hợp đồng</Text>
-                  <Text style={{ color: current.textInactive, marginTop: 4 }}>Ký kết, theo dõi hiệu lực và xử lý thanh toán tập trung.</Text>
-                </View>
-              </View>
-
-              <View style={{ backgroundColor: '#0F172A', borderRadius: 28, padding: 18, marginBottom: 16, overflow: 'hidden' }}>
-                <View style={{ position: 'absolute', right: -20, top: -20, width: 120, height: 120, borderRadius: 999, backgroundColor: 'rgba(59,130,246,0.18)' }} />
-                <View style={{ position: 'absolute', right: 40, bottom: -30, width: 90, height: 90, borderRadius: 999, backgroundColor: 'rgba(16,185,129,0.18)' }} />
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                  <View style={{ flexGrow: 1, minWidth: 120, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 14 }}>
-                    <Text style={{ color: '#93C5FD', fontSize: 12 }}>Tổng hợp đồng</Text>
-                    <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 4 }}>{summary.total}</Text>
-                  </View>
-                  <View style={{ flexGrow: 1, minWidth: 120, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 14 }}>
-                    <Text style={{ color: '#86EFAC', fontSize: 12 }}>Đang hiệu lực</Text>
-                    <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 4 }}>{summary.active}</Text>
-                  </View>
-                  <View style={{ flexGrow: 1, minWidth: 120, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 20, padding: 14 }}>
-                    <Text style={{ color: '#FDE68A', fontSize: 12 }}>Chờ xử lý</Text>
-                    <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', marginTop: 4 }}>{summary.signing}</Text>
-                  </View>
-                </View>
-              </View>
-
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingVertical: 4 }}>
-                {STATUS_TABS.map((tab) => {
-                  const active = activeTab === tab.key
-                  return (
-                    <TouchableOpacity
-                      key={tab.key}
-                      onPress={() => setActiveTab(tab.key)}
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 10,
-                        borderRadius: 999,
-                        backgroundColor: active ? colors.primary : current.card,
-                        borderWidth: 1,
-                        borderColor: active ? colors.primary : current.border,
-                      }}
-                    >
-                      <Text style={{ color: active ? '#fff' : current.text, fontWeight: '700', fontSize: 12 }}>{tab.label}</Text>
-                    </TouchableOpacity>
-                  )
-                })}
-              </ScrollView>
-            </View>
-
-            <View style={{ paddingHorizontal: 16, gap: 14 }}>
+            <View style={{ paddingHorizontal: 16, gap: 14, paddingTop: 8 }}>
               {loading ? (
                 <View style={{ paddingVertical: 48, alignItems: 'center' }}>
                   <ActivityIndicator size="large" color={colors.primary} />

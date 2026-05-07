@@ -24,11 +24,9 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ title, onSearch }) => {
   };
 
   const menuItems = [
-    { icon: 'category', label: 'Quản lý phân loại' },
-    { icon: 'reply', label: 'Cài đặt trả lời tự động' },
-    { icon: 'flash-on', label: 'Quản lý tin nhắn nhanh' },
-    { icon: 'check-box', label: 'Chọn nhiều hội thoại' },
-    { icon: 'visibility-off', label: 'Hội thoại bị ẩn' },
+    { icon: 'category', label: 'Quản lý phân loại', route: '/(chat)/category-management' },
+    { icon: 'check-box', label: 'Chọn nhiều hội thoại', route: null },
+    { icon: 'visibility-off', label: 'Hội thoại bị ẩn', route: '/(chat)/hidden-conversations' },
   ];
 
   return (
@@ -139,7 +137,9 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ title, onSearch }) => {
                 }}
                 onPress={() => {
                   setMenuVisible(false)
-                  router.push("/category-management")
+                  if (item.route) {
+                    router.push(item.route as any)
+                  }
                 }}
               >
                 <MaterialIcons name={item.icon as any} size={20} color={isDark ? '#d1d5db' : '#4b5563'} />

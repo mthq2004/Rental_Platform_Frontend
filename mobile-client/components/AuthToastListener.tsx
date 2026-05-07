@@ -28,7 +28,7 @@ const AuthToastListener = () => {
         showToast(message.message || 'Đăng nhập thất bại!', 'error', 3000);
         break;
       case 'success_logout':
-        showToast(message.message || 'Đã đăng xuất', 'info', 2000);
+        showToast(message.message || 'Đã đăng xuất', 'error', 2000);
         break;
       case 'success_update':
         showToast(message.message || 'Cập nhật thành công', 'success', 2000);

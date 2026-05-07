@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons'
 import WebView from 'react-native-webview'
 import { format } from 'date-fns'
 import { FIELD_STANDARD } from '@/constants/fieldDefinitions'
+import ScreenHeader from '@/components/common/ScreenHeader'
 
 function nameToLabel(name: string) {
   const part = name.includes('.') ? name.split('.').pop()! : name
@@ -365,14 +366,7 @@ const ContractBuilderScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8F9FA' }} edges={['top', 'left', 'right']}>
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E5E7EB', zIndex: 10 }}>
-        <BackButton onPress={() => router.back()} />
-        <View style={{ flex: 1, paddingHorizontal: 10 }}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: '#4F46E5', textTransform: 'uppercase', marginBottom: 2 }}>Soạn hợp đồng</Text>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }} numberOfLines={1}>{template.name}</Text>
-        </View>
-      </View>
+      <ScreenHeader title="Soạn hợp đồng" subtitle={template.name} />
 
       {/* Tabs */}
       <View style={{ flexDirection: 'row', padding: 4, backgroundColor: '#F3F4F6', marginHorizontal: 16, marginVertical: 8, borderRadius: 12 }}>

@@ -26,7 +26,7 @@ const HeaderBanner: React.FC = () => {
                         Bất động sản
                     </Text>
                     <Text className="text-sm text-white opacity-90 mb-4">
-                        Mua thì hời, bán thì lời
+                        Cho thuê vừa ý, giá cả hợp lý
                     </Text>
                     <Text className="text-lg text-white opacity-90 mb-4">
                         Xin chào, <Text className="font-semibold">{userName}</Text>

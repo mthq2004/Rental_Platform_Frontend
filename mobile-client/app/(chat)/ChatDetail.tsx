@@ -14,9 +14,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useCall } from '@/contexts/CallContext';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
-import ChatPropertyCard from '@/components/chat/ChatPropertyCard';
 import ChatMessage from '@/components/chat/ChatMessage';
-import QuickMessageBar from '@/components/chat/QuickMessageBar';
 import ChatInputBar from '@/components/chat/ChatInputBar';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchMessages, reactMessage, sendMessage } from '@/store/slices/message.slice';
@@ -26,6 +24,8 @@ import { Conversation } from '@/types/conversation.type';
 import { FlatList } from 'react-native-gesture-handler';
 import { markAsRead, setCurrentConversation } from '@/store/slices/conversation.slice';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
+import EmojiSelector, { Categories } from "react-native-emoji-selector";
 import { uploadToCloudinary } from '@/utils/uploadToCloudinary';
 
 const ChatDetail = () => {
@@ -47,6 +47,8 @@ const ChatDetail = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [hasNewMessageWhileScrolled, setHasNewMessageWhileScrolled] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const prevMessagesLength = useRef(messages.length);
   const insets = useSafeAreaInsets();
 
@@ -56,6 +58,12 @@ const ChatDetail = () => {
     }
     prevMessagesLength.current = messages.length;
   }, [messages.length]);
+
+  useEffect(() => {
+    if (showEmojiPicker) {
+      Keyboard.dismiss();
+    }
+  }, [showEmojiPicker]);
 
   const isOnline =
     params.participantId
@@ -97,19 +105,7 @@ const ChatDetail = () => {
   }, [conversation.id])
 
   const flatListRef = useRef<FlatList>(null);
-
-  const propertyInfo = {
-    id: '1',
-    title: 'Căn hộ cao cấp Q1 - 2PN, 2WC',
-    price: '15.000.000 đ/tháng',
-    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400',
-  };
-
-  const quickMessages = [
-    'Căn hộ còn không ạ?',
-    'Giá thuê bao nhiêu?',
-    'Có thể xem nhà không?',
-  ];
+  const [inputText, setInputText] = useState('');
 
   const handleSendMessage = async (text: string) => {
     if (!user?.id) return;
@@ -136,6 +132,25 @@ const ChatDetail = () => {
           replyToId: replyingMessage?.id,
         }))
       }
+      else if (selectedFile) {
+        setIsUploading(true);
+        const uploadData = await uploadToCloudinary({
+          uri: selectedFile.uri,
+          fileName: selectedFile.name,
+          mimeType: selectedFile.mimeType || "application/octet-stream",
+          resourceType: "auto",
+        });
+
+        dispatch(sendMessage({
+          conversationId: conversation.id,
+          messageType: "FILE",
+          fileUrl: uploadData.fileUrl,
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          mimeType: selectedFile.mimeType || undefined,
+          replyToId: replyingMessage?.id,
+        }))
+      }
       else if (text.trim()) {
         dispatch(sendMessage({
           conversationId: conversation.id,
@@ -146,7 +161,9 @@ const ChatDetail = () => {
       }
 
       setSelectedImages([])
+      setSelectedFile(null)
       setReplyingMessage(null)
+      setInputText('')
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true })
 
     } catch (error) {
@@ -193,14 +210,20 @@ const ChatDetail = () => {
     }
   }
 
-  const handleSendLocation = () =>
-    Alert.alert('Gửi vị trí', 'Chức năng đang phát triển');
+  const handleSendFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
 
-  const handleShowAttachments = () =>
-    Alert.alert('Tệp đính kèm', 'Chức năng đang phát triển');
-
-  const handleViewProperty = () =>
-    Alert.alert('Xem bất động sản', 'Chuyển đến trang chi tiết');
+      if (!result.canceled) {
+        setSelectedFile(result.assets[0]);
+      }
+    } catch (error) {
+      console.log("File picker error:", error);
+    }
+  }
 
   const getStatusStyle = () => {
     switch (conversation.status) {
@@ -277,7 +300,7 @@ const ChatDetail = () => {
         </View>
       </View>
 
-      <ChatPropertyCard property={propertyInfo} onPress={handleViewProperty} />
+
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -373,10 +396,7 @@ const ChatDetail = () => {
             </TouchableOpacity>
           )}
 
-          <QuickMessageBar
-            messages={quickMessages}
-            onSelectMessage={handleSendMessage}
-          />
+
 
           {replyingMessage && (
             <View className="mx-4 mb-2 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg border-l-4 border-blue-500">
@@ -428,15 +448,43 @@ const ChatDetail = () => {
             </View>
           )}
 
+          {selectedFile && (
+            <View className="mx-4 mb-2 p-3 bg-gray-50 rounded-xl border border-gray-200 flex-row items-center">
+              <Ionicons name="document-text" size={32} color="#3b82f6" />
+              <View className="flex-1 ml-3">
+                <Text numberOfLines={1} className="text-sm font-medium text-gray-800">{selectedFile.name}</Text>
+                <Text className="text-xs text-gray-400">{(selectedFile.size! / 1024).toFixed(1)} KB</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedFile(null)}>
+                <Ionicons name="close-circle" size={24} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={{ paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 8) : 8 }}>
             <ChatInputBar
               onSendMessage={handleSendMessage}
               onSendImage={handleSendImage}
-              onSendLocation={handleSendLocation}
-              onShowAttachments={handleShowAttachments}
-              canSend={selectedImages.length > 0}
+              onSendFile={handleSendFile}
+              onEmojiPress={() => setShowEmojiPicker(!showEmojiPicker)}
+              text={inputText}
+              onTextChange={setInputText}
+              canSend={selectedImages.length > 0 || !!selectedFile}
             />
           </View>
+
+          {showEmojiPicker && (
+            <View style={{ height: 300 }}>
+              <EmojiSelector
+                category={Categories.all}
+                onEmojiSelected={emoji => {
+                  setInputText(prev => prev + emoji);
+                }}
+                showSearchBar={false}
+                columns={8}
+              />
+            </View>
+          )}
 
         </View>
       </KeyboardAvoidingView>

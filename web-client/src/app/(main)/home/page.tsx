@@ -1,10 +1,8 @@
 import React, { Suspense } from "react";
-import CategoryCards from "@/components/common/CategoryCards";
 import PropertyListings from "@/components/common/PropertyListings";
 import PriceReference from "@/components/common/PriceReference";
 import FooterTop from "@/components/layout/footer/FooterTop";
 import HeroSection from "@/components/common/section/HeroSection";
-import ServicesSection from "@/components/common/section/ServicesSection";
 import RegionSection from "@/components/common/section/RegionSection";
 import MapSection from "@/components/common/section/MapSection";
 import AuthExchangeHandler from "@/components/common/AuthExchangeHandler";
@@ -18,12 +16,6 @@ const HomePage = () => {
       </Suspense>
       {/* Hero Section with Search */}
       <HeroSection />
-
-      {/* Category Cards */}
-      <CategoryCards />
-
-      {/* Utility Tools & Broker Services */}
-      <ServicesSection />
 
       {/* Property Listings */}
       <PropertyListings />
