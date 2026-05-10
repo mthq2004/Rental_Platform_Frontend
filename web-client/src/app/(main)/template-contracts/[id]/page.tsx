@@ -221,7 +221,7 @@ function getFieldSizeClass(field: TemplateVariable): string {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────
 
-const RentalContractPage = () => {
+const RentalContractContent = () => {
   const dispatch = useAppDispatch();
   const { templateDetail, templateDetailLoading, error } = useAppSelector(
     (state) => state.template
@@ -1065,5 +1065,13 @@ const ErrorState = ({ message }: { message: string }) => (
     <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', maxWidth: 320 }}>{message}</p>
   </div>
 );
+
+const RentalContractPage = () => {
+  return (
+    <React.Suspense fallback={<LoadingState />}>
+      <RentalContractContent />
+    </React.Suspense>
+  );
+};
 
 export default RentalContractPage;

@@ -89,7 +89,7 @@ const formatCurrency = (value: number) =>
     maximumFractionDigits: 0,
   }).format(value || 0);
 
-export default function WalletDashboardPage() {
+function WalletDashboardContent() {
   const { message, modal } = App.useApp();
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -794,3 +794,12 @@ export default function WalletDashboardPage() {
     </div>
   );
 }
+
+export default function WalletDashboardPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <WalletDashboardContent />
+    </React.Suspense>
+  );
+}
+

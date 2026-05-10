@@ -11,11 +11,11 @@ import {
   setCurrentConversation,
 } from "@/stores/slices/conversation.slice";
 import { fetchMessages, sendMessage } from "@/stores/slices/message.slice";
-import { Empty, Button } from "antd";
+import { Empty, Button, Spin } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import Link from "next/link";
 
-export default function ArchivedChatPage() {
+function ArchivedChatContent() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
 
@@ -111,3 +111,16 @@ export default function ArchivedChatPage() {
     </div>
   );
 }
+
+export default function ArchivedChatPage() {
+  return (
+    <React.Suspense fallback={
+      <div className="h-full flex items-center justify-center bg-white">
+        <Spin size="large" />
+      </div>
+    }>
+      <ArchivedChatContent />
+    </React.Suspense>
+  );
+}
+
