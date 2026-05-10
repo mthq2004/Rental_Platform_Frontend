@@ -1,32 +1,29 @@
-import { View, StatusBar, Alert, Text, Linking } from 'react-native'
-import React, { useEffect, useState } from 'react'
-import { useColorScheme } from 'react-native'
-import { useThemeColors } from '@/utils/colors'
-import AuthGuard from '@/components/AuthGuard'
-import { router } from 'expo-router'
+import GooeyRefreshScrollView from '@/components/common/GooeyRefreshScrollView'
 import { MediaGallery, MediaItem } from '@/components/detail/MediaGallery'
-import { TabBar, TabKey } from '@/components/detail/TabBar'
-import { VideoPlayerModal } from '@/components/detail/VideoPlayerModal'
-import { PropertyInfoTab } from '@/components/detail/PropertyInfoTab'
 import { MediaManagementTab } from '@/components/detail/MediaManagementTab'
 import { PropertyActions } from '@/components/detail/PropertyActions'
+import { PropertyInfoTab } from '@/components/detail/PropertyInfoTab'
 import { Schedule, ScheduleTab } from '@/components/detail/ScheduleTab'
-import { useLocalSearchParams } from 'expo-router'
+import { TabBar, TabKey } from '@/components/detail/TabBar'
+import { VideoPlayerModal } from '@/components/detail/VideoPlayerModal'
 import { useAppDispatch, useAppSelector } from '@/store/hook'
-import { getPropertyDetail } from '@/store/slices/property.slice'
 import {
-  getMyBookings,
-  getOwnerBookings,
-  confirmBooking,
-  rejectBooking,
   cancelBooking,
   clearMessage,
+  confirmBooking,
+  getMyBookings,
+  getOwnerBookings,
+  rejectBooking,
 } from '@/store/slices/booking.slice'
-import Toast from 'react-native-toast-message'
 import { createConversation } from '@/store/slices/conversation.slice'
-import { fetchSimilarPropertiesThunk, getPropertyDetailThunk, addFavoriteThunk, removeFavoriteThunk, getFavoriteStatusThunk } from '@/store/slices/estate.slice'
+import { addFavoriteThunk, fetchSimilarPropertiesThunk, getFavoriteStatusThunk, getPropertyDetailThunk, removeFavoriteThunk } from '@/store/slices/estate.slice'
+import { getPropertyDetail } from '@/store/slices/property.slice'
 import { PropertyDetailApiData } from '@/types/property.type'
-import GooeyRefreshScrollView from '@/components/common/GooeyRefreshScrollView'
+import { useThemeColors } from '@/utils/colors'
+import { router, useLocalSearchParams } from 'expo-router'
+import React, { useEffect, useState } from 'react'
+import { Alert, Linking, StatusBar, Text, useColorScheme, View } from 'react-native'
+import Toast from 'react-native-toast-message'
 
 const PropertyDetail = () => {
   const colorScheme = useColorScheme()
@@ -399,7 +396,7 @@ const PropertyDetail = () => {
   }
 
   return (
-    <AuthGuard>
+    // <AuthGuard>
       <View className="flex-1 bg-white dark:bg-gray-950">
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
@@ -475,7 +472,7 @@ const PropertyDetail = () => {
 
         <Toast />
       </View>
-    </AuthGuard>
+    // </AuthGuard>
   )
 }
 
