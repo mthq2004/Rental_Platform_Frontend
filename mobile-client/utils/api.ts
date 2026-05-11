@@ -12,6 +12,8 @@ const apiClient = axios.create({
 // Interceptor thêm token vào header
 apiClient.interceptors.request.use(async (config) => {
   const token = await getAccessToken();
+  console.log("hel nha: ", token);
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -23,7 +25,8 @@ apiClient.interceptors.request.use(async (config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const url = error.config?.url;
+    if (error.response?.status === 401 && url?.includes('/auth')) {
       await clearAuthStorage();
     }
     return Promise.reject(error);

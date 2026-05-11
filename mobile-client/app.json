@@ -14,10 +14,12 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Ứng dụng cần quyền camera để thực hiện cuộc gọi video",
         "NSMicrophoneUsageDescription": "Ứng dụng cần quyền microphone để thực hiện cuộc gọi"
-      }
+      },
+      "bitcode": false
     },
     "android": {
       "package": "com.khoaluantotnghiep.mobileclient",
+      "usesCleartextTraffic": true,
       "softwareKeyboardLayoutMode": "adjustNothing",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -30,7 +32,26 @@
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
-        "MODIFY_AUDIO_SETTINGS"
+        "MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH",
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH"
       ]
     },
     "web": {
@@ -70,6 +91,18 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f7b691f7-0cca-48bd-b5b5-8d9f345757e2"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f7b691f7-0cca-48bd-b5b5-8d9f345757e2"
     }
   }
 }
