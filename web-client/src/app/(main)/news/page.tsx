@@ -190,7 +190,7 @@ export default function NewsPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
-          {(loading ? Array.from({ length: 3 }) : featured).map((item, index) =>
+          {(loading ? (Array.from({ length: 3 }) as (NewsItem | undefined)[]) : featured).map((item, index) =>
             item ? (
               <NewsCard key={item.newsId} item={item} />
             ) : (
@@ -218,7 +218,7 @@ export default function NewsPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {(loading ? Array.from({ length: 6 }) : items).map((item, index) =>
+          {((loading ? Array.from({ length: 6 }) : items) as (NewsItem | undefined)[]).map((item, index) =>
             item ? (
               <NewsCard key={item.newsId} item={item} />
             ) : (

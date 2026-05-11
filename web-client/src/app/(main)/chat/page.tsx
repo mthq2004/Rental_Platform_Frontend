@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import ChatSidebar from "@/components/chat/ChatSidebar";
 import ChatWindow from "@/components/chat/ChatWindow";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
@@ -19,7 +19,7 @@ import { Spin, Empty } from "antd";
 import { MessageOutlined } from "@ant-design/icons";
 import { useSearchParams } from "next/navigation";
 
-export default function ChatPage() {
+function ChatContent() {
   const dispatch = useAppDispatch();
   const searchParams = useSearchParams();
 
@@ -149,3 +149,15 @@ export default function ChatPage() {
     </div>
   );
 }
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-full flex items-center justify-center bg-white">
+        <Spin size="large" />
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
+  );
+}

@@ -15,7 +15,6 @@ import {
   ExperimentOutlined,
   BankOutlined,
   TeamOutlined,
-  FileProtectOutlined,
   HomeOutlined,
 } from "@ant-design/icons";
 import {
