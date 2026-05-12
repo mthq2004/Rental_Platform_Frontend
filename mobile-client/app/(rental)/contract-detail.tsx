@@ -144,9 +144,17 @@ const ContractDetail = () => {
   const [verifyResult, setVerifyResult] = useState<{ ok: boolean; checkedAt: string } | null>(null)
   const [verifyError, setVerifyError] = useState<string | null>(null)
 
-  // Termination & Report state
+  // Termination, Report & Renewal state
   const [terminationRequests, setTerminationRequests] = useState<any[]>([])
   const [reportItems, setReportItems] = useState<any[]>([])
+  const [renewalRequests, setRenewalRequests] = useState<any[]>([])
+  const [contractAppendices, setContractAppendices] = useState<any[]>([])
+  const [showAppendices, setShowAppendices] = useState(false)
+  const [showRenewal, setShowRenewal] = useState(false)
+  const [showRenewalModal, setShowRenewalModal] = useState(false)
+  const [renewalDuration, setRenewalDuration] = useState('6')
+  const [renewalNote, setRenewalNote] = useState('')
+  const [renewalLoading, setRenewalLoading] = useState(false)
   const [showTermination, setShowTermination] = useState(false)
   const [showReports, setShowReports] = useState(false)
   const [terminationLoading, setTerminationLoading] = useState(false)
@@ -209,12 +217,18 @@ const ContractDetail = () => {
       const items = Array.isArray(p) ? p : p?.items || p?.data || []
       setPayments(Array.isArray(items) ? items : [])
 
-      // Load termination & reports (non-blocking)
+      // Load termination, reports, renewals (non-blocking)
       contractService.getTerminationRequests(resolvedId).then(r => {
         const d = unwrap(r); setTerminationRequests(Array.isArray(d) ? d : d?.data || d?.items || [])
       }).catch(() => {})
       contractService.getReportsByContract(resolvedId).then(r => {
         const d = unwrap(r); setReportItems(Array.isArray(d) ? d : d?.data || d?.items || [])
+      }).catch(() => {})
+      contractService.getRenewalsByContract(resolvedId).then(r => {
+        const d = unwrap(r); setRenewalRequests(Array.isArray(d) ? d : d?.data || d?.items || [])
+      }).catch(() => {})
+      contractService.getContractAppendices(resolvedId).then(r => {
+        const d = unwrap(r); setContractAppendices(Array.isArray(d) ? d : d?.data || d?.items || [])
       }).catch(() => {})
 
       // 1. If contract already has property object, use it
@@ -443,6 +457,66 @@ const ContractDetail = () => {
     /^https?:\/\//i.test(paymentUrl)
 
   // ── Termination & Dispute Handlers ──────────────────────────────────────────
+  const RENEWAL_STATUS: Record<string, { label: string; color: string; bg: string }> = {
+    pending: { label: 'Chờ duyệt', color: '#B45309', bg: '#FFFBEB' },
+    approved: { label: 'Đã duyệt', color: '#166534', bg: '#F0FDF4' },
+    rejected: { label: 'Đã từ chối', color: '#B91C1C', bg: '#FEF2F2' },
+    cancelled: { label: 'Đã hủy', color: '#6B7280', bg: '#F9FAFB' },
+  }
+
+  const handleCreateRenewal = useCallback(() => {
+    setShowRenewalModal(true)
+  }, [])
+
+  const submitRenewal = async () => {
+    if (!resolvedId) return
+    setRenewalLoading(true)
+    try {
+      await contractService.createRenewalRequest({
+        contractId: resolvedId,
+        durationMonths: Number(renewalDuration) || 6,
+        note: renewalNote
+      })
+      Alert.alert('Thành công', 'Đã gửi yêu cầu gia hạn')
+      setShowRenewalModal(false)
+      loadDetail(false)
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Gửi yêu cầu thất bại')
+    } finally {
+      setRenewalLoading(false)
+    }
+  }
+
+  const handleApproveRenewal = (id: string) => {
+    Alert.alert('Xác nhận', 'Bạn có chắc chắn muốn duyệt yêu cầu này?', [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Duyệt', onPress: async () => {
+        try {
+          await contractService.approveRenewal(id, {})
+          Alert.alert('Thành công', 'Đã duyệt yêu cầu')
+          loadDetail(false)
+        } catch (e: any) {
+          Alert.alert('Lỗi', e?.message || 'Thất bại')
+        }
+      }}
+    ])
+  }
+
+  const handleRejectRenewal = (id: string) => {
+    Alert.alert('Từ chối', 'Xác nhận từ chối yêu cầu gia hạn này?', [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Từ chối', style: 'destructive', onPress: async () => {
+        try {
+          await contractService.rejectRenewal(id, { reviewNote: 'Từ chối qua ứng dụng di động' })
+          Alert.alert('Thành công', 'Đã từ chối yêu cầu')
+          loadDetail(false)
+        } catch (e: any) {
+          Alert.alert('Lỗi', e?.message || 'Thất bại')
+        }
+      }}
+    ])
+  }
+
   const TERMINATION_STATUS: Record<string, { label: string; color: string; bg: string }> = {
     pending: { label: 'Đang chờ', color: '#B45309', bg: '#FFFBEB' },
     approved: { label: 'Đã chấp thuận', color: '#166534', bg: '#F0FDF4' },
@@ -1052,6 +1126,145 @@ const ContractDetail = () => {
               </View>
             )}
 
+            {/* ── Renewal Requests ─────────────────────────────────── */}
+            {contract?.status === 'active' && (
+              <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+                <TouchableOpacity
+                  onPress={() => setShowRenewal(!showRenewal)}
+                  style={{
+                    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+                    backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, padding: 16,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="refresh-circle-outline" size={18} color="#3730A3" />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: current.text }}>Gia hạn hợp đồng ({renewalRequests.length})</Text>
+                  </View>
+                  {showRenewal ? <ChevronUp size={18} color={theme.textInactive} /> : <ChevronDown size={18} color={theme.textInactive} />}
+                </TouchableOpacity>
+
+                {showRenewal && (
+                  <View style={{ backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, marginTop: 2, overflow: 'hidden' }}>
+                    {renewalRequests.length === 0 ? (
+                      <View style={{ padding: 20, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 13, color: theme.textInactive }}>Chưa có yêu cầu gia hạn nào.</Text>
+                      </View>
+                    ) : (
+                      renewalRequests.map((r: any, i: number) => {
+                        const rs = RENEWAL_STATUS[r.status] || RENEWAL_STATUS.pending
+                        return (
+                          <View key={`ren-${i}`}>
+                            <View style={{ padding: 14, gap: 6 }}>
+                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: rs.bg }}>
+                                  <Text style={{ fontSize: 11, fontWeight: '700', color: rs.color }}>{rs.label}</Text>
+                                </View>
+                                <Text style={{ fontSize: 11, color: theme.textInactive }}>{fmtDate(r.createdAt)}</Text>
+                              </View>
+                              <Text style={{ fontSize: 13, fontWeight: '700', color: current.text, marginTop: 4 }}>
+                                Gia hạn {r.durationMonths} tháng
+                              </Text>
+                              {r.note && (
+                                <Text style={{ fontSize: 13, color: current.text, marginTop: 4 }}>Ghi chú: {r.note}</Text>
+                              )}
+                              
+                              {r.status === 'pending' && (
+                                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+                                  {isOwner ? (
+                                    <>
+                                      <PrimaryButton
+                                        title="Duyệt"
+                                        onPress={() => handleApproveRenewal(r.id)}
+                                        style={{ flex: 1, paddingVertical: 8, backgroundColor: '#16A34A', borderColor: '#15803D' }}
+                                        textStyle={{ fontSize: 12 }}
+                                      />
+                                      <PrimaryButton
+                                        title="Từ chối"
+                                        onPress={() => handleRejectRenewal(r.id)}
+                                        style={{ flex: 1, paddingVertical: 8, backgroundColor: '#DC2626', borderColor: '#B91C1C' }}
+                                        textStyle={{ fontSize: 12 }}
+                                      />
+                                    </>
+                                  ) : null}
+                                </View>
+                              )}
+                            </View>
+                            {i < renewalRequests.length - 1 && <View style={{ height: 1, backgroundColor: current.border, marginHorizontal: 14 }} />}
+                          </View>
+                        )
+                      })
+                    )}
+
+                    {isTenant && contract?.status === 'near_expiration' && (
+                      <View style={{ padding: 14, borderTopWidth: 1, borderTopColor: current.border }}>
+                        <PrimaryButton
+                          title="Tạo yêu cầu gia hạn"
+                          loading={renewalLoading}
+                          onPress={handleCreateRenewal}
+                          style={{ backgroundColor: '#3730A3', borderColor: '#312E81' }}
+                          icon={<Ionicons name="add-circle-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />}
+                        />
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* ── Appendices ─────────────────────────────────── */}
+            {contractAppendices.length > 0 && (
+              <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+                <TouchableOpacity
+                  onPress={() => setShowAppendices(!showAppendices)}
+                  style={{
+                    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+                    backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, padding: 16,
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="document-attach-outline" size={18} color="#0EA5E9" />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: current.text }}>Phụ lục hợp đồng ({contractAppendices.length})</Text>
+                  </View>
+                  {showAppendices ? <ChevronUp size={18} color={theme.textInactive} /> : <ChevronDown size={18} color={theme.textInactive} />}
+                </TouchableOpacity>
+
+                {showAppendices && (
+                  <View style={{ backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, marginTop: 2, overflow: 'hidden' }}>
+                    {contractAppendices.map((a: any, i: number) => (
+                      <View key={`app-${i}`}>
+                        <View style={{ padding: 14, gap: 6 }}>
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: a.signedAt ? '#DCFCE7' : '#E0F2FE' }}>
+                              <Text style={{ fontSize: 11, fontWeight: '700', color: a.signedAt ? '#16A34A' : '#0284C7' }}>
+                                Phụ lục #{a.appendixNumber} {a.signedAt ? '(Đã ký)' : ''}
+                              </Text>
+                            </View>
+                            <Text style={{ fontSize: 11, color: theme.textInactive }}>{fmtDate(a.createdAt)}</Text>
+                          </View>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: current.text, marginTop: 4 }}>
+                            {a.type === 'renewal' ? 'Gia hạn' : a.type === 'adjustment' ? 'Điều chỉnh' : 'Mở rộng'} hợp đồng
+                          </Text>
+                          <Text style={{ fontSize: 13, color: current.text }}>
+                            Hiệu lực: {fmtDate(a.startDate)} {a.endDate ? `→ ${fmtDate(a.endDate)}` : ''}
+                          </Text>
+                          {a.content && (
+                            <Text style={{ fontSize: 12, color: theme.textInactive, fontStyle: 'italic', marginTop: 4 }}>"{a.content}"</Text>
+                          )}
+                          {a.blockchainTxHash && (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 4 }}>
+                              <Ionicons name="link-outline" size={14} color="#10B981" />
+                              <Text style={{ fontSize: 11, color: '#10B981', fontWeight: '600' }}>TxHash: {a.blockchainTxHash.substring(0, 15)}...</Text>
+                            </View>
+                          )}
+                        </View>
+                        {i < contractAppendices.length - 1 && <View style={{ height: 1, backgroundColor: current.border, marginHorizontal: 14 }} />}
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+
             {/* ── Termination Requests ─────────────────────────────────── */}
             {contract?.status === 'active' && (
               <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
@@ -1279,6 +1492,68 @@ const ContractDetail = () => {
               )}
             </View>
           </ScrollView>
+
+          {/* ══════════════════════════════════════════════════════════════
+              MODAL: RENEWAL REQUEST
+          ══════════════════════════════════════════════════════════════ */}
+          <Modal visible={showRenewalModal} transparent animationType="slide">
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+              <View style={{ backgroundColor: current.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
+                <View style={{ width: 40, height: 4, backgroundColor: current.border, borderRadius: 2, alignSelf: 'center', marginBottom: 22 }} />
+                
+                <Text style={{ fontSize: 18, fontWeight: '900', color: current.text, marginBottom: 8 }}>Gia hạn hợp đồng</Text>
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 20 }}>
+                  Đề xuất gia hạn thêm thời gian thuê. Chủ nhà sẽ nhận được thông báo để xem xét.
+                </Text>
+                  
+                  <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Số tháng gia hạn (tháng):</Text>
+                  <SyncTextInput
+                    placeholder="Ví dụ: 6"
+                    keyboardType="number-pad"
+                    value={renewalDuration}
+                    onChangeText={setRenewalDuration}
+                    placeholderTextColor={theme.textInactive}
+                    style={{
+                      borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                      fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 16
+                    }}
+                  />
+
+                  <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600', marginTop: 12 }}>Ghi chú (Tùy chọn):</Text>
+                  <SyncTextInput
+                    placeholder="Lý do hoặc mong muốn của bạn..."
+                    placeholderTextColor={theme.textInactive}
+                    multiline
+                    numberOfLines={3}
+                    value={renewalNote}
+                    onChangeText={setRenewalNote}
+                    style={{
+                      borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                      fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 24, textAlignVertical: 'top', minHeight: 80
+                    }}
+                  />
+
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                    <TouchableOpacity
+                      onPress={() => setShowRenewalModal(false)}
+                      disabled={renewalLoading}
+                      style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: current.border, alignItems: 'center' }}
+                    >
+                      <Text style={{ fontSize: 14, color: current.text, fontWeight: '700' }}>Hủy</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={submitRenewal}
+                      disabled={renewalLoading}
+                      style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#3730A3', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+                    >
+                      {renewalLoading ? <ActivityIndicator size="small" color="#FFF" /> : <Ionicons name="send" size={16} color="#FFF" />}
+                      <Text style={{ fontSize: 14, color: '#FFF', fontWeight: '700' }}>Gửi yêu cầu</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                <FloatingKeyboardBar />
+              </View>
+          </Modal>
 
           {/* ══════════════════════════════════════════════════════════════
               MODAL: TERMINATION REQUEST

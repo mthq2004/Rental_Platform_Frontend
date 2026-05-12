@@ -8,6 +8,8 @@ import type {
   CreateContractPayload,
   TerminationRequest,
   ReportItem,
+  RenewalRequestItem,
+  ContractAppendixItem,
 } from "../../types/contract.type";
 
 interface ContractState {
@@ -39,6 +41,13 @@ interface ContractState {
   reportsLoading: boolean;
   reportActionLoading: boolean;
 
+  // Renewals
+  renewalRequests: RenewalRequestItem[];
+  renewalLoading: boolean;
+  renewalActionLoading: boolean;
+  contractAppendices: ContractAppendixItem[];
+  appendicesLoading: boolean;
+
   // General
   actionLoading: boolean;
 }
@@ -66,6 +75,12 @@ const initialState: ContractState = {
   reports: [],
   reportsLoading: false,
   reportActionLoading: false,
+
+  renewalRequests: [],
+  renewalLoading: false,
+  renewalActionLoading: false,
+  contractAppendices: [],
+  appendicesLoading: false,
 
   actionLoading: false,
 };
@@ -191,6 +206,7 @@ export const createRentalRequest = createAsyncThunk(
     endDate: string;
     proposedRent: number;
     message?: string;
+    autoRenew?: boolean;
   }, { rejectWithValue }) => {
     try {
       return await http.post("/contract/rental-requests", data);
@@ -498,6 +514,74 @@ export const createContract = createAsyncThunk(
   }
 );
 
+// ─── Renewal Actions ─────────────────────────────────────────
+
+export const createRenewalRequest = createAsyncThunk(
+  "contract/createRenewalRequest",
+  async (data: { contractId: string; durationMonths: number; note?: string }, { rejectWithValue }) => {
+    try {
+      return await http.post("/contract/renewals", data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const getRenewalsByContract = createAsyncThunk(
+  "contract/getRenewalsByContract",
+  async (contractId: string, { rejectWithValue }) => {
+    try {
+      return await http.get(`/contract/renewals/contract/${contractId}`);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const approveRenewal = createAsyncThunk(
+  "contract/approveRenewal",
+  async ({ renewalId, reviewNote }: { renewalId: string; reviewNote?: string }, { rejectWithValue }) => {
+    try {
+      return await http.put(`/contract/renewals/${renewalId}/approve`, { reviewNote });
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const rejectRenewal = createAsyncThunk(
+  "contract/rejectRenewal",
+  async ({ renewalId, reviewNote }: { renewalId: string; reviewNote?: string }, { rejectWithValue }) => {
+    try {
+      return await http.put(`/contract/renewals/${renewalId}/reject`, { reviewNote });
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const cancelRenewal = createAsyncThunk(
+  "contract/cancelRenewal",
+  async (renewalId: string, { rejectWithValue }) => {
+    try {
+      return await http.put(`/contract/renewals/${renewalId}/cancel`);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const getContractAppendices = createAsyncThunk(
+  "contract/getContractAppendices",
+  async (contractId: string, { rejectWithValue }) => {
+    try {
+      return await http.get(`/contract/renewals/appendices/${contractId}`);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
 // ─── Slice ───────────────────────────────────────────────────────
 
 export const contractSlice = createSlice({
@@ -707,6 +791,40 @@ export const contractSlice = createSlice({
       .addCase(createContract.rejected, (state) => {
         state.actionLoading = false;
       });
+
+    // Renewals
+    builder
+      .addCase(getRenewalsByContract.pending, (state) => { state.renewalLoading = true; })
+      .addCase(getRenewalsByContract.fulfilled, (state, action) => {
+        state.renewalLoading = false;
+        const items = Array.isArray(action.payload?.data)
+          ? action.payload.data
+          : Array.isArray(action.payload)
+            ? action.payload
+            : [];
+        state.renewalRequests = items;
+      })
+      .addCase(getRenewalsByContract.rejected, (state) => { state.renewalLoading = false; });
+
+    builder
+      .addCase(getContractAppendices.pending, (state) => { state.appendicesLoading = true; })
+      .addCase(getContractAppendices.fulfilled, (state, action) => {
+        state.appendicesLoading = false;
+        const items = Array.isArray(action.payload?.data)
+          ? action.payload.data
+          : Array.isArray(action.payload)
+            ? action.payload
+            : [];
+        state.contractAppendices = items;
+      })
+      .addCase(getContractAppendices.rejected, (state) => { state.appendicesLoading = false; });
+
+    for (const thunk of [createRenewalRequest, approveRenewal, rejectRenewal, cancelRenewal]) {
+      builder
+        .addCase(thunk.pending, (state) => { state.renewalActionLoading = true; })
+        .addCase(thunk.fulfilled, (state) => { state.renewalActionLoading = false; })
+        .addCase(thunk.rejected, (state) => { state.renewalActionLoading = false; });
+    }
   },
 });
 

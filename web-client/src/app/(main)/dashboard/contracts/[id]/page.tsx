@@ -73,6 +73,7 @@ import InvoiceModal from "@/components/payments/InvoiceModal";
 import DisputeFormSection from "@/components/contracts/DisputeFormSection";
 import TerminationReviewSection from "@/components/contracts/TerminationReviewSection";
 import TerminationUpdateSection from "@/components/contracts/TerminationUpdateSection";
+import RenewalSection from "@/components/contracts/RenewalSection";
 import http from "@/utils/api";
 
 const { Text, Paragraph } = Typography;
@@ -189,6 +190,8 @@ const SIGNATURE_ACTION_LABELS: Record<string, string> = {
   CANCELLED: "Hợp đồng bị hủy",
   BLOCKCHAIN_RECORDED: "Hợp đồng đã được ghi lên blockchain",
   BLOCKCHAIN_FAILED: "Lỗi ghi nhận blockchain",
+  RENEWAL_APPROVED: "Đã duyệt gia hạn hợp đồng",
+  RENEWAL_REJECTED: "Đã từ chối yêu cầu gia hạn",
 };
 
 const formatMoney = (value: number | string | null | undefined) => {
@@ -293,8 +296,7 @@ export default function ContractDetailPage() {
   const [invoicePayment, setInvoicePayment] = useState<Payment | null>(null);
   const [terminationForm] = Form.useForm();
   const [reviewForm] = Form.useForm();
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportForm] = Form.useForm();
+  // Removed reportOpen to clean up unused state
   const [reportDetailOpen, setReportDetailOpen] = useState(false);
   const [reportDetailItem, setReportDetailItem] = useState<ReportItem | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(false);
@@ -315,6 +317,11 @@ export default function ContractDetailPage() {
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyResult, setVerifyResult] = useState<{ ok: boolean; checkedAt: string } | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const hasActiveSigningSession = Boolean(smartca.transactionId) && ["WAITING_CONFIRM", "PENDING", "PROCESSING"].includes(smartca.signStatus);
 
@@ -1597,6 +1604,23 @@ export default function ContractDetailPage() {
                 {reportsLoading && <Text className="mt-4 block text-xs text-slate-400">Đang tải khiếu nại...</Text>}
               </div>
 
+              {/* Renewal Section */}
+              {contract && ['active', 'near_expiration', 'renewed'].includes(contract.status) && (
+                <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                  <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Gia hạn hợp đồng</Text>
+                  <h3 className="mt-2 text-xl font-semibold text-slate-900">Yêu cầu gia hạn & Phụ lục</h3>
+                  <div className="mt-4">
+                    <RenewalSection
+                      rentalId={contract.rentalId}
+                      userId={user?.id}
+                      ownerId={contract.ownerId}
+                      tenantId={contract.tenantId}
+                      contractStatus={contract.status}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -1825,7 +1849,7 @@ export default function ContractDetailPage() {
                     type="info"
                     showIcon
                     className="mt-4 rounded-2xl"
-                    message="Hợp đồng chưa được ghi nhận lên blockchain."
+                    title="Hợp đồng chưa được ghi nhận lên blockchain."
                   />
                 )}
 
@@ -1877,7 +1901,7 @@ export default function ContractDetailPage() {
                   )}
 
                   {verifyError && (
-                    <Alert type="error" showIcon className="rounded-2xl" message={verifyError} />
+                    <Alert type="error" showIcon className="rounded-2xl" title={verifyError} />
                   )}
                 </div>
               </div>
@@ -1930,14 +1954,16 @@ export default function ContractDetailPage() {
         onChangeMethod={setSelectedMethod}
       />
 
-      <Modal
-        open={terminationOpen}
+      {isMounted && (
+        <Modal
+          open={terminationOpen}
         onCancel={() => setTerminationOpen(false)}
         onOk={handleSubmitTermination}
         okText="Gửi yêu cầu"
         cancelText="Đóng"
         confirmLoading={terminationActionLoading}
         title="Yêu cầu chấm dứt hợp đồng"
+        forceRender
       >
         <Form form={terminationForm} layout="vertical">
           <Form.Item
@@ -1973,15 +1999,18 @@ export default function ContractDetailPage() {
           </Form.Item>
         </Form>
       </Modal>
+      )}
 
-      <Modal
-        open={reviewOpen}
+      {isMounted && (
+        <Modal
+          open={reviewOpen}
         onCancel={() => setReviewOpen(false)}
         onOk={handleSubmitReview}
         okText="Xác nhận"
         cancelText="Đóng"
         confirmLoading={terminationActionLoading}
         title="Xử lý yêu cầu chấm dứt"
+        forceRender
       >
         <Form form={reviewForm} layout="vertical">
           <Form.Item
@@ -2016,15 +2045,18 @@ export default function ContractDetailPage() {
           </Form.Item>
         </Form>
       </Modal>
+      )}
 
-      <Modal
-        open={terminationUpdateOpen}
+      {isMounted && (
+        <Modal
+          open={terminationUpdateOpen}
         onCancel={() => setTerminationUpdateOpen(false)}
         onOk={handleSubmitTerminationUpdate}
         okText="Cập nhật"
         cancelText="Đóng"
         confirmLoading={terminationActionLoading}
         title="Cập nhật trạng thái chấm dứt"
+        forceRender
       >
         <Form form={terminationUpdateForm} layout="vertical">
           <Form.Item
@@ -2084,6 +2116,7 @@ export default function ContractDetailPage() {
           </Form.Item>
         </Form>
       </Modal>
+      )}
 
       <Modal
         open={terminationDetailOpen}
@@ -2168,8 +2201,7 @@ export default function ContractDetailPage() {
                         />
                       ) : (
                         <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 bg-white hover:border-indigo-400 transition-colors">
-                          <span className="text-base">{(att.fileName || "").toLowerCase().endsWith(".pdf") ? "📄" : "📎"}</span>
-                          <span className="text-xs text-slate-600 max-w-[120px] truncate">{att.fileName || "Tệp đính kèm"}</span>
+                          <span className="text-base">{att.fileName || "Tệp đính kèm"}</span>
                         </div>
                       )}
                     </a>

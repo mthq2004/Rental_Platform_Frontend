@@ -256,14 +256,14 @@ const conversationSlice = createSlice({
     builder.addCase(fetchArchivedConversations.pending, (state) => {
       state.loading = true;
     })
-    .addCase(fetchArchivedConversations.fulfilled, (state, action) => {
-      state.loading = false;
-      state.archivedConversations = action.payload;
-    })
-    .addCase(fetchArchivedConversations.rejected, (state, action) => {
-      state.loading = false;
-      state.error = action.payload || "Error";
-    });
+      .addCase(fetchArchivedConversations.fulfilled, (state, action) => {
+        state.loading = false;
+        state.archivedConversations = action.payload;
+      })
+      .addCase(fetchArchivedConversations.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || "Error";
+      });
   },
 });
 

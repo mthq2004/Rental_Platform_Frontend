@@ -43,6 +43,14 @@ export default function ContractEditModal({
   onClose,
   onSubmit,
 }: ContractEditModalProps) {
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return null;
+
   return (
     <Modal
       open={open}

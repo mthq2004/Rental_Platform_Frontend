@@ -8,6 +8,7 @@ interface PrimaryButtonProps {
   disabled?: boolean
   loading?: boolean
   style?: ViewStyle
+  textStyle?: any
   children?: React.ReactNode
   icon?: React.ReactNode
 }
@@ -18,6 +19,7 @@ const PrimaryButton = ({
   disabled = false,
   loading = false,
   style,
+  textStyle,
   children,
   icon,
 }: PrimaryButtonProps) => {
@@ -50,7 +52,7 @@ const PrimaryButton = ({
         ) : (
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
             {icon}
-            <Text style={{ color: textColor }} className="text-base font-semibold">{title}</Text>
+            <Text style={[{ color: textColor }, textStyle]} className="text-base font-semibold">{title}</Text>
           </View>
         )
       )}

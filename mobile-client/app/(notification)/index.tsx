@@ -26,17 +26,20 @@ type TypeCfg = { iconName: string; color: string; label: string };
 const TYPE_CONFIG: Record<string, TypeCfg> = {
   PROPERTY_UPDATE:       { iconName: 'home-outline',          color: '#1890ff', label: 'Bất động sản' },
   ADMIN_ACTION:          { iconName: 'settings-outline',      color: '#fa8c16', label: 'Admin' },
-  RENTAL_REQUEST:        { iconName: 'document-text-outline', color: '#52c41a', label: 'Yêu cầu thuê' },
-  RENTAL_REQUEST_UPDATE: { iconName: 'document-text-outline', color: '#13c2c2', label: 'Yêu cầu thuê' },
-  CONTRACT_CREATED:      { iconName: 'document-text-outline', color: '#722ed1', label: 'Hợp đồng' },
+  RENTAL_REQUEST:        { iconName: 'document-attach-outline', color: '#52c41a', label: 'Yêu cầu thuê' },
+  RENTAL_REQUEST_UPDATE: { iconName: 'sync-circle-outline',   color: '#13c2c2', label: 'Yêu cầu thuê' },
+  CONTRACT_CREATED:      { iconName: 'document-lock-outline', color: '#722ed1', label: 'Hợp đồng' },
   CONTRACT_UPDATED:      { iconName: 'create-outline',        color: '#722ed1', label: 'Hợp đồng' },
   CONTRACT_SIGNED:       { iconName: 'shield-checkmark-outline', color: '#722ed1', label: 'Ký hợp đồng' },
-  DEPOSIT_PAYMENT:       { iconName: 'cash-outline',          color: '#eb2f96', label: 'Tiền cọc' },
-  PAYMENT:               { iconName: 'cash-outline',          color: '#faad14', label: 'Thanh toán' },
-  PAYMENT_REMINDER:      { iconName: 'cash-outline',          color: '#1890ff', label: 'Nhắc thanh toán' },
-  PAYMENT_DUE:           { iconName: 'cash-outline',          color: '#fa8c16', label: 'Đến hạn' },
+  DEPOSIT_PAYMENT:       { iconName: 'wallet-outline',        color: '#eb2f96', label: 'Tiền cọc' },
+  PAYMENT:               { iconName: 'card-outline',          color: '#faad14', label: 'Thanh toán' },
+  PAYMENT_REMINDER:      { iconName: 'notifications-circle-outline', color: '#1890ff', label: 'Nhắc thanh toán' },
+  PAYMENT_DUE:           { iconName: 'time-outline',          color: '#fa8c16', label: 'Đến hạn' },
   PAYMENT_WARNING:       { iconName: 'warning-outline',       color: '#f5222d', label: 'Cảnh báo' },
-  PAYMENT_OVERDUE:       { iconName: 'close-circle-outline',  color: '#f5222d', label: 'Trễ hạn' },
+  PAYMENT_OVERDUE:       { iconName: 'alert-circle-outline',  color: '#f5222d', label: 'Trễ hạn' },
+  CONTRACT_EXPIRING:     { iconName: 'timer-outline',         color: '#fa8c16', label: 'Sắp hết hạn' },
+  CONTRACT_EXPIRED:      { iconName: 'close-circle-outline',  color: '#f5222d', label: 'Hết hạn' },
+  RENEWAL_REQUEST:       { iconName: 'sync-outline',          color: '#13c2c2', label: 'Gia hạn' },
   SYSTEM:                { iconName: 'notifications-outline', color: '#8c8c8c', label: 'Hệ thống' },
 };
 
@@ -67,6 +70,7 @@ const filterByTab = (notifications: any[], tab: TabKey) => {
       [
         'CONTRACT_CREATED', 'CONTRACT_UPDATED', 'CONTRACT_SIGNED',
         'RENTAL_REQUEST', 'RENTAL_REQUEST_UPDATE', 'DEPOSIT_PAYMENT',
+        'CONTRACT_EXPIRING', 'CONTRACT_EXPIRED', 'RENEWAL_REQUEST',
       ].includes(n.type)
     );
   if (tab === 'payments')
@@ -119,8 +123,14 @@ const NotificationScreen = () => {
 
   const readCount = notifications.filter((n: any) => n.isRead).length;
 
-  const handleTap = (id: string, isRead: boolean) => {
-    if (!isRead) dispatch(markAsRead(id));
+  const handleTap = (item: any) => {
+    if (!item.isRead) dispatch(markAsRead(item.id));
+    
+    if (item.metadata?.contractId) {
+      router.push(`/(rental)/contract-detail?contractId=${item.metadata.contractId}` as any);
+    } else if (item.metadata?.propertyId) {
+      router.push(`/(post)/property-detail?id=${item.metadata.propertyId}` as any);
+    }
   };
 
   const handleMarkAllRead = () => {
@@ -152,7 +162,7 @@ const NotificationScreen = () => {
 
     return (
       <TouchableOpacity
-        onPress={() => handleTap(item.id, item.isRead)}
+        onPress={() => handleTap(item)}
         activeOpacity={0.85}
         className={`flex-row gap-3 px-4 py-4 border-b border-gray-100 dark:border-gray-800 ${
           warn

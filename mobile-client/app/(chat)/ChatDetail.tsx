@@ -288,11 +288,11 @@ const ChatDetail = () => {
                 </Text>
               </View>
             )}
-            
+
             <TouchableOpacity onPress={() => handleStartCall('voice')}>
               <Ionicons name="call" size={22} color="#3b82f6" />
             </TouchableOpacity>
-            
+
             <TouchableOpacity onPress={() => handleStartCall('video')}>
               <Ionicons name="videocam" size={26} color="#3b82f6" />
             </TouchableOpacity>
@@ -304,8 +304,8 @@ const ChatDetail = () => {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? -Math.max(insets.bottom, 0) : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
       >
         <View className="flex-1">
 
@@ -426,7 +426,7 @@ const ChatDetail = () => {
                       source={{ uri }}
                       className="w-20 h-20 rounded-lg"
                     />
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => setSelectedImages(prev => prev.filter((_, i) => i !== index))}
                       className="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-sm"
                     >
@@ -435,7 +435,7 @@ const ChatDetail = () => {
                   </View>
                 ))}
                 {/* Add more button */}
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={handleSendImage}
                   className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 items-center justify-center bg-gray-50 mr-2 mt-2"
                 >
@@ -461,7 +461,7 @@ const ChatDetail = () => {
             </View>
           )}
 
-          <View style={{ paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 8) : 8 }}>
+          <View style={{ paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 8) : Math.max(insets.bottom, 8) }}>
             <ChatInputBar
               onSendMessage={handleSendMessage}
               onSendImage={handleSendImage}

@@ -212,6 +212,38 @@ export const updateReportStatus = async (reportId: string, data: { status: strin
   return res.data
 }
 
+// ── Renewals & Appendices ──────────────────────────────────────────────────
+
+export const createRenewalRequest = async (data: { contractId: string; durationMonths: number; note?: string }) => {
+  const res = await apiClient.post('/contract/renewals', data)
+  return res.data
+}
+
+export const getRenewalsByContract = async (contractId: string) => {
+  const res = await apiClient.get(`/contract/renewals/contract/${contractId}`)
+  return res.data
+}
+
+export const approveRenewal = async (renewalId: string, data: { reviewNote?: string }) => {
+  const res = await apiClient.put(`/contract/renewals/${renewalId}/approve`, data)
+  return res.data
+}
+
+export const rejectRenewal = async (renewalId: string, data: { reviewNote?: string }) => {
+  const res = await apiClient.put(`/contract/renewals/${renewalId}/reject`, data)
+  return res.data
+}
+
+export const cancelRenewal = async (renewalId: string) => {
+  const res = await apiClient.put(`/contract/renewals/${renewalId}/cancel`)
+  return res.data
+}
+
+export const getContractAppendices = async (contractId: string) => {
+  const res = await apiClient.get(`/contract/renewals/appendices/${contractId}`)
+  return res.data
+}
+
 // ── Bookings ───────────────────────────────────────────────────────────────
 
 export const getMyBookings = async () => {
@@ -268,6 +300,12 @@ export default {
   createReport,
   getReportsByContract,
   updateReportStatus,
+  createRenewalRequest,
+  getRenewalsByContract,
+  approveRenewal,
+  rejectRenewal,
+  cancelRenewal,
+  getContractAppendices,
   getMyBookings,
   getOwnerBookings,
   confirmBooking,

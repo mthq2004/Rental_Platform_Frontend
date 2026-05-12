@@ -7,6 +7,7 @@ import {
   StopOutlined,
   SwapOutlined,
   CloseCircleOutlined,
+  ExclamationCircleOutlined,
 } from "@ant-design/icons";
 import type { RentalContractStatus } from "@/types/contract.type";
 import React from "react";
@@ -50,6 +51,11 @@ export const STATUS_CONFIG: Record<
     label: "Đang hiệu lực",
     color: "success",
     icon: <PlayCircleOutlined />,
+  },
+  near_expiration: {
+    label: "Sắp hết hạn",
+    color: "warning",
+    icon: <ExclamationCircleOutlined />,
   },
   expired: {
     label: "Hết hạn",

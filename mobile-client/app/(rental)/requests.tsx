@@ -311,7 +311,7 @@ const RequestsScreen: React.FC = () => {
         {/* Khung lưới thông tin dạng Web */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
           <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: current.card === '#FFFFFF' ? '#F8FAFC' : 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: current.border }}>
-            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: current.textInactive, fontWeight: '700' }}>Giá đề xuất</Text>
+            <Text style={{ fontSize: 10, textTransform: 'uppercase', color: current.textInactive, fontWeight: '700' }}>Giá thuê</Text>
             <Text style={{ fontSize: 14, fontWeight: '800', color: '#4F46E5', marginTop: 4 }}>{formatMoney(item.proposedRent)} đ</Text>
           </View>
           <View style={{ flexGrow: 1, minWidth: '45%', backgroundColor: current.card === '#FFFFFF' ? '#F8FAFC' : 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: current.border }}>

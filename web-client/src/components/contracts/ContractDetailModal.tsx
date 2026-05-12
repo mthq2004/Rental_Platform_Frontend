@@ -16,6 +16,7 @@ import type { RentalContract, RentalContractStatus } from "@/types/contract.type
 import { STATUS_CONFIG, formatDate, formatCurrency } from "./ContractStatusConfig";
 import TerminationRequestModal from "./TerminationRequestModal";
 import TerminationSection from "./TerminationSection";
+import RenewalSection from "./RenewalSection";
 import dayjs from "dayjs";
 
 interface ContractDetailModalProps {
@@ -147,6 +148,18 @@ export default function ContractDetailModal({
                 )}
 
                 {contractDetail.status === "active" && (
+                  <Button
+                    size="small"
+                    danger
+                    icon={<ScissorOutlined />}
+                    onClick={() => setTerminationModalOpen(true)}
+                  >
+                    Yêu cầu chấm dứt
+                  </Button>
+                )}
+
+                {/* Renewal button for tenant on near_expiration */}
+                {contractDetail.status === "near_expiration" && !ownerSide && (
                   <Button
                     size="small"
                     danger
@@ -291,7 +304,9 @@ export default function ContractDetailModal({
                           {log.action === "LANDLORD_SIGNED" && "Chủ nhà đã ký xác nhận"}
                           {log.action === "ACTIVATED" && "Hợp đồng đã được kích hoạt"}
                           {log.action === "CANCELLED" && "Hợp đồng bị hủy"}
-                          {!["SENT_TO_TENANT", "TENANT_SIGNED", "LANDLORD_SIGNED", "ACTIVATED", "CANCELLED"].includes(log.action) && log.action}
+                          {log.action === "RENEWAL_APPROVED" && "Đã duyệt gia hạn hợp đồng"}
+                          {log.action === "RENEWAL_REJECTED" && "Đã từ chối yêu cầu gia hạn"}
+                          {!["SENT_TO_TENANT", "TENANT_SIGNED", "LANDLORD_SIGNED", "ACTIVATED", "CANCELLED", "RENEWAL_APPROVED", "RENEWAL_REJECTED"].includes(log.action) && log.action}
                         </span>
                         <span className="text-xs text-gray-400">
                           {dayjs(log.createdAt).format("HH:mm:ss · DD/MM/YYYY")}
@@ -303,7 +318,7 @@ export default function ContractDetailModal({
               </div>
 
               {/* Termination Section */}
-              {(contractDetail.status === "active" || contractDetail.status === "terminated" || contractDetail.status === "expired") && (
+              {(contractDetail.status === "active" || contractDetail.status === "terminated" || contractDetail.status === "expired" || contractDetail.status === "near_expiration") && (
                 <div className="max-w-[210mm] mx-auto mb-10 px-8 py-6 bg-white border-t border-gray-100 rounded-b shadow-sm">
                   <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
                     <ScissorOutlined className="text-red-500" />
@@ -315,6 +330,20 @@ export default function ContractDetailModal({
                     userId={userId}
                     ownerId={contractDetail.ownerId}
                     tenantId={contractDetail.tenantId}
+                  />
+                </div>
+              )}
+
+              {/* Renewal Section */}
+              {(contractDetail.status === "active" || contractDetail.status === "near_expiration" || contractDetail.status === "renewed") && (
+                <div className="max-w-[210mm] mx-auto mb-10 px-8 py-6 bg-white border-t border-gray-100 rounded-b shadow-sm">
+                  <RenewalSection
+                    key={`renewal-${refreshKey}`}
+                    rentalId={contractDetail.rentalId}
+                    userId={userId}
+                    ownerId={contractDetail.ownerId}
+                    tenantId={contractDetail.tenantId}
+                    contractStatus={contractDetail.status}
                   />
                 </div>
               )}

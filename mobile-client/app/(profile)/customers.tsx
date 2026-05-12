@@ -299,7 +299,7 @@ const CustomerManagementScreen = () => {
                         <View key={index} style={{ borderTopWidth: index === 0 ? 0 : 1, borderTopColor: '#F3F4F6', paddingTop: index === 0 ? 0 : 12, marginTop: index === 0 ? 0 : 12 }}>
                           <Text style={{ fontWeight: '600', color: '#111827' }}>{req.property?.title || 'BĐS'}</Text>
                           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-                            <Text style={{ color: '#6B7280', fontSize: 13 }}>Giá đề xuất: {formatMoney(req.proposedRent)}</Text>
+                            <Text style={{ color: '#6B7280', fontSize: 13 }}>Giá thuê: {formatMoney(req.proposedRent)}</Text>
                             <Text style={{ color: '#3B82F6', fontSize: 12, fontWeight: '600', textTransform: 'uppercase' }}>{req.status}</Text>
                           </View>
                         </View>

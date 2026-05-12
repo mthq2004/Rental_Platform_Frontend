@@ -7,6 +7,7 @@ interface ContractState {
   ownerRequests: any[]
   contracts: any[]
   contractDetail: any | null
+  contractAppendices: any[]
   error?: string | null
 }
 
@@ -16,12 +17,13 @@ const initialState: ContractState = {
   ownerRequests: [],
   contracts: [],
   contractDetail: null,
+  contractAppendices: [],
   error: null,
 }
 
 export const createRentalRequest = createAsyncThunk(
   'contract/createRentalRequest',
-  async (data: { propertyId: string; ownerId: string; startDate: string; endDate: string; proposedRent: number; message?: string }, { rejectWithValue }) => {
+  async (data: { propertyId: string; ownerId: string; startDate: string; endDate: string; proposedRent: number; message?: string; autoRenew?: boolean }, { rejectWithValue }) => {
     try {
       return await contractService.createRentalRequest(data)
     } catch (e: any) {
@@ -178,6 +180,17 @@ export const createContract = createAsyncThunk(
   }
 )
 
+export const getContractAppendices = createAsyncThunk(
+  'contract/getContractAppendices',
+  async (contractId: string, { rejectWithValue }) => {
+    try {
+      return await contractService.getContractAppendices(contractId)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Get contract appendices failed')
+    }
+  }
+)
+
 const slice = createSlice({
   name: 'contract',
   initialState,
@@ -258,6 +271,14 @@ const slice = createSlice({
         state.contracts = Array.isArray(payload) ? payload : payload?.items || payload?.data || []
       })
       .addCase(getMyContracts.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(getContractAppendices.pending, (state) => { state.loading = true; state.error = null })
+      .addCase(getContractAppendices.fulfilled, (state, action) => {
+        state.loading = false
+        const payload = action.payload
+        state.contractAppendices = Array.isArray(payload) ? payload : payload?.items || payload?.data || []
+      })
+      .addCase(getContractAppendices.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
   }
 })
 

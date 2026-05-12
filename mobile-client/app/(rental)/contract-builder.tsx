@@ -61,10 +61,10 @@ function renderTemplate(html: string, formData: Record<string, any>) {
       if (!(short in map)) map[short] = map[k]
     }
   }
-  return html.replace(/\{\{(.*?)\}\}/g, (_, rawKey: string) => {
+  let result = html.replace(/\{\{(.*?)\}\}/g, (_, rawKey: string) => {
     const key = rawKey.trim()
     const raw = map[key]
-    if (raw !== undefined) {
+    if (raw !== undefined && raw !== '') {
       const lk = key.toLowerCase()
       // Skip date/money formatting if it contains HTML (like <br>) or is a multi-line string
       const isMultiline = raw.includes('<br>')
@@ -74,8 +74,22 @@ function renderTemplate(html: string, formData: Record<string, any>) {
       }
       return String(raw)
     }
-    return `<span style="color:#ef4444;background:#fee2e2;padding:2px 4px;border-radius:4px;">{{${key}}}</span>`
+    // Field not filled → return empty string to hide it
+    return ''
   })
+
+  // Remove table rows where all cells are empty
+  result = result.replace(/<tr[^>]*>(?:(?!<tr).)*<\/tr>/gi, (row) => {
+    const cellContents = row.match(/<td[^>]*>(.*?)<\/td>/gi) || []
+    const allEmpty = cellContents.length > 0 && cellContents.every(cell => {
+      const content = cell.replace(/<[^>]+>/g, '').trim()
+      return content === '' || content === '0' || content === 'null'
+    })
+    if (allEmpty) return ''
+    return row
+  })
+
+  return result
 }
 
 function formatDate(val: any): string {
@@ -197,12 +211,25 @@ const ContractBuilderScreen = () => {
         "property.waterCostPerM3": "contract.waterCostPerM3",
         "property.parkingFee": "contract.parkingFee",
         "property.managementFee": "contract.managementFee",
+        "property.internetFee": "contract.internetFee",
+        "property.area": "contract.usableArea",
       };
 
       for (const [propKey, constKey] of Object.entries(propertyToContractMap)) {
         if (flat[propKey] != null && (initialFormValues[constKey] == null || initialFormValues[constKey] === "")) {
           if (allowedKeys.includes(constKey)) {
             initialFormValues[constKey] = flat[propKey];
+          }
+        }
+      }
+
+      // 🏠 Default signing location: use owner's address if not provided
+      const signingLocationKeys = ["contract.signingLocation", "contract.location"];
+      for (const locKey of signingLocationKeys) {
+        if (allowedKeys.includes(locKey) && !initialFormValues[locKey]) {
+          const ownerAddress = flat["owner.address"];
+          if (ownerAddress) {
+            initialFormValues[locKey] = ownerAddress;
           }
         }
       }
@@ -416,7 +443,7 @@ const ContractBuilderScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         {activeTab === 'preview' ? (
           <View style={{ flex: 1, backgroundColor: '#E5E7EB', padding: 16 }}>
             <View style={{ flex: 1, backgroundColor: '#FFF', borderRadius: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5, overflow: 'hidden' }}>

@@ -20,7 +20,7 @@
     "android": {
       "package": "com.khoaluantotnghiep.mobileclient",
       "usesCleartextTraffic": true,
-      "softwareKeyboardLayoutMode": "adjustNothing",
+      "softwareKeyboardLayoutMode": "adjustResize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

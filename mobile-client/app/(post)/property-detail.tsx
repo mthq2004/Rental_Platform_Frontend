@@ -467,6 +467,7 @@ const PropertyDetail = () => {
           isOwner={isOwner}
           propertyId={propertyId.toString()}
           ownerId={propertyDetail?.user.id}
+          pricePerMonth={propertyDetail?.price ?? undefined}
           onContact={handleConversation}
         />
 

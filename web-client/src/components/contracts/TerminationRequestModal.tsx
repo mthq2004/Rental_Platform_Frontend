@@ -28,6 +28,13 @@ export default function TerminationRequestModal({
 }: TerminationRequestModalProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return null;
 
   const handleSubmit = async () => {
     try {

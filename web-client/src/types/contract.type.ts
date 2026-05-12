@@ -59,7 +59,7 @@ export interface ContractTerm {
 // Contract Types
 export type RentalContractStatus =
   'draft' | 'pending_tenant' | 'tenant_signed' | 'pending_landlord' | 'owner_signed' |
-  'fully_signed' | 'active' | 'expired' | 'terminated' | 'renewed' | 'cancelled';
+  'fully_signed' | 'active' | 'near_expiration' | 'expired' | 'terminated' | 'renewed' | 'cancelled';
 
 export interface RentalContract {
   rentalId: string;
@@ -88,6 +88,8 @@ export interface RentalContract {
   renewalStatus?: 'not_applicable' | 'pending' | 'approved' | 'declined' | 'auto_renewed';
   renewedToContractId?: string;
   renewedFromContractId?: string;
+  maxAutoRenewCount?: number;
+  autoRenewCount?: number;
   status: RentalContractStatus;
   isActive: boolean;
   notes?: string;
@@ -246,6 +248,76 @@ export interface CreateContractPayload {
   monthlyRent?: number;
   depositAmount?: number;
 
+  electricityCostPerKwh?: number;
+  waterCostPerM3?: number;
+  managementFee?: number;
+  parkingFee?: number;
+  internetFee?: number;
+
+  paymentDueDay?: number;
+  lateFeePerDay?: number;
+  gracePeriodDays?: number;
+  earlyTerminationFee?: number;
+
+  autoRenewal?: boolean;
+  renewalNoticeDays?: number;
+  notes?: string;
+
   contractData?: Record<string, unknown>;
   contractHtml?: string;
 }
+
+// Renewal Request Types
+export type RenewalRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export interface RenewalRequestItem {
+  id: string;
+  contractId: string;
+  requestedById: string;
+  durationMonths: number;
+  proposedStartDate: string;
+  proposedEndDate: string;
+  status: RenewalRequestStatus;
+  note?: string;
+  reviewNote?: string;
+  appendixId?: string;
+  createdAt: string;
+  approvedAt?: string;
+  contract?: {
+    rentalId: string;
+    contractCode: string;
+    propertyId: string;
+    ownerId: string;
+    tenantId: string;
+    monthlyRent: number;
+    startDate: string;
+    endDate: string;
+  };
+  appendix?: ContractAppendixItem;
+}
+
+// Contract Appendix Types
+export type ContractAppendixType = 'renewal' | 'adjustment' | 'extension';
+
+export interface ContractAppendixItem {
+  id: string;
+  contractId: string;
+  type: ContractAppendixType;
+  appendixNumber: number;
+  startDate: string;
+  endDate: string;
+  content?: string;
+  createdById: string;
+  signedAt?: string;
+  blockchainTxHash?: string;
+  createdAt: string;
+  renewalRequest?: {
+    id: string;
+    requestedById: string;
+    durationMonths: number;
+    note?: string;
+    status: string;
+    createdAt: string;
+  };
+}
+

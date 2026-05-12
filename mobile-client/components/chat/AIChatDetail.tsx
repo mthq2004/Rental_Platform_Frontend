@@ -388,7 +388,7 @@ const AIChatDetail = () => {
       {/* ── Messages ── */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? -Math.max(insets.bottom, 0) : 0}
       >
           <FlatList
@@ -468,7 +468,7 @@ const AIChatDetail = () => {
           style={{
             paddingHorizontal: 14,
             paddingTop: 10,
-            paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 8) : 8,
+            paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 8) : 12,
             backgroundColor: isDark ? '#1e293b' : '#ffffff',
             borderTopWidth: 1,
             borderTopColor: isDark ? '#334155' : '#e2e8f0',
@@ -488,7 +488,7 @@ const AIChatDetail = () => {
                 backgroundColor: isDark ? '#334155' : '#f1f5f9',
                 borderRadius: 24,
                 paddingHorizontal: 16,
-                paddingVertical: Platform.OS === 'ios' ? 10 : 6,
+                paddingVertical: Platform.OS === 'ios' ? 10 : 8,
                 borderWidth: 1,
                 borderColor: isDark ? '#475569' : '#e2e8f0',
               }}

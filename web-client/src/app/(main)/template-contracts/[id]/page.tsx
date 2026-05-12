@@ -84,20 +84,9 @@ interface FormErrors {
 
 type ContractStatus = "draft" | "ready-to-send" | "sent" | "signed";
 
-interface SendContractFormData {
-  recipientEmail: string;
-  recipientName: string;
-  message: string;
-}
-
 // ─────────────────────────────────────────────
 // UTILITY FUNCTIONS
 // ─────────────────────────────────────────────
-
-function isValidEmail(email: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
 function buildPlaceholderMap(
   formData: Record<string, unknown>
 ): Record<string, string> {
@@ -151,18 +140,36 @@ function normalizeTemplateDocumentHtml(html: string): string {
 
 function renderTemplate(html: string, formData: Record<string, unknown>): string {
   const map = buildPlaceholderMap(formData);
-  return html.replace(/\{\{(.*?)\}\}/g, (_, rawKey: string) => {
+  // First pass: replace placeholders with values
+  let result = html.replace(/\{\{(.*?)\}\}/g, (_, rawKey: string) => {
     const key = rawKey.trim();
     if (key in map) {
       const val = map[key];
+      if (val === "" || val == null) return "";
       // Auto-format dates
       if (key.toLowerCase().includes("date") || key.toLowerCase().includes("day")) {
         return formatDate(val);
       }
       return String(val);
     }
-    return `{{${key}}}`;
+    // Field not filled → return empty string to hide it
+    return "";
   });
+
+  // Second pass: remove table rows or list items that contain ONLY empty values
+  // This handles rows like "<tr>...<td>{{field}}</td>...</tr>" where field is empty
+  result = result.replace(/<tr[^>]*>(?:(?!<tr).)*<\/tr>/gi, (row) => {
+    // If all td cells in the row are empty (after trimming HTML tags)
+    const cellContents = row.match(/<td[^>]*>(.*?)<\/td>/gi) || [];
+    const allEmpty = cellContents.length > 0 && cellContents.every(cell => {
+      const content = cell.replace(/<[^>]+>/g, "").trim();
+      return content === "" || content === "0" || content === "null";
+    });
+    if (allEmpty) return "";
+    return row;
+  });
+
+  return result;
 }
 
 function normaliseTemplateVariables(
@@ -249,12 +256,6 @@ const RentalContractContent = () => {
   const [isEditMode, setIsEditMode] = useState(true);
   const [contractStatus, setContractStatus] = useState<ContractStatus>("draft");
   const [contractId, setContractId] = useState<string | null>(null);
-  const [showSendModal, setShowSendModal] = useState(false);
-  const [sendFormData, setSendFormData] = useState<SendContractFormData>({
-    recipientEmail: "",
-    recipientName: "",
-    message: "",
-  });
   const [isSendingContract, setIsSendingContract] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -372,12 +373,26 @@ const RentalContractContent = () => {
         "property.waterCostPerM3": "contract.waterCostPerM3",
         "property.parkingFee": "contract.parkingFee",
         "property.managementFee": "contract.managementFee",
+        "property.internetFee": "contract.internetFee",
+        "property.area": "contract.usableArea",
       };
 
       for (const [propKey, constKey] of Object.entries(propertyToContractMap)) {
         if (flatData[propKey] != null && (initialFormData[constKey] == null || initialFormData[constKey] === "")) {
           if (allowedKeys.includes(constKey)) {
             initialFormData[constKey] = flatData[propKey];
+          }
+        }
+      }
+
+      // 🏠 Default signing location: use owner's address if not provided
+      // Support both "contract.signingLocation" and "contract.location" (used by different templates)
+      const signingLocationKeys = ["contract.signingLocation", "contract.location"];
+      for (const locKey of signingLocationKeys) {
+        if (allowedKeys.includes(locKey) && !initialFormData[locKey]) {
+          const ownerAddress = flatData["owner.address"];
+          if (ownerAddress) {
+            initialFormData[locKey] = ownerAddress;
           }
         }
       }
@@ -520,7 +535,20 @@ const RentalContractContent = () => {
         return `<div id="ckeditor-placeholder-${key.replace(/\./g, '-')}" data-field-name="${escapeHtmlAttr(key)}" class="mt-2 mb-4"></div>`;
       }
 
-      const value = data[key] != null ? String(data[key]) : "";
+      let value = data[key] != null ? String(data[key]) : "";
+      
+      // Format date for <input type="date">
+      if (field.type === "date" && value) {
+        try {
+          const date = new Date(value);
+          if (!isNaN(date.getTime())) {
+            value = date.toISOString().split("T")[0];
+          }
+        } catch (e) {
+          console.error("Date formatting error:", e);
+        }
+      }
+
       const label = field.label;
       const isReadonly = field.readonly || field.source === "system";
       const inputType = field.type === "number" ? "number" : field.type === "date" ? "date" : "text";
@@ -661,19 +689,18 @@ const RentalContractContent = () => {
       } else if (formData[field.name]) {
         const val = formData[field.name];
         if (field.type === "number" && isNaN(Number(val))) errors[field.name] = `${field.label} phải là số`;
-        if (field.type === "email" && !isValidEmail(String(val))) errors[field.name] = `${field.label} không hợp lệ`;
       }
     });
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   }, [template, formData]);
 
-  const validateSendForm = useCallback((): boolean => {
-    if (!sendFormData.recipientEmail.trim()) { setSendError("Vui lòng nhập email khách hàng"); return false; }
-    if (!isValidEmail(sendFormData.recipientEmail)) { setSendError("Email không hợp lệ"); return false; }
-    if (!sendFormData.recipientName.trim()) { setSendError("Vui lòng nhập tên khách hàng"); return false; }
-    return true;
-  }, [sendFormData]);
+  const parseSafeNumber = (val: any) => {
+    if (val === null || val === undefined || val === "") return 0;
+    const clean = String(val).replace(/[.,]/g, "");
+    const num = Number(clean);
+    return isNaN(num) ? 0 : num;
+  };
 
   // ──── Handlers ────
   const handleSaveDraft = useCallback(async () => {
@@ -691,10 +718,22 @@ const RentalContractContent = () => {
         ownerId: requestData.owner.id,
         tenantId: requestData.tenant.id,
         fromRequestId: requestData?.contract.id,
-        startDate: new Date(requestData!.contract.startDate).toISOString(),
-        endDate: new Date(requestData!.contract.endDate).toISOString(),
-        monthlyRent: Number(formData["property.monthlyRent"]),
-        depositAmount: Number(formData["property.depositAmount"]),
+        startDate: String(formData["contract.startDate"] || requestData!.contract.startDate),
+        endDate: String(formData["contract.endDate"] || requestData!.contract.endDate),
+        monthlyRent: parseSafeNumber(formData["contract.monthlyRent"]),
+        depositAmount: parseSafeNumber(formData["contract.depositAmount"]),
+        electricityCostPerKwh: parseSafeNumber(formData["contract.electricityCostPerKwh"]),
+        waterCostPerM3: parseSafeNumber(formData["contract.waterCostPerM3"]),
+        managementFee: parseSafeNumber(formData["contract.managementFee"]),
+        parkingFee: parseSafeNumber(formData["contract.parkingFee"]),
+        internetFee: parseSafeNumber(formData["contract.internetFee"]),
+        paymentDueDay: parseSafeNumber(formData["contract.paymentDueDay"] || 5),
+        lateFeePerDay: parseSafeNumber(formData["contract.lateFeePerDay"]),
+        gracePeriodDays: parseSafeNumber(formData["contract.gracePeriodDays"]),
+        earlyTerminationFee: parseSafeNumber(formData["contract.earlyTerminationFee"]),
+        autoRenewal: formData["contract.autoRenewal"] === "true" || formData["contract.autoRenewal"] === true,
+        renewalNoticeDays: parseSafeNumber(formData["contract.renewalNoticeDays"] || 30),
+        notes: String(formData["contract.notes"] || ""),
         contractData: formData,
         contractHtml: editorContent,
       };
@@ -718,25 +757,14 @@ const RentalContractContent = () => {
     }
   }, [dispatch, template, requestData, formData, editorContent]);
 
-  const handlePrepareToSend = useCallback(async () => {
-    setSaveError(null);
-    if (!validateForm()) { setSaveError("Vui lòng điền tất cả các trường bắt buộc"); return; }
-    setIsSaving(true);
-    try {
-      setContractId(`contract-${Date.now()}`);
-      setContractStatus("ready-to-send");
-      setSaveSuccess(true);
-      setTimeout(() => setShowSendModal(true), 500);
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : "Lỗi khi chuẩn bị gửi hợp đồng");
-    } finally {
-      setIsSaving(false);
-    }
-  }, [validateForm]);
-
   const handleSendContract = useCallback(async () => {
     setSendError(null);
-    if (!validateSendForm()) return;
+    setSaveError(null);
+    if (!validateForm()) {
+      setSaveError("Vui lòng điền tất cả các trường bắt buộc");
+      return;
+    }
+    setIsSaving(true);
     setIsSendingContract(true);
     try {
       if (!requestData?.property?.id || !requestData?.owner?.id || !requestData?.tenant?.id) {
@@ -750,10 +778,22 @@ const RentalContractContent = () => {
         ownerId: requestData.owner.id,
         tenantId: requestData.tenant.id,
         fromRequestId: requestData?.contract.id,
-        startDate: new Date(requestData!.contract.startDate).toISOString(),
-        endDate: new Date(requestData!.contract.endDate).toISOString(),
-        monthlyRent: Number(formData["contract.monthlyRent"]),
-        depositAmount: Number(formData["contract.depositAmount"]),
+        startDate: String(formData["contract.startDate"] || requestData!.contract.startDate),
+        endDate: String(formData["contract.endDate"] || requestData!.contract.endDate),
+        monthlyRent: parseSafeNumber(formData["contract.monthlyRent"]),
+        depositAmount: parseSafeNumber(formData["contract.depositAmount"]),
+        electricityCostPerKwh: parseSafeNumber(formData["contract.electricityCostPerKwh"]),
+        waterCostPerM3: parseSafeNumber(formData["contract.waterCostPerM3"]),
+        managementFee: parseSafeNumber(formData["contract.managementFee"]),
+        parkingFee: parseSafeNumber(formData["contract.parkingFee"]),
+        internetFee: parseSafeNumber(formData["contract.internetFee"]),
+        paymentDueDay: parseSafeNumber(formData["contract.paymentDueDay"] || 5),
+        lateFeePerDay: parseSafeNumber(formData["contract.lateFeePerDay"]),
+        gracePeriodDays: parseSafeNumber(formData["contract.gracePeriodDays"]),
+        earlyTerminationFee: parseSafeNumber(formData["contract.earlyTerminationFee"]),
+        autoRenewal: formData["contract.autoRenewal"] === "true" || formData["contract.autoRenewal"] === true,
+        renewalNoticeDays: parseSafeNumber(formData["contract.renewalNoticeDays"] || 30),
+        notes: String(formData["contract.notes"] || ""),
         contractData: formData,
         contractHtml: editorContent,
       };
@@ -772,8 +812,6 @@ const RentalContractContent = () => {
       if (sendContractToTenant.fulfilled.match(resultAction)) {
         setContractStatus("sent");
         setSaveSuccess(true);
-        setShowSendModal(false);
-        setSendFormData({ recipientEmail: "", recipientName: "", message: "" });
         setTimeout(() => {
           setSaveSuccess(false);
           router.replace("/dashboard/contracts");
@@ -785,8 +823,9 @@ const RentalContractContent = () => {
       setSendError(err.message || "Lỗi khi gửi hợp đồng");
     } finally {
       setIsSendingContract(false);
+      setIsSaving(false);
     }
-  }, [validateSendForm, template, requestData, formData, editorContent, dispatch, router]);
+  }, [validateForm, template, requestData, formData, editorContent, dispatch, router]);
 
   const handleDownloadPDF = useCallback(() => {
     try {
@@ -898,7 +937,7 @@ const RentalContractContent = () => {
               {isSaving ? "Đang lưu..." : <><SaveOutlined /> Lưu hợp đồng</>}
             </button>
             <button
-              onClick={handlePrepareToSend}
+              onClick={handleSendContract}
               disabled={isSaving || !areAllRequiredFieldsFilled()}
               className="action-btn action-btn-primary"
               type="button"
@@ -955,20 +994,6 @@ const RentalContractContent = () => {
           ))}
         </div>
       </main>
-
-      {/* ──── SEND MODAL ──── */}
-      {showSendModal && (
-        <SendContractModal
-          isOpen={showSendModal}
-          isLoading={isSendingContract}
-          error={sendError}
-          formData={sendFormData}
-          onFormDataChange={setSendFormData}
-          onSend={handleSendContract}
-          onClose={() => { setShowSendModal(false); setSendError(null); }}
-          contractName={template.templateName}
-        />
-      )}
     </div>
   );
 };
@@ -992,64 +1017,6 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     </span>
   );
 };
-
-interface SendContractModalProps {
-  isOpen: boolean;
-  isLoading: boolean;
-  error: string | null;
-  formData: SendContractFormData;
-  onFormDataChange: (data: SendContractFormData) => void;
-  onSend: () => void;
-  onClose: () => void;
-  contractName: string;
-}
-
-const SendContractModal: React.FC<SendContractModalProps> = ({
-  isOpen, isLoading, error, formData, onFormDataChange, onSend, onClose, contractName,
-}) => {
-  if (!isOpen) return null;
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    onFormDataChange({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/50 z-40" style={{ backdropFilter: 'blur(4px)' }} onClick={onClose} />
-      <div className="fixed top-1/2 left-1/2 z-50" style={{ transform: 'translate(-50%, -50%)', maxWidth: 440, width: '92%', maxHeight: '90vh', overflow: 'auto', background: 'white', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #f3f4f6' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>Gửi hợp đồng cho khách hàng</h2>
-          <button onClick={onClose} disabled={isLoading} style={{ color: '#9ca3af', fontSize: 18, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', cursor: 'pointer', borderRadius: 6 }} type="button" aria-label="Đóng"><CloseOutlined /></button>
-        </div>
-        <div style={{ padding: '20px 24px' }}>
-          <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>Hợp đồng &quot;{contractName}&quot; sẽ được gửi để ký duyệt.</p>
-          {error && <div className="alert-bar alert-error" role="alert"><CloseCircleOutlined /> {error}</div>}
-          <div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column' }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 6 }} htmlFor="recipientName">Tên khách hàng <span style={{ color: '#dc2626' }}>*</span></label>
-            <input id="recipientName" name="recipientName" type="text" value={formData.recipientName} onChange={handleChange} placeholder="Nhập tên khách hàng"
-              style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, outline: 'none', transition: 'border-color 0.15s' }} disabled={isLoading} />
-          </div>
-          <div style={{ marginBottom: 14, display: 'flex', flexDirection: 'column' }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 6 }} htmlFor="recipientEmail">Email khách hàng <span style={{ color: '#dc2626' }}>*</span></label>
-            <input id="recipientEmail" name="recipientEmail" type="email" value={formData.recipientEmail} onChange={handleChange} placeholder="example@email.com"
-              style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, outline: 'none', transition: 'border-color 0.15s' }} disabled={isLoading} />
-          </div>
-          <div style={{ marginBottom: 18, display: 'flex', flexDirection: 'column' }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#111827', marginBottom: 6 }} htmlFor="message">Tin nhắn (tùy chọn)</label>
-            <textarea id="message" name="message" value={formData.message} onChange={handleChange} placeholder="Nhập lời nhắn..."
-              style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, minHeight: 72, outline: 'none', resize: 'none', transition: 'border-color 0.15s' }} disabled={isLoading} />
-          </div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
-            <button onClick={onClose} disabled={isLoading} className="action-btn" type="button">Hủy</button>
-            <button onClick={onSend} disabled={isLoading} className="action-btn action-btn-primary" type="button">
-              {isLoading ? "Đang gửi..." : <><SendOutlined /> Gửi hợp đồng</>}
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-};
-
 const LoadingState = () => (
   <div className="contract-editor-page" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
     <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />

@@ -111,7 +111,7 @@ function CreateCategoryModal({ visible, onClose, onCreate, loading }: {
                 </Animated.View>
 
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={{ flex: 1 }}
                 >
                     <View className="flex-1 justify-end">

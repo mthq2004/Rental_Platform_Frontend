@@ -632,7 +632,7 @@ export default function RentalRequestsPage() {
                     {/* Meta grid — luôn nằm dưới, full width */}
                     <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
-                        <div className="text-[10px] uppercase tracking-[0.1em] text-[#94A3B8]">Giá đề xuất</div>
+                        <div className="text-[10px] uppercase tracking-[0.1em] text-[#94A3B8]">Giá thuê</div>
                         <div className="mt-1 text-sm font-semibold text-[#4F46E5]">{formatCurrency(record.proposedRent)}</div>
                       </div>
                       <div className="rounded-lg border border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2">
@@ -758,7 +758,7 @@ export default function RentalRequestsPage() {
                                 <div className="flex-1">
                                   <div className="grid gap-3 sm:grid-cols-2">
                                     <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
-                                      <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Giá đề xuất</div>
+                                      <div className="text-[11px] uppercase tracking-[0.12em] text-[#94A3B8]">Giá thuê</div>
                                       <div className="text-sm font-semibold text-[#4F46E5]">{formatCurrency(record.proposedRent)}</div>
                                     </div>
                                     <div className="rounded-lg border border-[#E5E7EB] bg-white px-3 py-2">
@@ -900,7 +900,7 @@ export default function RentalRequestsPage() {
               <Descriptions.Item label="Ngày kết thúc">
                 {formatDate(selectedRequest.endDate)}
               </Descriptions.Item>
-              <Descriptions.Item label="Giá đề xuất" span={2}>
+              <Descriptions.Item label="Giá thuê" span={2}>
                 <Text strong className="text-red-500">
                   {formatCurrency(selectedRequest.proposedRent)}
                 </Text>

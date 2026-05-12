@@ -14,7 +14,7 @@ import {
   LockOutlined,
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
-import { Modal, DatePicker, Input, App } from "antd";
+import { Modal, DatePicker, Input, App, Checkbox } from "antd";
 import dayjs from "dayjs";
 import type { PropertyOwner } from "./types";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
@@ -60,7 +60,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
   const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
   const [rentalMessage, setRentalMessage] = useState("");
-  const [proposedRent, setProposedRent] = useState<number | null>(pricePerMonth || null);
+  const [autoRenew, setAutoRenew] = useState(false);
 
   const visibleQuestions = QUICK_QUESTIONS.slice(questionIdx, questionIdx + 2);
 
@@ -157,8 +157,8 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
   };
 
   const handleSubmitRentalRequest = async () => {
-    if (!startDate || !endDate || !proposedRent) {
-      messageApi.warning("Vui lòng điền đầy đủ thông tin thuê (ngày bắt đầu, ngày kết thúc và giá đề xuất)");
+    if (!startDate || !endDate) {
+      messageApi.warning("Vui lòng chọn ngày bắt đầu và ngày kết thúc");
       return;
     }
 
@@ -182,19 +182,15 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
       return;
     }
 
-    if (proposedRent <= 0) {
-      messageApi.warning("Giá đề xuất phải lớn hơn 0");
-      return;
-    }
-
     try {
       await dispatch(createRentalRequest({
         propertyId,
         ownerId: owner.id,
         startDate: startDate.format("YYYY-MM-DD"),
         endDate: endDate.format("YYYY-MM-DD"),
-        proposedRent: proposedRent,
+        proposedRent: pricePerMonth || 0,
         message: rentalMessage || undefined,
+        autoRenew: autoRenew,
       })).unwrap();
       
       messageApi.success("Gửi yêu cầu thuê nhà thành công!");
@@ -202,6 +198,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
       setStartDate(null);
       setEndDate(null);
       setRentalMessage("");
+      setAutoRenew(false);
     } catch (err: any) {
       messageApi.error(typeof err === "string" ? err : "Gửi yêu cầu thất bại");
     }
@@ -526,19 +523,15 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Giá đề xuất (VNĐ/tháng) *
-            </label>
-            <Input
-              value={proposedRent ?? ""}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, "");
-                setProposedRent(value ? Number(value) : null);
-              }}
-              placeholder="Nhập giá bạn muốn thuê"
-            />
-          </div>
+          {pricePerMonth && pricePerMonth > 0 && (
+            <div className="rounded-lg bg-blue-50 border border-blue-100 p-3">
+              <div className="text-sm text-gray-600">Giá thuê theo bài đăng</div>
+              <div className="text-lg font-bold text-[#4F46E5]">
+                {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(pricePerMonth)}/tháng
+              </div>
+            </div>
+          )}
+
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Lời nhắn (tuỳ chọn)</label>
@@ -550,6 +543,17 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
               maxLength={500}
               showCount
             />
+          </div>
+
+          <div className="flex items-center gap-2 mt-2">
+            <Checkbox 
+              checked={autoRenew} 
+              onChange={(e) => setAutoRenew(e.target.checked)} 
+              id="autoRenewCb" 
+            />
+            <label htmlFor="autoRenewCb" className="text-sm text-gray-700 cursor-pointer select-none">
+              Tự động yêu cầu gia hạn khi sắp hết hạn hợp đồng
+            </label>
           </div>
         </div>
       </Modal>

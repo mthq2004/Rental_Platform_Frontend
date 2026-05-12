@@ -9,7 +9,6 @@ import {
   Animated,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import { COLORS, useThemeColors } from '@/utils/colors';
 import { useColorScheme } from 'nativewind';
@@ -100,28 +99,17 @@ export default function CustomTabBar({ state, descriptors, navigation, onAuthFai
     // wrapper cao hơn để chứa nút nổi lên
     <View style={styles.wrapper} pointerEvents="box-none">
 
-      {/* ── Background blur ── */}
-      <View style={styles.barBackground}>
-        <BlurView
-          tint={isDark ? 'dark' : 'light'}
-          intensity={60} // Giảm nhẹ intensity để nhìn rõ phía sau hơn
-          style={[StyleSheet.absoluteFillObject, { borderRadius: 30, overflow: 'hidden' }]}
-        />
-        <View
-          style={[
-            StyleSheet.absoluteFillObject,
-            {
-              // Giảm alpha xuống 0.4 - 0.6 để tạo hiệu ứng kính (glassmorphism)
-              backgroundColor: isDark
-                ? 'rgba(25, 25, 26, 0.5)'
-                : 'rgba(255, 255, 255, 0.4)',
-              borderRadius: 30,
-              borderWidth: 1, // Thêm viền mảnh để định hình khối kính
-              borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-            },
-          ]}
-        />
-      </View>
+      {/* ── Solid Background ── */}
+      <View
+        style={[
+          styles.barBackground,
+          {
+            backgroundColor: isDark ? '#19191A' : '#FFFFFF',
+            borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+            borderWidth: 1,
+          },
+        ]}
+      />
 
       {/* ── Tab row (không overflow hidden → nút không bị clip) ── */}
       <View style={styles.tabRow}>
@@ -206,7 +194,7 @@ const styles = StyleSheet.create({
   // Wrapper cao hơn bar để nút có chỗ nổi lên
   wrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 24 : 16,
+    bottom: Platform.OS === 'ios' ? 24 : Platform.OS === 'android' ? 16 : 16,
     left: MARGIN,
     right: MARGIN,
     height: BAR_HEIGHT + BTN_OFFSET,
@@ -220,10 +208,8 @@ const styles = StyleSheet.create({
     right: 0,
     height: BAR_HEIGHT,
     borderRadius: 30,
-    // Đảm bảo không có backgroundColor ở đây, hoặc dùng transparent
-    backgroundColor: 'transparent',
-
-    // Đổ bóng nhẹ nhàng hơn để không làm bẩn hiệu ứng mờ
+    // Bỏ backgroundColor transparent cũ đi vì style nội tuyến (inline style) đã tự cấp backgroundColor solid
+    // Đổ bóng nhẹ nhàng hơn
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,

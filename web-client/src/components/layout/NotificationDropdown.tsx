@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useMemo, useState } from "react";
 import { Badge, Switch, Tabs, Popconfirm } from "antd";
 import {
@@ -14,6 +14,14 @@ import {
     WarningOutlined,
     CloseCircleOutlined,
     SafetyCertificateOutlined,
+    ClockCircleOutlined,
+    SyncOutlined,
+    FileAddOutlined,
+    FileProtectOutlined,
+    FormOutlined,
+    PayCircleOutlined,
+    CreditCardOutlined,
+    StopOutlined,
 } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { markAsRead, getNotification, deleteReadNotifications } from "@/stores/slices/notification.slice";
@@ -23,17 +31,20 @@ import { useRouter } from "next/navigation";
 const TYPE_CONFIG: Record<string, { color: string; bg: string; borderColor: string; label: string; icon: React.ReactNode }> = {
     PROPERTY_UPDATE:    { color: "#1890ff", bg: "#e6f7ff", borderColor: "#91d5ff", label: "Bất động sản", icon: <HomeOutlined style={{ fontSize: 18 }} /> },
     ADMIN_ACTION:       { color: "#fa8c16", bg: "#fff7e6", borderColor: "#ffd591", label: "Admin", icon: <SettingOutlined style={{ fontSize: 18 }} /> },
-    RENTAL_REQUEST:     { color: "#52c41a", bg: "#f6ffed", borderColor: "#b7eb8f", label: "Yêu cầu thuê", icon: <FileTextOutlined style={{ fontSize: 18 }} /> },
-    RENTAL_REQUEST_UPDATE: { color: "#13c2c2", bg: "#e6fffb", borderColor: "#87e8de", label: "Yêu cầu thuê", icon: <FileTextOutlined style={{ fontSize: 18 }} /> },
-    CONTRACT_CREATED:   { color: "#722ed1", bg: "#f9f0ff", borderColor: "#d3adf7", label: "Hợp đồng", icon: <FileTextOutlined style={{ fontSize: 18 }} /> },
-    CONTRACT_UPDATED:   { color: "#722ed1", bg: "#f9f0ff", borderColor: "#d3adf7", label: "Hợp đồng", icon: <EditOutlined style={{ fontSize: 18 }} /> },
+    RENTAL_REQUEST:     { color: "#52c41a", bg: "#f6ffed", borderColor: "#b7eb8f", label: "Yêu cầu thuê", icon: <FileAddOutlined style={{ fontSize: 18 }} /> },
+    RENTAL_REQUEST_UPDATE: { color: "#13c2c2", bg: "#e6fffb", borderColor: "#87e8de", label: "Yêu cầu thuê", icon: <SyncOutlined style={{ fontSize: 18 }} /> },
+    CONTRACT_CREATED:   { color: "#722ed1", bg: "#f9f0ff", borderColor: "#d3adf7", label: "Hợp đồng", icon: <FileProtectOutlined style={{ fontSize: 18 }} /> },
+    CONTRACT_UPDATED:   { color: "#722ed1", bg: "#f9f0ff", borderColor: "#d3adf7", label: "Hợp đồng", icon: <FormOutlined style={{ fontSize: 18 }} /> },
     CONTRACT_SIGNED:    { color: "#722ed1", bg: "#f9f0ff", borderColor: "#d3adf7", label: "Ký hợp đồng", icon: <SafetyCertificateOutlined style={{ fontSize: 18 }} /> },
-    DEPOSIT_PAYMENT:    { color: "#eb2f96", bg: "#fff0f6", borderColor: "#ffadd2", label: "Tiền cọc", icon: <DollarOutlined style={{ fontSize: 18 }} /> },
-    PAYMENT:            { color: "#faad14", bg: "#fffbe6", borderColor: "#ffe58f", label: "Thanh toán", icon: <DollarOutlined style={{ fontSize: 18 }} /> },
-    PAYMENT_REMINDER:   { color: "#1890ff", bg: "#e6f7ff", borderColor: "#91d5ff", label: "Nhắc thanh toán", icon: <DollarOutlined style={{ fontSize: 18 }} /> },
-    PAYMENT_DUE:        { color: "#fa8c16", bg: "#fff7e6", borderColor: "#ffd591", label: "Đến hạn", icon: <DollarOutlined style={{ fontSize: 18 }} /> },
+    DEPOSIT_PAYMENT:    { color: "#eb2f96", bg: "#fff0f6", borderColor: "#ffadd2", label: "Tiền cọc", icon: <PayCircleOutlined style={{ fontSize: 18 }} /> },
+    PAYMENT:            { color: "#faad14", bg: "#fffbe6", borderColor: "#ffe58f", label: "Thanh toán", icon: <CreditCardOutlined style={{ fontSize: 18 }} /> },
+    PAYMENT_REMINDER:   { color: "#1890ff", bg: "#e6f7ff", borderColor: "#91d5ff", label: "Nhắc thanh toán", icon: <BellOutlined style={{ fontSize: 18 }} /> },
+    PAYMENT_DUE:        { color: "#fa8c16", bg: "#fff7e6", borderColor: "#ffd591", label: "Đến hạn", icon: <ClockCircleOutlined style={{ fontSize: 18 }} /> },
     PAYMENT_WARNING:    { color: "#f5222d", bg: "#fff1f0", borderColor: "#ffa39e", label: "Cảnh báo", icon: <WarningOutlined style={{ fontSize: 18 }} /> },
-    PAYMENT_OVERDUE:    { color: "#f5222d", bg: "#fff1f0", borderColor: "#ffa39e", label: "Trễ hạn", icon: <CloseCircleOutlined style={{ fontSize: 18 }} /> },
+    PAYMENT_OVERDUE:    { color: "#f5222d", bg: "#fff1f0", borderColor: "#ffa39e", label: "Trễ hạn", icon: <StopOutlined style={{ fontSize: 18 }} /> },
+    CONTRACT_EXPIRING:  { color: "#fa8c16", bg: "#fff7e6", borderColor: "#ffd591", label: "Sắp hết hạn", icon: <ClockCircleOutlined style={{ fontSize: 18 }} /> },
+    CONTRACT_EXPIRED:   { color: "#f5222d", bg: "#fff1f0", borderColor: "#ffa39e", label: "Hết hạn", icon: <CloseCircleOutlined style={{ fontSize: 18 }} /> },
+    RENEWAL_REQUEST:    { color: "#13c2c2", bg: "#e6fffb", borderColor: "#87e8de", label: "Gia hạn", icon: <SyncOutlined style={{ fontSize: 18 }} /> },
     SYSTEM:             { color: "#8c8c8c", bg: "#fafafa", borderColor: "#d9d9d9", label: "Hệ thống", icon: <SoundOutlined style={{ fontSize: 18 }} /> },
 };
 
@@ -64,8 +75,12 @@ const NotificationDropdown = () => {
                     n.type === "CONTRACT_UPDATED" ||
                     n.type === "CONTRACT_SIGNED" ||
                     n.type === "RENTAL_REQUEST" ||
+                    n.type === "RENTAL_REQUEST" ||
                     n.type === "RENTAL_REQUEST_UPDATE" ||
-                    n.type === "DEPOSIT_PAYMENT"
+                    n.type === "DEPOSIT_PAYMENT" ||
+                    n.type === "CONTRACT_EXPIRING" ||
+                    n.type === "CONTRACT_EXPIRED" ||
+                    n.type === "RENEWAL_REQUEST"
             );
         if (activeTab === "payments")
             return notifications.filter(
@@ -123,6 +138,11 @@ const NotificationDropdown = () => {
             case 'CONTRACT_TENANT_SIGNED':
             case 'CONTRACT_OWNER_SIGNED':
             case 'DEPOSIT_PAID':
+            case 'CONTRACT_EXPIRING':
+            case 'CONTRACT_EXPIRED':
+            case 'RENEWAL_REQUEST_CREATED':
+            case 'RENEWAL_REQUEST_APPROVED':
+            case 'RENEWAL_REQUEST_REJECTED':
                 return contractId ? `/dashboard/contracts/${contractId}` : `/dashboard/contracts`;
             case 'PAYMENT_REMINDER':
             case 'PAYMENT_DUE':

@@ -7,6 +7,7 @@ type PropertyActionsProps = {
   isOwner: boolean
   propertyId: string
   ownerId?: string
+  pricePerMonth?: number
   onBookSchedule?: () => void
   onContact?: () => void
   onViewStats?: () => void
@@ -16,6 +17,7 @@ export const PropertyActions: React.FC<PropertyActionsProps> = ({
   isOwner,
   propertyId,
   ownerId,
+  pricePerMonth,
   onBookSchedule,
   onContact,
   onViewStats
@@ -60,6 +62,7 @@ export const PropertyActions: React.FC<PropertyActionsProps> = ({
       params: {
         propertyId,
         ownerId,
+        pricePerMonth: pricePerMonth ? String(pricePerMonth) : undefined,
       },
     })
   }

@@ -138,6 +138,12 @@ export const FIELD_STANDARD = [
     type: "string",
     source: "custom"
   },
+  {
+    name: "contract.signingLocation",
+    label: "Địa điểm ký hợp đồng",
+    type: "string",
+    source: "custom"
+  },
 
   {
     name: "contract.startDate",
@@ -169,28 +175,78 @@ export const FIELD_STANDARD = [
     source: "contract"
   },
   {
+    name: "contract.electricityCostPerKwh",
+    label: "Giá điện (VNĐ/kWh)",
+    type: "number",
+    source: "contract"
+  },
+  {
     name: "property.waterCostPerM3",
     label: "Giá nước (VNĐ/m³)",
     type: "number",
     source: "contract"
   },
   {
+    name: "contract.waterCostPerM3",
+    label: "Giá nước (VNĐ/m³)",
+    type: "number",
+    source: "contract"
+  },
+  {
     name: "property.internetFee",
-    label: "Phí internet",
+    label: "Phí internet (VNĐ/tháng)",
+    type: "number",
+    source: "contract"
+  },
+  {
+    name: "contract.internetFee",
+    label: "Phí internet (VNĐ/tháng)",
     type: "number",
     source: "contract"
   },
   {
     name: "property.parkingFee",
-    label: "Phí gửi xe",
+    label: "Phí gửi xe (VNĐ/tháng)",
+    type: "number",
+    source: "contract"
+  },
+  {
+    name: "contract.parkingFee",
+    label: "Phí gửi xe (VNĐ/tháng)",
     type: "number",
     source: "contract"
   },
   {
     name: "property.managementFee",
-    label: "Phí quản lý",
+    label: "Phí quản lý (VNĐ/tháng)",
     type: "number",
     source: "contract"
+  },
+  {
+    name: "contract.managementFee",
+    label: "Phí quản lý (VNĐ/tháng)",
+    type: "number",
+    source: "contract"
+  },
+  {
+    name: "contract.usableArea",
+    label: "Diện tích sử dụng (m²)",
+    type: "number",
+    source: "contract"
+  },
+  {
+    name: "contract.monthlyRent",
+    label: "Tiền thuê hàng tháng",
+    type: "number",
+    source: "contract",
+    required: true
+  },
+  {
+    name: "contract.depositAmount",
+    label: "Tiền đặt cọc",
+    type: "number",
+    source: "contract",
+    required: true
   },
 
   // ================= PAYMENT =================

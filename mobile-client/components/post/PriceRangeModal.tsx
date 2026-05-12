@@ -125,7 +125,7 @@ const PriceRangeModal: React.FC<PriceRangeModalProps> = ({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View className="flex-1 bg-black/50 justify-end">
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View className="bg-white dark:bg-zinc-900 rounded-t-3xl p-6 pb-10">
 
             <View className="flex-row justify-between items-center mb-10">

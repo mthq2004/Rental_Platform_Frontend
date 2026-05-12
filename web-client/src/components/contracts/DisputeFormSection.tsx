@@ -226,7 +226,7 @@ export default function DisputeFormSection({
         type="info"
         showIcon
         className="!rounded-xl !mb-6 !border-blue-200 !bg-blue-50"
-        message={
+        title={
           <Text className="text-sm font-semibold text-blue-800">Lưu ý quan trọng</Text>
         }
         description={
@@ -489,7 +489,7 @@ export default function DisputeFormSection({
           showIcon
           icon={<ExclamationCircleOutlined />}
           className="!rounded-xl !mt-4"
-          message={
+          title={
             <Text className="text-sm font-medium text-amber-800">
               Đã có {existingReports.length} khiếu nại cho hợp đồng này
             </Text>

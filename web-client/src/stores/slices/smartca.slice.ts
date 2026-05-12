@@ -23,8 +23,9 @@ interface HandleSignResultResponse {
 }
 
 interface ContractSignStatusResponse {
-	status: "SIGNED" | "PROCESSING" | "PENDING";
+	status: "SIGNED" | "PROCESSING" | "PENDING" | "ERROR";
 	signedFileUrl?: string;
+	error?: string;
 }
 
 interface SmartCAState {
@@ -183,6 +184,18 @@ const smartcaSlice = createSlice({
 
 				if (status === "PROCESSING") {
 					state.signStatus = "PROCESSING";
+					return;
+				}
+
+				if (status === "ERROR") {
+					state.signStatus = "ERROR";
+					state.error = action.payload?.error || "Lỗi xử lý hợp đồng";
+					return;
+				}
+
+				if (status === "PENDING" && state.signStatus === "PROCESSING") {
+					state.signStatus = "ERROR";
+					state.error = "Quá trình ký gặp lỗi lưu trữ hoặc bị từ chối bởi blockchain. Vui lòng thử lại.";
 					return;
 				}
 
