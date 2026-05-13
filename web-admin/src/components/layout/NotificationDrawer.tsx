@@ -133,11 +133,6 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
     }
   };
 
-  const handleViewAll = () => {
-    onClose();
-    navigate("/dashboard/notifications");
-  };
-
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleString("vi-VN", {
