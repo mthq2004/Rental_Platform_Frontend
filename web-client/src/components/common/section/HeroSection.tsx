@@ -238,7 +238,7 @@ const HeroSection = () => {
 
           {/* Chữ nhỏ - Tăng độ đậm và tương phản */}
           <p className="text-white/90 text-base md:text-4xl font-medium italic tracking-wide">
-            "Cho thuê vừa ý, giá cả hợp lý"
+            "Cho thuê vừa ý, giá cả hợp lý!"
           </p>
         </div>
       </div>
