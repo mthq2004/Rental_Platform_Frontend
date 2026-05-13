@@ -13,7 +13,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
   const isKYC = pathname.startsWith("/kyc");
   const isTemplateContract = pathname.startsWith("/template-contracts");
 
-  console.log("Test Deploy Mạch Ngọc Xuân");
+  console.log("Test Deploy Mạch Ngọc Xuân!");
   
 
   return (
