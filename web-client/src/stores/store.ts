@@ -12,6 +12,7 @@ import templateReducer from "./slices/template-contract.slice";
 import kycReducer from "./slices/kyc.slice";
 import smartcaReducer from "./slices/smartca.slice";
 import walletReducer from "./slices/wallet.slice";
+import bulkImportReducer from "./slices/bulk-import.slice";
 
 export const makeStore = () => {
   return configureStore({
@@ -29,6 +30,7 @@ export const makeStore = () => {
       kyc: kycReducer,
       smartca: smartcaReducer,
       wallet: walletReducer,
+      bulkImport: bulkImportReducer,
     },
   });
 };

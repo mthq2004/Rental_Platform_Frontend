@@ -424,8 +424,8 @@ const OwnerCardSection = ({
         </View>
       </View>
 
-      <View className="flex-row gap-2 pt-3 border-t" style={{ borderTopColor: colors.border.light }}>
-        <TouchableOpacity
+      {/* <View className="flex-row gap-2 pt-3 border-t" style={{ borderTopColor: colors.border.light }}> */}
+      {/* <TouchableOpacity
           onPress={handleChat}
           className="flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-lg"
           style={{ backgroundColor: colors.bg.secondary }}
@@ -446,8 +446,8 @@ const OwnerCardSection = ({
           <Text className="text-center font-medium text-sm" style={{ color: colors.text.secondary }}>
             Gọi điện
           </Text>
-        </TouchableOpacity>
-      </View>
+        </TouchableOpacity> */}
+      {/* </View> */}
     </View>
   )
 }

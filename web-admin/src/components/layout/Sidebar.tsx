@@ -57,8 +57,10 @@ const Sidebar: React.FC = () => {
   const isAuth = useAppSelector((state) => state.auth.isAuth);
 
   useEffect(() => {
-    dispatch(getNotification());
-  }, [dispatch]);
+    if (isAuth) {
+      dispatch(getNotification());
+    }
+  }, [dispatch, isAuth]);
 
   // Kết nối WebSocket để nhận thông báo real-time
   const handleRealtimeNotification = useCallback(

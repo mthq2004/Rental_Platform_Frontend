@@ -27,7 +27,6 @@ export default function CKEditorWrapper({ value, onChange }: CKEditorWrapperProp
         }
       `}</style>
       <CKEditor
-        // @ts-expect-error type incompatibility in ckeditor react bindings
         editor={ClassicEditor}
         data={value}
         onChange={(event, editor) => {

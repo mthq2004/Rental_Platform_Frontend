@@ -30,6 +30,19 @@ export const approveProperty = createAsyncThunk(
     }
 );
 
+export const batchApproveProperties = createAsyncThunk(
+    "property/batchApprove",
+    async ({ propertyIds, data }: { propertyIds: string[], data: ApprovalStatusPayload }) => {
+        const response = await http.put(`/estate/properties/admin/batch-approve`, {
+            propertyIds,
+            approve: data.approve,
+            reason: data.reason
+        });
+
+        return { ...response.data, propertyIds }
+    }
+);
+
 export const getPropertyDetailForAdmin = createAsyncThunk(
     "property/getDetailForAdmin",
     async (propertyId: string) => {
@@ -94,6 +107,22 @@ export const propertySlice = createSlice({
                 );
             })
             .addCase(approveProperty.rejected, state => {
+                state.loading = false;
+            })
+
+        builder
+            .addCase(batchApproveProperties.pending, state => {
+                state.loading = true;
+            })
+            .addCase(batchApproveProperties.fulfilled, (state, action) => {
+                state.loading = false;
+                const { propertyIds } = action.payload;
+
+                state.properties = state.properties.filter(
+                    p => !propertyIds.includes(p.propertyId)
+                );
+            })
+            .addCase(batchApproveProperties.rejected, state => {
                 state.loading = false;
             })
 

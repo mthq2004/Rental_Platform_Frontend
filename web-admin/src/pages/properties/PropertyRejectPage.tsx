@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../stores/hooks';
 import { getPropertiesByStatus } from '../../stores/slices/property.slice';
@@ -9,22 +9,27 @@ const PropertyRejectedPage: React.FC = () => {
   const navigate = useNavigate();
   const { properties = [], loading } = useAppSelector(state => state.property)
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     dispatch(getPropertiesByStatus({
       approvalStatus: 'rejected',
       page: 1,
       limit: 100
     }))
-  }, [dispatch])
+  }, [dispatch]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData])
 
   return (
-      <PropertyModerationBoard
-        title="Bất Động Sản Bị Từ Chối"
-        status="rejected"
-        properties={properties}
-        loading={loading}
-        onView={(propertyId) => navigate(`/dashboard/properties/${propertyId}`)}
-      />
+    <PropertyModerationBoard
+      title="Bất Động Sản Bị Từ Chối"
+      status="rejected"
+      properties={properties}
+      loading={loading}
+      onRefresh={fetchData}
+      onView={(propertyId) => navigate(`/dashboard/properties/${propertyId}`)}
+    />
   );
 };
 

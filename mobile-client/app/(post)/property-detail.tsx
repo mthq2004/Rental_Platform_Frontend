@@ -40,7 +40,7 @@ const PropertyDetail = () => {
   const favoriteActionLoading = useAppSelector(state => state.estate.favoriteActionLoading)
 
   const isOwner = propertyDetail?.user.id === user?.id
-  
+
 
   const [activeTab, setActiveTab] = useState<TabKey>('info')
 
@@ -129,7 +129,7 @@ const PropertyDetail = () => {
   useEffect(() => {
     if (propertyId) {
       console.log("jk");
-      
+
       dispatch(getPropertyDetailThunk(propertyId as string))
       dispatch(getFavoriteStatusThunk(propertyId as string))
     }
@@ -397,82 +397,82 @@ const PropertyDetail = () => {
 
   return (
     // <AuthGuard>
-      <View className="flex-1 bg-white dark:bg-gray-950">
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <View className="flex-1 bg-white dark:bg-gray-950">
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-        <GooeyRefreshScrollView
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          className="flex-1"
-        >
-          <MediaGallery
-            media={mediaGallery}
-            onPlayVideo={handlePlayVideo}
-            onBack={() => router.back()}
-            onShare={handleShare}
-            onToggleFavorite={!isOwner ? handleToggleFavorite : undefined}
-            onEdit={isOwner ? handleEdit : undefined}
-            isFavorite={isFavorite}
-            favoriteLoading={favoriteLoading}
-            isOwner={isOwner}
-            showStatus={isOwner}
-            statusText="Đang hiển thị"
-          />
-
-          <VideoPlayerModal
-            visible={showVideoModal}
-            video={selectedVideo}
-            onClose={handleCloseVideo}
-          />
-
-          <TabBar
-            tabs={tabs}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
-
-          {activeTab === 'info' && propertyDetail && (
-            <PropertyInfoTab
-              isOwner={isOwner}
-              property={propertyDetail}
-              similarProperties={propertySimilar}
-            />
-          )}
-
-          {activeTab === 'schedule' && (
-            <ScheduleTab
-              isOwner={isOwner}
-              schedules={schedules}
-              onConfirm={isOwner ? handleConfirmSchedule : undefined}
-              onReject={isOwner ? handleRejectSchedule : undefined}
-              onCancel={!isOwner ? handleCancelSchedule : undefined}
-              onMessage={handleMessageSchedule}
-              onGetDirections={!isOwner ? handleGetDirections : undefined}
-            />
-          )}
-
-          {activeTab === 'media' && isOwner && (
-            <MediaManagementTab
-              images={mockImages}
-              videos={mockVideos}
-              onAddImage={handleAddImage}
-              onAddVideo={handleAddVideo}
-              onDeleteImage={handleDeleteImage}
-              onDeleteVideo={handleDeleteVideo}
-            />
-          )}
-        </GooeyRefreshScrollView>
-
-        <PropertyActions
+      <GooeyRefreshScrollView
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        className="flex-1"
+      >
+        <MediaGallery
+          media={mediaGallery}
+          onPlayVideo={handlePlayVideo}
+          onBack={() => router.back()}
+          onShare={handleShare}
+          onToggleFavorite={!isOwner ? handleToggleFavorite : undefined}
+          onEdit={isOwner ? handleEdit : undefined}
+          isFavorite={isFavorite}
+          favoriteLoading={favoriteLoading}
           isOwner={isOwner}
-          propertyId={propertyId.toString()}
-          ownerId={propertyDetail?.user.id}
-          pricePerMonth={propertyDetail?.price ?? undefined}
-          onContact={handleConversation}
+          showStatus={isOwner}
+          statusText="Đang hiển thị"
         />
 
-        <Toast />
-      </View>
+        <VideoPlayerModal
+          visible={showVideoModal}
+          video={selectedVideo}
+          onClose={handleCloseVideo}
+        />
+
+        <TabBar
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+
+        {activeTab === 'info' && propertyDetail && (
+          <PropertyInfoTab
+            isOwner={isOwner}
+            property={propertyDetail}
+            similarProperties={propertySimilar}
+          />
+        )}
+
+        {activeTab === 'schedule' && (
+          <ScheduleTab
+            isOwner={isOwner}
+            schedules={schedules}
+            onConfirm={isOwner ? handleConfirmSchedule : undefined}
+            onReject={isOwner ? handleRejectSchedule : undefined}
+            onCancel={!isOwner ? handleCancelSchedule : undefined}
+            onMessage={handleMessageSchedule}
+            onGetDirections={!isOwner ? handleGetDirections : undefined}
+          />
+        )}
+
+        {activeTab === 'media' && isOwner && (
+          <MediaManagementTab
+            images={mockImages}
+            videos={mockVideos}
+            onAddImage={handleAddImage}
+            onAddVideo={handleAddVideo}
+            onDeleteImage={handleDeleteImage}
+            onDeleteVideo={handleDeleteVideo}
+          />
+        )}
+      </GooeyRefreshScrollView>
+
+      <PropertyActions
+        isOwner={isOwner}
+        propertyId={propertyId.toString()}
+        ownerId={propertyDetail?.user.id}
+        // pricePerMonth={propertyDetail?.price ?? undefined}
+        onContact={handleConversation}
+      />
+
+      <Toast />
+    </View>
     // </AuthGuard>
   )
 }

@@ -204,18 +204,18 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
         </div>
       }
       placement="right"
-      width={400}
+      size="default"
       open={open}
       onClose={onClose}
       closeIcon={<CloseOutlined />}
       styles={{ body: { padding: 0 } }}
-      footer={
-        <div style={{ textAlign: "center" }}>
-          <Button type="link" onClick={handleViewAll}>
-            Xem tất cả thông báo
-          </Button>
-        </div>
-      }
+    // footer={
+    //   <div style={{ textAlign: "center" }}>
+    //     <Button type="link" onClick={handleViewAll}>
+    //       Xem tất cả thông báo
+    //     </Button>
+    //   </div>
+    // }
     >
       <Spin spinning={loading}>
         {notifications.length === 0 ? (
@@ -243,32 +243,32 @@ const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                   actions={[
                     ...(!item.isRead
                       ? [
-                          <Button
-                            key="read"
-                            type="text"
-                            size="small"
-                            style={{ color: "#1677ff", padding: "0 4px" }}
-                            onClick={(e) => handleMarkAsRead(item.id, e)}
-                          >
-                            Đọc
-                          </Button>,
-                        ]
+                        <Button
+                          key="read"
+                          type="text"
+                          size="small"
+                          style={{ color: "#1677ff", padding: "0 4px" }}
+                          onClick={(e) => handleMarkAsRead(item.id, e)}
+                        >
+                          Đọc
+                        </Button>,
+                      ]
                       : []),
                     ...(getNotificationLink(item)
                       ? [
-                          <Tooltip key="view" title="Xem chi tiết">
-                            <Button
-                              type="text"
-                              size="small"
-                              icon={<EyeOutlined />}
-                              style={{ color: "#1677ff", padding: "0 4px" }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleNotificationClick(item);
-                              }}
-                            />
-                          </Tooltip>,
-                        ]
+                        <Tooltip key="view" title="Xem chi tiết">
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<EyeOutlined />}
+                            style={{ color: "#1677ff", padding: "0 4px" }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNotificationClick(item);
+                            }}
+                          />
+                        </Tooltip>,
+                      ]
                       : []),
                   ].filter(Boolean)}
                 >

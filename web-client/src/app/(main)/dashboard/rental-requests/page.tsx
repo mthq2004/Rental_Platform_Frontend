@@ -564,8 +564,32 @@ export default function RentalRequestsPage() {
 
         {activeTab === "received" && (
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b">
-            <div className="text-sm text-gray-600">
-              Đã chọn <Text strong>{selectedRowKeys.length}</Text> yêu cầu
+            <div className="flex items-center gap-3">
+              <Button
+                size="small"
+                onClick={() => {
+                  const eligibleIds = ownerRequests
+                    .filter((req) => ["pending", "under_review"].includes(req.status))
+                    .map((req) => req.requestId);
+                  if (selectedRowKeys.length === eligibleIds.length && eligibleIds.length > 0) {
+                    setSelectedRowKeys([]);
+                  } else {
+                    setSelectedRowKeys(eligibleIds);
+                  }
+                }}
+              >
+                {(() => {
+                  const eligibleIds = ownerRequests
+                    .filter((req) => ["pending", "under_review"].includes(req.status))
+                    .map((req) => req.requestId);
+                  return selectedRowKeys.length === eligibleIds.length && eligibleIds.length > 0
+                    ? "Bỏ chọn tất cả"
+                    : "Chọn tất cả";
+                })()}
+              </Button>
+              <div className="text-sm text-gray-600">
+                Đã chọn <Text strong>{selectedRowKeys.length}</Text> yêu cầu
+              </div>
             </div>
             <div className="flex gap-2">
               <Button

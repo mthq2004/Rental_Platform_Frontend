@@ -34,6 +34,7 @@ import {
   ToolOutlined,
   FileTextOutlined,
   CloseCircleOutlined,
+  UploadOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
@@ -45,6 +46,7 @@ import {
   type PropertyData,
   type StatusCount,
 } from "@/stores/slices/property.slice";
+import { checkEligibility } from "@/stores/slices/bulk-import.slice";
 import { PROPERTY_META } from "@/constants/property.constant";
 import type { PropertyType } from "@/types/property.type";
 
@@ -132,9 +134,12 @@ const PostsPage = () => {
   const [activeTab, setActiveTab] = useState<PostStatus>("active");
   const [searchText, setSearchText] = useState("");
 
+  const bulkImportEligible = useAppSelector((s) => s.bulkImport.eligibility?.eligible);
+
   // Fetch status counts on mount
   useEffect(() => {
     dispatch(getPostStatusCounts());
+    dispatch(checkEligibility());
   }, [dispatch]);
 
   // Fetch properties when tab changes
@@ -420,6 +425,14 @@ const PostsPage = () => {
           <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
             Làm mới
           </Button>
+          {bulkImportEligible && (
+            <Button
+              icon={<UploadOutlined />}
+              onClick={() => router.push("/dashboard/posts/bulk-import")}
+            >
+              Nhập Excel
+            </Button>
+          )}
           <Button
             type="primary"
             icon={<PlusOutlined />}

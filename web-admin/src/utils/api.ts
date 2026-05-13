@@ -74,14 +74,8 @@ class HttpClient {
     const response: Response = await fetch(url, config);
 
     if (!response.ok) {
-      if (response.status === 401 && typeof window !== "undefined") {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        if (window.location.pathname !== "/") {
-          window.location.href = "/";
-        }
-      }
-
+      // Không tự động logout/redirect khi 401 - để từng Redux slice tự xử lý
+      
       try {
         const error = await response.json();
         throw new Error(error.message || `HTTP Error: ${response.status}`);

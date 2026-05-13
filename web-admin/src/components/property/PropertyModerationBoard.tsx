@@ -13,8 +13,15 @@ import {
   Table,
   Tag,
   Typography,
+  App,
 } from "antd";
-import { CheckOutlined, CloseOutlined, EyeOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  CheckOutlined,
+  CloseOutlined,
+  EyeOutlined,
+  SearchOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { Property } from "../../types/property-new.type";
 
@@ -25,18 +32,37 @@ type Props = {
   title: string;
   properties: Property[];
   loading: boolean;
+  onRefresh?: () => void;
   onView?: (id: string) => void;
   onToggleVisibility?: (id: string, visible: boolean) => void;
   onApprove?: (id: string) => void;
   onReject?: (id: string, reason: string) => void;
+  onBatchApprove?: (ids: string[]) => void;
+  onBatchReject?: (ids: string[], reason: string) => void;
 };
 
-const PropertyModerationBoard = ({ status, title, properties, loading, onView, onToggleVisibility, onApprove, onReject }: Props) => {
+const PropertyModerationBoard = ({
+  status,
+  title,
+  properties,
+  loading,
+  onRefresh,
+  onView,
+  onToggleVisibility,
+  onApprove,
+  onReject,
+  onBatchApprove,
+  onBatchReject,
+}: Props) => {
+  const { message, modal } = App.useApp();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
   const [selectedType, setSelectedType] = useState("all");
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [batchRejectReason, setBatchRejectReason] = useState("");
+  const [batchRejectOpen, setBatchRejectOpen] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [tableScrollY, setTableScrollY] = useState(320);
   const tableContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -91,6 +117,65 @@ const PropertyModerationBoard = ({ status, title, properties, loading, onView, o
     [filtered],
   );
 
+  // ====== BATCH ACTIONS ======
+  const handleSelectAll = () => {
+    if (selectedRowKeys.length === filtered.length) {
+      setSelectedRowKeys([]);
+    } else {
+      setSelectedRowKeys(filtered.map((p) => p.propertyId));
+    }
+  };
+
+  const handleBatchApprove = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning("Vui lòng chọn ít nhất 1 bất động sản");
+      return;
+    }
+
+    modal.confirm({
+      title: "Duyệt hàng loạt",
+      content: `Bạn có chắc chắn muốn duyệt ${selectedRowKeys.length} bất động sản đã chọn?`,
+      okText: "Duyệt tất cả",
+      cancelText: "Hủy",
+      onOk: () => {
+        if (onBatchApprove) {
+          onBatchApprove(selectedRowKeys as string[]);
+        } else {
+          // Fallback: approve one by one
+          (selectedRowKeys as string[]).forEach((id) => onApprove?.(id));
+        }
+        setSelectedRowKeys([]);
+      },
+    });
+  };
+
+  const handleBatchReject = () => {
+    if (selectedRowKeys.length === 0) {
+      message.warning("Vui lòng chọn ít nhất 1 bất động sản");
+      return;
+    }
+    setBatchRejectReason("");
+    setBatchRejectOpen(true);
+  };
+
+  const confirmBatchReject = () => {
+    if (!batchRejectReason.trim()) {
+      message.warning("Vui lòng nhập lý do từ chối");
+      return;
+    }
+
+    if (onBatchReject) {
+      onBatchReject(selectedRowKeys as string[], batchRejectReason);
+    } else {
+      // Fallback: reject one by one
+      (selectedRowKeys as string[]).forEach((id) => onReject?.(id, batchRejectReason));
+    }
+    setBatchRejectOpen(false);
+    setBatchRejectReason("");
+    setSelectedRowKeys([]);
+  };
+
+  // ====== TABLE COLUMNS ======
   const columns: ColumnsType<Property> = [
     {
       title: "Bất động sản",
@@ -162,33 +247,50 @@ const PropertyModerationBoard = ({ status, title, properties, loading, onView, o
     },
   ];
 
+  // ====== ROW SELECTION CONFIG ======
+  const rowSelection = status === "pending"
+    ? {
+      selectedRowKeys,
+      onChange: (keys: React.Key[]) => setSelectedRowKeys(keys),
+    }
+    : undefined;
+
+  const isAllSelected = filtered.length > 0 && selectedRowKeys.length === filtered.length;
+
   return (
     <div className="admin-page-shell">
       <Card className="hero-surface" variant="borderless">
-        <Typography.Title level={3} style={{ marginBottom: 2 }}>
-          {title}
-        </Typography.Title>
-        <Typography.Text type="secondary">
-          Thiết kế bảng điều phối theo chuẩn enterprise, đồng bộ theme với toàn hệ thống.
-        </Typography.Text>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <div>
+            <Typography.Title level={3} style={{ marginBottom: 2 }}>
+              {title}
+            </Typography.Title>
+            <Typography.Text type="secondary">
+              Thiết kế bảng điều phối theo chuẩn enterprise, đồng bộ theme với toàn hệ thống.
+            </Typography.Text>
+          </div>
+          <Button icon={<ReloadOutlined />} onClick={onRefresh} loading={loading}>
+            Làm mới
+          </Button>
+        </div>
       </Card>
 
       <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={12}>
           <Card variant="borderless">
             <Statistic title="Tổng bài đăng" value={stats.total} />
           </Card>
         </Col>
-        <Col xs={24} sm={8}>
+        <Col xs={24} sm={12}>
           <Card variant="borderless">
             <Statistic title="Có thông tin landlord" value={stats.verifiedLandlords} />
           </Card>
         </Col>
-        <Col xs={24} sm={8}>
+        {/* <Col xs={24} sm={8}>
           <Card variant="borderless">
             <Statistic title="Giá trung bình" value={stats.avgPrice} suffix="VND" />
           </Card>
-        </Col>
+        </Col> */}
       </Row>
 
       <Card variant="borderless" style={{ marginTop: 16 }}>
@@ -226,6 +328,51 @@ const PropertyModerationBoard = ({ status, title, properties, loading, onView, o
           </Col>
         </Row>
 
+        {/* Batch Action Bar — only visible on pending status */}
+        {status === "pending" && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: "10px 16px",
+              background: selectedRowKeys.length > 0 ? "#EEF2FF" : "#F8FAFC",
+              borderRadius: 8,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: 8,
+              border: "1px solid #E2E8F0",
+            }}
+          >
+            <Space>
+              <Button size="small" onClick={handleSelectAll}>
+                {isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+              </Button>
+              <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+                Đã chọn <Typography.Text strong>{selectedRowKeys.length}</Typography.Text> / {filtered.length} bất động sản
+              </Typography.Text>
+            </Space>
+            <Space>
+              <Button
+                type="primary"
+                icon={<CheckOutlined />}
+                disabled={selectedRowKeys.length === 0}
+                onClick={handleBatchApprove}
+              >
+                Duyệt đã chọn
+              </Button>
+              <Button
+                danger
+                icon={<CloseOutlined />}
+                disabled={selectedRowKeys.length === 0}
+                onClick={handleBatchReject}
+              >
+                Từ chối đã chọn
+              </Button>
+            </Space>
+          </div>
+        )}
+
         <div ref={tableContainerRef} style={{ marginTop: 16 }}>
           <Table
             rowKey="propertyId"
@@ -235,10 +382,12 @@ const PropertyModerationBoard = ({ status, title, properties, loading, onView, o
             dataSource={filtered}
             scroll={{ y: tableScrollY }}
             tableLayout="fixed"
+            rowSelection={rowSelection}
           />
         </div>
       </Card>
 
+      {/* Single reject modal */}
       <Modal
         title="Lý do từ chối"
         open={!!rejectingId}
@@ -255,6 +404,29 @@ const PropertyModerationBoard = ({ status, title, properties, loading, onView, o
         okText="Xác nhận từ chối"
       >
         <Input.TextArea rows={4} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Nhập lý do từ chối bất động sản..." />
+      </Modal>
+
+      {/* Batch reject modal */}
+      <Modal
+        title={`Từ chối ${selectedRowKeys.length} bất động sản`}
+        open={batchRejectOpen}
+        onCancel={() => {
+          setBatchRejectOpen(false);
+          setBatchRejectReason("");
+        }}
+        onOk={confirmBatchReject}
+        okText="Xác nhận từ chối tất cả"
+        okButtonProps={{ danger: true }}
+      >
+        <Typography.Text type="secondary" style={{ display: "block", marginBottom: 12 }}>
+          Lý do từ chối sẽ được áp dụng cho tất cả {selectedRowKeys.length} bất động sản đã chọn.
+        </Typography.Text>
+        <Input.TextArea
+          rows={4}
+          value={batchRejectReason}
+          onChange={(e) => setBatchRejectReason(e.target.value)}
+          placeholder="Nhập lý do từ chối..."
+        />
       </Modal>
     </div>
   );

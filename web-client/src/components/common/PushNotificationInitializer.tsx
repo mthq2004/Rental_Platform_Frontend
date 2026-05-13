@@ -86,11 +86,15 @@ export default function PushNotificationInitializer() {
         }
 
         localStorage.setItem(FCM_TOKEN_KEY, token);
-        await http.post("/notification/notification/push/subscribe", {
-          token,
-          platform: "WEB",
-          deviceId,
-        });
+        try {
+          await http.post("/notification/notification/push/subscribe", {
+            token,
+            platform: "WEB",
+            deviceId,
+          });
+        } catch (apiError) {
+          console.warn("Failed to subscribe to push notifications:", apiError);
+        }
       }
 
       unsubscribe = onMessage(messaging, (payload) => {
