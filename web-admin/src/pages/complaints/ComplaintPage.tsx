@@ -26,6 +26,14 @@ import {
   CloseCircleFilled,
   FilePdfOutlined,
   FileOutlined,
+  ReloadOutlined,
+  WarningFilled,
+  ExclamationCircleFilled,
+  InfoCircleFilled,
+  ClockCircleFilled,
+  CheckCircleOutlined,
+  StopOutlined,
+  SyncOutlined,
 } from "@ant-design/icons";
 import http from "../../utils/api";
 import "../dashboard/dashboard-enterprise.css";
@@ -116,18 +124,18 @@ const money = new Intl.NumberFormat("vi-VN", {
 // --- Configs mapping to the UI Design ---
 
 const priorityConfig: Record<string, { bg: string; color: string; label: string }> = {
-  low: { bg: "#e0e7ff", color: "#3730a3", label: "Thấp" },
-  medium: { bg: "#ffedd5", color: "#9a3412", label: "Trung bình" },
-  high: { bg: "#fee2e2", color: "#991b1b", label: "Cao" },
+  low: { bg: "var(--dm-tag-indigo-bg)", color: "var(--dm-tag-indigo-text)", label: "Thấp" },
+  medium: { bg: "var(--dm-tag-orange-bg)", color: "var(--dm-tag-orange-text)", label: "Trung bình" },
+  high: { bg: "var(--dm-tag-red-bg)", color: "var(--dm-tag-red-text)", label: "Cao" },
 };
 
 const statusConfig: Record<string, { dot: string; bg: string; color: string; label: string }> = {
-  open: { dot: "#ef4444", bg: "#fce7f3", color: "#831843", label: "Yêu cầu mới" },
-  negotiating: { dot: "#f59e0b", bg: "#fef3c7", color: "#92400e", label: "Đang thương lượng" },
+  open: { dot: "#ef4444", bg: "var(--dm-tag-red-bg)", color: "var(--dm-tag-red-text)", label: "Yêu cầu mới" },
+  negotiating: { dot: "#f59e0b", bg: "var(--dm-tag-yellow-bg)", color: "var(--dm-tag-yellow-text)", label: "Đang thương lượng" },
   admin: { dot: "#dc2626", bg: "#f5e6e6", color: "#7f1d1d", label: "Admin xem xét" }, // Matching image style
-  resolved: { dot: "#10b981", bg: "#d1fae5", color: "#065f46", label: "Đã giải quyết" },
-  cancel_requested: { dot: "#6366f1", bg: "#e0e7ff", color: "#3730a3", label: "Chờ hủy" },
-  cancelled: { dot: "#6b7280", bg: "#f3f4f6", color: "#374151", label: "Đã hủy" },
+  resolved: { dot: "#10b981", bg: "var(--dm-tag-green-bg)", color: "var(--dm-tag-green-text)", label: "Đã giải quyết" },
+  cancel_requested: { dot: "#6366f1", bg: "var(--dm-tag-indigo-bg)", color: "var(--dm-tag-indigo-text)", label: "Chờ hủy" },
+  cancelled: { dot: "#6b7280", bg: "var(--dm-tag-gray-bg)", color: "var(--dm-label)", label: "Đã hủy" },
 };
 
 const typeConfig: Record<string, string> = {
@@ -250,10 +258,10 @@ const ComplaintPage = () => {
             backgroundColor: record.priority === "high" ? "#dc2626" : record.priority === "medium" ? "#f59e0b" : "#3b82f6" 
           }} />
           <div>
-            <div style={{ fontWeight: 600, color: "#111827" }}>
+            <div style={{ fontWeight: 600, color: "var(--dm-title)" }}>
               DSP-{record.id.split("-")[0].toUpperCase()}
             </div>
-            <div style={{ color: "#4b5563", fontSize: 13, marginTop: 2 }}>
+            <div style={{ color: "var(--dm-subtitle)", fontSize: 13, marginTop: 2 }}>
               {record.title || typeConfig[record.type] || record.type}
             </div>
           </div>
@@ -266,8 +274,8 @@ const ComplaintPage = () => {
       width: 200,
       render: (_: unknown, record: Report) => (
         <div>
-          <div style={{ fontWeight: 600, color: "#374151" }}>{record.rental?.contractCode || "N/A"}</div>
-          <div style={{ color: "#6b7280", fontSize: 12, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
+          <div style={{ fontWeight: 600, color: "var(--dm-label)" }}>{record.rental?.contractCode || "N/A"}</div>
+          <div style={{ color: "var(--dm-subtitle)", fontSize: 12, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
              {record.rental?.property?.address || "Chưa có địa chỉ"}
           </div>
         </div>
@@ -280,12 +288,12 @@ const ComplaintPage = () => {
       render: (_: unknown, record: Report) => (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-            <UserOutlined style={{ color: "#6b7280" }} />
-            <span style={{ color: "#4b5563" }}>Bên thuê: <span style={{ color: "#111827", fontWeight: 500 }}>{record.rental?.tenantUser?.fullName || "Người dùng"}</span></span>
+            <UserOutlined style={{ color: "var(--dm-subtitle)" }} />
+            <span style={{ color: "var(--dm-subtitle)" }}>Bên thuê: <span style={{ color: "var(--dm-title)", fontWeight: 500 }}>{record.rental?.tenantUser?.fullName || "Người dùng"}</span></span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-            <BankOutlined style={{ color: "#6b7280" }} />
-            <span style={{ color: "#4b5563" }}>Chủ nhà: <span style={{ color: "#111827", fontWeight: 500 }}>{record.rental?.ownerUser?.fullName || "Chủ nhà"}</span></span>
+            <BankOutlined style={{ color: "var(--dm-subtitle)" }} />
+            <span style={{ color: "var(--dm-subtitle)" }}>Chủ nhà: <span style={{ color: "var(--dm-title)", fontWeight: 500 }}>{record.rental?.ownerUser?.fullName || "Chủ nhà"}</span></span>
           </div>
         </div>
       ),
@@ -294,14 +302,20 @@ const ComplaintPage = () => {
       title: "Mức ưu tiên",
       dataIndex: "priority",
       key: "priority",
-      width: 120,
+      width: 130,
       render: (priority: string) => {
         const config = priorityConfig[priority] || priorityConfig.low;
+        const iconMap: Record<string, React.ReactNode> = {
+          low: <InfoCircleFilled style={{ fontSize: 12 }} />,
+          medium: <ExclamationCircleFilled style={{ fontSize: 12 }} />,
+          high: <WarningFilled style={{ fontSize: 12 }} />,
+        };
         return (
           <span style={{ 
             background: config.bg, color: config.color, padding: "4px 12px", 
-            borderRadius: 16, fontSize: 12, fontWeight: 500 
+            borderRadius: 16, fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5
           }}>
+            {iconMap[priority]}
             {config.label}
           </span>
         );
@@ -311,15 +325,23 @@ const ComplaintPage = () => {
       title: "Trạng thái",
       dataIndex: "status",
       key: "status",
-      width: 150,
+      width: 170,
       render: (status: string) => {
         const config = statusConfig[status] || statusConfig.open;
+        const iconMap: Record<string, React.ReactNode> = {
+          open: <AlertFilled style={{ fontSize: 12 }} />,
+          negotiating: <SyncOutlined spin style={{ fontSize: 12 }} />,
+          admin: <ExclamationCircleFilled style={{ fontSize: 12 }} />,
+          resolved: <CheckCircleOutlined style={{ fontSize: 12 }} />,
+          cancel_requested: <ClockCircleFilled style={{ fontSize: 12 }} />,
+          cancelled: <StopOutlined style={{ fontSize: 12 }} />,
+        };
         return (
           <span style={{ 
             background: config.bg, color: config.color, padding: "4px 12px", 
-            borderRadius: 16, fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 
+            borderRadius: 16, fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5 
           }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: config.dot }} />
+            {iconMap[status]}
             {config.label}
           </span>
         );
@@ -333,7 +355,7 @@ const ComplaintPage = () => {
         <Button 
           type="primary" 
           ghost 
-          style={{ background: "#eff6ff", borderColor: "transparent", color: "#2563eb", fontWeight: 500, borderRadius: 6 }}
+          style={{ background: "var(--dm-tag-blue-bg)", borderColor: "transparent", color: "#2563eb", fontWeight: 500, borderRadius: 6 }}
           onClick={() => handleOpenResolutionView(record)}
         >
           {record.status === "resolved" ? "Chi tiết" : "Xử lý"}
@@ -349,25 +371,25 @@ const ComplaintPage = () => {
         {/* Header matching Design 2 */}
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           {selectedReport.status === 'resolved' ? (
-            <Tag color="green" style={{ borderRadius: 16, border: 0, background: "#d1fae5", color: "#065f46" }}>
+            <Tag color="green" style={{ borderRadius: 16, border: 0, background: "var(--dm-tag-green-bg)", color: "var(--dm-tag-green-text)" }}>
               ĐÃ GIẢI QUYẾT
             </Tag>
           ) : (
-            <Tag color="orange" style={{ borderRadius: 16, border: 0, background: "#ffedd5", color: "#9a3412" }}>
+            <Tag color="orange" style={{ borderRadius: 16, border: 0, background: "#ffedd5", color: "var(--dm-tag-orange-text)" }}>
               ĐANG CHỜ XỬ LÝ
             </Tag>
           )}
           {selectedReport.priority === "high" && (
-            <Tag color="red" style={{ borderRadius: 16, border: 0, background: "#fee2e2", color: "#991b1b" }}>
+            <Tag color="red" style={{ borderRadius: 16, border: 0, background: "var(--dm-stat-icon-red-bg)", color: "var(--dm-tag-red-text)" }}>
               ƯU TIÊN CAO
             </Tag>
           )}
         </div>
         
-        <Title level={2} style={{ margin: "0 0 8px 0", color: "#111827" }}>
+        <Title level={2} style={{ margin: "0 0 8px 0", color: "var(--dm-title)" }}>
           Hồ sơ khiếu nại #DP-{selectedReport.id.split("-")[0].toUpperCase()}
         </Title>
-        <Text style={{ color: "#4b5563", fontSize: 15 }}>
+        <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>
           {selectedReport.title || selectedReport.description.slice(0, 80) + "..."}
         </Text>
 
@@ -378,63 +400,63 @@ const ComplaintPage = () => {
             <Card className="dispute-info-card" variant="borderless">
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
                 <BankOutlined style={{ fontSize: 20, color: "#4f46e5" }} />
-                <Title level={4} style={{ margin: 0, color: "#111827" }}>Tổng quan hợp đồng</Title>
+                <Title level={4} style={{ margin: 0, color: "var(--dm-title)" }}>Tổng quan hợp đồng</Title>
               </div>
               
               <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24, marginBottom: 24 }}>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: 0.5, marginBottom: 4, textTransform: "uppercase" }}>Tài sản</div>
-                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>{selectedReport.rental?.property?.title || "Chi tiết bất động sản"}</div>
-                  <div style={{ color: "#6b7280", fontSize: 13 }}>{selectedReport.rental?.property?.address || "Chưa có địa chỉ"}</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, marginBottom: 4, textTransform: "uppercase" }}>Tài sản</div>
+                  <div style={{ fontWeight: 600, color: "var(--dm-title)", fontSize: 15 }}>{selectedReport.rental?.property?.title || "Chi tiết bất động sản"}</div>
+                  <div style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>{selectedReport.rental?.property?.address || "Chưa có địa chỉ"}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: 0.5, marginBottom: 4, textTransform: "uppercase" }}>Thời hạn</div>
-                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 15 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, marginBottom: 4, textTransform: "uppercase" }}>Thời hạn</div>
+                  <div style={{ fontWeight: 600, color: "var(--dm-title)", fontSize: 15 }}>
                     {selectedReport.rental?.startDate ? new Date(selectedReport.rental.startDate).toLocaleDateString('vi-VN') : '?'}
                     {' — '}
                     {selectedReport.rental?.endDate ? new Date(selectedReport.rental.endDate).toLocaleDateString('vi-VN') : '?'}
                   </div>
-                  <div style={{ color: "#6b7280", fontSize: 13 }}>{selectedReport.rental?.status === 'active' ? 'Đang hiệu lực' : selectedReport.rental?.status === 'terminated' ? 'Đã chấm dứt' : 'Hết hạn'}</div>
+                  <div style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>{selectedReport.rental?.status === 'active' ? 'Đang hiệu lực' : selectedReport.rental?.status === 'terminated' ? 'Đã chấm dứt' : 'Hết hạn'}</div>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
-                <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
+                <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
                   <Avatar size={40} src={selectedReport.rental?.tenantUser?.avatar} style={{ backgroundColor: "#6366f1" }}>
                     {selectedReport.rental?.tenantUser?.fullName?.[0] || 'T'}
                   </Avatar>
                   <div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                    <div style={{ fontSize: 12, color: "var(--dm-subtitle)" }}>
                       Người thuê {selectedReport.createdBy === selectedReport.rental?.tenantId ? <strong style={{ color: '#ef4444' }}>(Người khiếu nại)</strong> : "(Bị khiếu nại)"}
                     </div>
-                    <div style={{ fontWeight: 500, color: "#111827" }}>{selectedReport.rental?.tenantUser?.fullName || "Người thuê"}</div>
+                    <div style={{ fontWeight: 500, color: "var(--dm-title)" }}>{selectedReport.rental?.tenantUser?.fullName || "Người thuê"}</div>
                   </div>
                 </div>
-                <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
-                  <Avatar size={40} src={selectedReport.rental?.ownerUser?.avatar} style={{ backgroundColor: "#e5e7eb", color: "#374151" }}>
+                <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: 12, display: "flex", gap: 12, alignItems: "center" }}>
+                  <Avatar size={40} src={selectedReport.rental?.ownerUser?.avatar} style={{ backgroundColor: "#e5e7eb", color: "var(--dm-label)" }}>
                     {selectedReport.rental?.ownerUser?.fullName?.[0] || 'O'}
                   </Avatar>
                   <div>
-                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                    <div style={{ fontSize: 12, color: "var(--dm-subtitle)" }}>
                       Chủ nhà {selectedReport.createdBy === selectedReport.rental?.ownerId ? <strong style={{ color: '#ef4444' }}>(Người khiếu nại)</strong> : "(Bị khiếu nại)"}
                     </div>
-                    <div style={{ fontWeight: 500, color: "#111827" }}>{selectedReport.rental?.ownerUser?.fullName || "Chủ nhà"}</div>
+                    <div style={{ fontWeight: 500, color: "var(--dm-title)" }}>{selectedReport.rental?.ownerUser?.fullName || "Chủ nhà"}</div>
                   </div>
                 </div>
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, borderTop: "1px solid #f3f4f6", paddingTop: 20, textAlign: "center" }}>
                 <div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Tiền thuê hàng tháng</div>
-                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 18 }}>{money.format(selectedReport.rental?.monthlyRent || 0)}</div>
+                  <div style={{ fontSize: 12, color: "var(--dm-subtitle)", marginBottom: 4 }}>Tiền thuê hàng tháng</div>
+                  <div style={{ fontWeight: 600, color: "var(--dm-title)", fontSize: 18 }}>{money.format(selectedReport.rental?.monthlyRent || 0)}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Tiền cọc đang giữ</div>
-                  <div style={{ fontWeight: 600, color: "#111827", fontSize: 18 }}>{money.format(selectedReport.rental?.depositAmount || 0)}</div>
+                  <div style={{ fontSize: 12, color: "var(--dm-subtitle)", marginBottom: 4 }}>Tiền cọc đang giữ</div>
+                  <div style={{ fontWeight: 600, color: "var(--dm-title)", fontSize: 18 }}>{money.format(selectedReport.rental?.depositAmount || 0)}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 4 }}>Trạng thái thanh toán</div>
-                  <div style={{ fontWeight: 600, color: "#4338ca", fontSize: 15 }}>Đã cập nhật</div>
+                  <div style={{ fontSize: 12, color: "var(--dm-subtitle)", marginBottom: 4 }}>Trạng thái thanh toán</div>
+                  <div style={{ fontWeight: 600, color: "var(--dm-tag-indigo-text)", fontSize: 15 }}>Đã cập nhật</div>
                 </div>
               </div>
             </Card>
@@ -443,10 +465,10 @@ const ComplaintPage = () => {
             <Card className="dispute-info-card" variant="borderless">
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
                 <AlertFilled style={{ fontSize: 20, color: "#4f46e5" }} />
-                <Title level={4} style={{ margin: 0, color: "#111827" }}>Nội dung khiếu nại</Title>
+                <Title level={4} style={{ margin: 0, color: "var(--dm-title)" }}>Nội dung khiếu nại</Title>
               </div>
-              <div style={{ background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 16 }}>
-                <Paragraph style={{ margin: 0, color: "#374151", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+              <div style={{ background: "var(--dm-surface-soft)", border: "1px solid var(--dm-border)", borderRadius: 8, padding: 16 }}>
+                <Paragraph style={{ margin: 0, color: "var(--dm-label)", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
                   {selectedReport.description}
                 </Paragraph>
               </div>
@@ -457,9 +479,9 @@ const ComplaintPage = () => {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <FileImageOutlined style={{ fontSize: 20, color: "#4f46e5" }} />
-                  <Title level={4} style={{ margin: 0, color: "#111827" }}>Thư viện bằng chứng</Title>
+                  <Title level={4} style={{ margin: 0, color: "var(--dm-title)" }}>Thư viện bằng chứng</Title>
                 </div>
-                <Text style={{ color: "#6b7280", fontSize: 13 }}>{selectedReport.attachments?.length || 0} File đính kèm</Text>
+                <Text style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>{selectedReport.attachments?.length || 0} File đính kèm</Text>
               </div>
               
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -470,21 +492,21 @@ const ComplaintPage = () => {
                       {selectedReport.createdBy === selectedReport.rental?.ownerId ? "O" : "T"}
                     </Avatar>
                     <div>
-                      <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.2 }}>{selectedReport.createdBy === selectedReport.rental?.ownerId ? "Chủ nhà" : "Người thuê"} <strong style={{ color: '#4f46e5' }}>(Người khiếu nại)</strong></div>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: "#111827", lineHeight: 1.2 }}>
+                      <div style={{ fontSize: 11, color: "var(--dm-subtitle)", lineHeight: 1.2 }}>{selectedReport.createdBy === selectedReport.rental?.ownerId ? "Chủ nhà" : "Người thuê"} <strong style={{ color: '#4f46e5' }}>(Người khiếu nại)</strong></div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: "var(--dm-title)", lineHeight: 1.2 }}>
                         {selectedReport.createdBy === selectedReport.rental?.ownerId ? selectedReport.rental?.ownerUser?.fullName : selectedReport.rental?.tenantUser?.fullName}
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", background: "#f9fafb", border: "1px dashed #d1d5db", padding: 12, borderRadius: 8, minHeight: 120 }}>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", background: "var(--dm-surface-soft)", border: "1px dashed #d1d5db", padding: 12, borderRadius: 8, minHeight: 120 }}>
                     {selectedReport.attachments?.map(att => (
                       <a key={att.id} href={att.url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
                         {att.type === "image" ? (
-                          <div style={{ width: 100, height: 100, borderRadius: 8, overflow: "hidden", border: "1px solid #e5e7eb" }}>
+                          <div style={{ width: 100, height: 100, borderRadius: 8, overflow: "hidden", border: "1px solid var(--dm-border)" }}>
                             <img src={att.url} alt={att.fileName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           </div>
                         ) : (
-                          <div style={{ width: 100, height: 100, borderRadius: 8, border: "1px solid #e5e7eb", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#fff", padding: 8 }}>
+                          <div style={{ width: 100, height: 100, borderRadius: 8, border: "1px solid var(--dm-border)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--dm-stat-bg)", padding: 8 }}>
                             {att.fileName?.toLowerCase().endsWith(".pdf") ? (
                               <FilePdfOutlined style={{ fontSize: 24, color: "#ef4444", marginBottom: 8 }} />
                             ) : (
@@ -498,7 +520,7 @@ const ComplaintPage = () => {
                       </a>
                     ))}
                     {(!selectedReport.attachments || selectedReport.attachments.length === 0) && (
-                      <div style={{ color: "#9ca3af", fontStyle: "italic", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>Không có bằng chứng</div>
+                      <div style={{ color: "var(--dm-input-icon)", fontStyle: "italic", fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>Không có bằng chứng</div>
                     )}
                   </div>
                 </div>
@@ -510,13 +532,13 @@ const ComplaintPage = () => {
                       {selectedReport.createdBy === selectedReport.rental?.ownerId ? "T" : "O"}
                     </Avatar>
                     <div>
-                      <div style={{ fontSize: 11, color: "#6b7280", lineHeight: 1.2 }}>{selectedReport.createdBy === selectedReport.rental?.ownerId ? "Người thuê" : "Chủ nhà"} <strong style={{ color: '#ef4444' }}>(Bị khiếu nại)</strong></div>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: "#111827", lineHeight: 1.2 }}>
+                      <div style={{ fontSize: 11, color: "var(--dm-subtitle)", lineHeight: 1.2 }}>{selectedReport.createdBy === selectedReport.rental?.ownerId ? "Người thuê" : "Chủ nhà"} <strong style={{ color: '#ef4444' }}>(Bị khiếu nại)</strong></div>
+                      <div style={{ fontWeight: 600, fontSize: 14, color: "var(--dm-title)", lineHeight: 1.2 }}>
                         {selectedReport.createdBy === selectedReport.rental?.ownerId ? selectedReport.rental?.tenantUser?.fullName : selectedReport.rental?.ownerUser?.fullName}
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", background: "#fef2f2", border: "1px dashed #fca5a5", padding: 12, borderRadius: 8, minHeight: 120 }}>
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap", background: "var(--dm-tag-red-bg)", border: "1px dashed #fca5a5", padding: 12, borderRadius: 8, minHeight: 120 }}>
                     {(() => {
                       const req = selectedReport.terminationRequest;
                       if (!req || !req.reviewNote || !req.reviewNote.includes("--- TÀI LIỆU MINH CHỨNG ---")) {
@@ -541,7 +563,7 @@ const ComplaintPage = () => {
                                 <img src={link.url} alt={link.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                               </div>
                             ) : (
-                              <div style={{ width: 100, height: 100, borderRadius: 8, border: "1px solid #fecaca", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#fff", padding: 8 }}>
+                              <div style={{ width: 100, height: 100, borderRadius: 8, border: "1px solid #fecaca", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--dm-stat-bg)", padding: 8 }}>
                                 <FileOutlined style={{ fontSize: 24, color: "#ef4444", marginBottom: 8 }} />
                                 <Text style={{ fontSize: 10, textAlign: "center", width: "100%", color: "#b91c1c" }} ellipsis={{ tooltip: link.label }}>
                                   {link.label}
@@ -562,8 +584,8 @@ const ComplaintPage = () => {
           <Col xs={24} lg={8} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
             {/* Resolution Action */}
             <Card className="dispute-action-card" variant="borderless">
-              <Title level={4} style={{ margin: "0 0 8px 0", color: "#111827" }}>Hành động xử lý</Title>
-              <Text style={{ color: "#6b7280", fontSize: 13, display: "block", marginBottom: 16 }}>
+              <Title level={4} style={{ margin: "0 0 8px 0", color: "var(--dm-title)" }}>Hành động xử lý</Title>
+              <Text style={{ color: "var(--dm-subtitle)", fontSize: 13, display: "block", marginBottom: 16 }}>
                 Chọn kết quả chính cho tranh chấp hợp đồng này dựa trên các bằng chứng đã xem xét.
               </Text>
 
@@ -576,7 +598,7 @@ const ComplaintPage = () => {
                   <Radio value="continue_contract" style={{ display: "flex", alignItems: "center", width: "100%" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <CheckCircleFilled style={{ color: terminationResolution === 'continue_contract' ? "#4f46e5" : "#9ca3af" }} />
-                      <span style={{ fontWeight: 500, color: "#111827" }}>Cho thương lượng / Tiếp tục hợp đồng</span>
+                      <span style={{ fontWeight: 500, color: "var(--dm-title)" }}>Cho thương lượng / Tiếp tục hợp đồng</span>
                     </div>
                   </Radio>
                 </div>
@@ -585,7 +607,7 @@ const ComplaintPage = () => {
                   <Radio value="terminate_contract" style={{ display: "flex", alignItems: "center", width: "100%" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <CloseCircleFilled style={{ color: terminationResolution === 'terminate_contract' ? "#ef4444" : "#9ca3af" }} />
-                      <span style={{ fontWeight: 500, color: "#111827" }}>Chấp nhận khiếu nại (Chấm dứt & Hoàn tiền)</span>
+                      <span style={{ fontWeight: 500, color: "var(--dm-title)" }}>Chấp nhận khiếu nại (Chấm dứt & Hoàn tiền)</span>
                     </div>
                   </Radio>
                 </div>
@@ -596,18 +618,18 @@ const ComplaintPage = () => {
             {terminationResolution === "terminate_contract" && (
               <Card className="dispute-action-card border-danger" variant="borderless">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <Title level={4} style={{ margin: 0, color: "#111827" }}>Giải quyết tài chính</Title>
-                  <BankOutlined style={{ fontSize: 18, color: "#6b7280" }} />
+                  <Title level={4} style={{ margin: 0, color: "var(--dm-title)" }}>Giải quyết tài chính</Title>
+                  <BankOutlined style={{ fontSize: 18, color: "var(--dm-subtitle)" }} />
                 </div>
                 
-                <div style={{ background: "#f9fafb", padding: 12, borderRadius: 6, marginBottom: 16, border: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ color: "#4b5563", fontSize: 13 }}>Tổng tiền cọc đang giữ</span>
-                  <span style={{ fontWeight: 600, fontSize: 16, color: "#111827" }}>{money.format(selectedReport.rental?.depositAmount || 0)}</span>
+                <div style={{ background: "var(--dm-surface-soft)", padding: 12, borderRadius: 6, marginBottom: 16, border: "1px solid var(--dm-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>Tổng tiền cọc đang giữ</span>
+                  <span style={{ fontWeight: 600, fontSize: 16, color: "var(--dm-title)" }}>{money.format(selectedReport.rental?.depositAmount || 0)}</span>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Số tiền hoàn lại cho người thuê</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--dm-label)", marginBottom: 4 }}>Số tiền hoàn lại cho người thuê</div>
                     <InputNumber 
                       value={depositReturnAmount} 
                       onChange={(v) => setDepositReturnAmount(v || 0)}
@@ -616,7 +638,7 @@ const ComplaintPage = () => {
                     />
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Số tiền chủ nhà giữ lại</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--dm-label)", marginBottom: 4 }}>Số tiền chủ nhà giữ lại</div>
                     <InputNumber 
                       value={amountRetained} 
                       onChange={(v) => setAmountRetained(v || 0)}
@@ -625,11 +647,11 @@ const ComplaintPage = () => {
                     />
                   </div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Phí phạt (Áp dụng cho chủ nhà)</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--dm-label)", marginBottom: 4 }}>Phí phạt (Áp dụng cho chủ nhà)</div>
                     <InputNumber 
                       value={penaltyAmount} 
                       onChange={(v) => setPenaltyAmount(v || 0)}
-                      style={{ width: "100%", height: 40, borderColor: "#fecaca", background: "#fef2f2", color: "#dc2626" }}
+                      style={{ width: "100%", height: 40, borderColor: "#fecaca", background: "var(--dm-tag-red-bg)", color: "#dc2626" }}
                       formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                     />
                     <Text style={{ fontSize: 11, color: "#dc2626", marginTop: 4, display: "block" }}>
@@ -642,7 +664,7 @@ const ComplaintPage = () => {
 
             {/* Final Decision */}
             <Card className="dispute-action-card" variant="borderless">
-              <Title level={4} style={{ margin: "0 0 16px 0", color: "#111827" }}>
+              <Title level={4} style={{ margin: "0 0 16px 0", color: "var(--dm-title)" }}>
                 {selectedReport.status === 'resolved' ? 'Kết quả xử lý' : 'Quyết định cuối cùng'}
               </Title>
               
@@ -651,7 +673,7 @@ const ComplaintPage = () => {
                   {selectedReport.adminNote && (
                     <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 16, marginBottom: 16 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: "#166534", marginBottom: 4 }}>Ghi chú admin</div>
-                      <div style={{ color: "#374151" }}>{selectedReport.adminNote}</div>
+                      <div style={{ color: "var(--dm-label)" }}>{selectedReport.adminNote}</div>
                     </div>
                   )}
                   {selectedReport.terminationRequest?.resolution && (
@@ -668,7 +690,7 @@ const ComplaintPage = () => {
               ) : (
                 <>
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Ghi chú nội bộ</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: "var(--dm-label)", marginBottom: 4 }}>Ghi chú nội bộ</div>
                     <Input.TextArea 
                       rows={4} 
                       placeholder="Cung cấp lý do giải quyết cuối cùng..." 
@@ -706,28 +728,39 @@ const ComplaintPage = () => {
     <div className="dispute-management-page">
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
-          <Title level={2} style={{ margin: 0, color: "#111827" }}>Quản lý khiếu nại</Title>
-          <Text style={{ color: "#6b7280", fontSize: 15 }}>Xem xét và giải quyết các khiếu nại cần sự can thiệp của quản trị viên.</Text>
+          <Title level={2} style={{ margin: 0, color: "var(--dm-title)" }}>Quản lý khiếu nại</Title>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>Xem xét và giải quyết các khiếu nại cần sự can thiệp của quản trị viên.</Text>
         </Col>
         <Col>
-          <div style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "#fff", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#fee2e2", display: "flex", alignItems: "center", justifyContent: "center" }}>
-               <AlertFilled style={{ color: "#dc2626", fontSize: 20 }} />
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ border: "1px solid var(--dm-stat-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-stat-icon-red-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                 <AlertFilled style={{ color: "#dc2626", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Yêu cầu mới</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--dm-title)", lineHeight: 1.2 }}>{stats.admin + stats.open}</div>
+              </div>
             </div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", letterSpacing: 0.5, textTransform: "uppercase" }}>Yêu cầu mới</div>
-              <div style={{ fontSize: 24, fontWeight: 600, color: "#111827", lineHeight: 1.2 }}>{stats.admin + stats.open}</div>
-            </div>
+            <Button
+              icon={<ReloadOutlined />}
+              size="large"
+              onClick={fetchReports}
+              loading={loading}
+              style={{ height: "auto", borderRadius: 8, fontWeight: 500, borderColor: "var(--dm-refresh-border)", color: "var(--dm-refresh-text)", background: "var(--dm-refresh-bg)" }}
+            >
+              Làm mới
+            </Button>
           </div>
         </Col>
       </Row>
 
-      <Card variant="borderless" className="dispute-filter-card" style={{ marginBottom: 24, borderRadius: 8, border: "1px solid #e5e7eb" }}>
+      <Card variant="borderless" className="dispute-filter-card" style={{ marginBottom: 24, borderRadius: 8, border: "1px solid var(--dm-border)" }}>
         <Row gutter={16} align="bottom">
           <Col xs={24} md={8}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 6 }}>Tìm kiếm ID hợp đồng</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)", marginBottom: 6 }}>Tìm kiếm ID hợp đồng</div>
             <Input 
-              prefix={<SearchOutlined style={{ color: "#9ca3af" }} />} 
+              prefix={<SearchOutlined style={{ color: "var(--dm-input-icon)" }} />} 
               placeholder="VD: CTR-2023-..." 
               value={searchText}
               onChange={e => setSearchText(e.target.value)}
@@ -736,7 +769,7 @@ const ComplaintPage = () => {
             />
           </Col>
           <Col xs={12} md={5}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 6 }}>Mức ưu tiên</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)", marginBottom: 6 }}>Mức ưu tiên</div>
             <Select 
               style={{ width: '100%' }} 
               size="large" 
@@ -752,7 +785,7 @@ const ComplaintPage = () => {
             />
           </Col>
           <Col xs={12} md={7}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: "#374151", marginBottom: 6 }}>Loại khiếu nại</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)", marginBottom: 6 }}>Loại khiếu nại</div>
             <Select 
               style={{ width: '100%' }} 
               size="large" 
@@ -770,14 +803,14 @@ const ComplaintPage = () => {
             />
           </Col>
           <Col xs={24} md={4} style={{ textAlign: "right" }}>
-             <Button size="large" icon={<FilterOutlined />} style={{ color: "#4f46e5", borderColor: "#c7d2fe", background: "#e0e7ff", width: "100%" }}>
+             <Button size="large" icon={<FilterOutlined />} style={{ color: "var(--dm-refresh-text)", borderColor: "var(--dm-refresh-border)", background: "var(--dm-refresh-bg)", width: "100%" }}>
                Bộ lọc khác
              </Button>
           </Col>
         </Row>
       </Card>
 
-      <Card variant="borderless" className="dispute-table-card" style={{ borderRadius: 8, border: "1px solid #e5e7eb", padding: 0, overflow: "hidden" }}>
+      <Card variant="borderless" className="dispute-table-card" style={{ borderRadius: 8, border: "1px solid var(--dm-border)", padding: 0, overflow: "hidden" }}>
         <Table
           columns={columns}
           dataSource={reports}
@@ -786,8 +819,8 @@ const ComplaintPage = () => {
           loading={loading}
           className="custom-dispute-table"
         />
-        <div style={{ padding: "16px 24px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f9fafb" }}>
-          <Text style={{ color: "#4b5563", fontSize: 13 }}>Đang hiển thị {reports.length} / {stats.total} mục</Text>
+        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--dm-border)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--dm-surface-soft)" }}>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>Đang hiển thị {reports.length} / {stats.total} mục</Text>
           <Space>
              <Button>Trước</Button>
              <Button>Tiếp</Button>

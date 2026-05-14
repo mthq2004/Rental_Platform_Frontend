@@ -7,14 +7,18 @@ import {
   UserOutlined,
   EditOutlined,
   LockOutlined,
+  IdcardOutlined,
 } from "@ant-design/icons";
 import {
+  Button,
+  Card,
   Col,
   Form,
   Image,
   Input,
   Row,
   Space,
+  Typography,
   Upload,
   message,
 } from "antd";
@@ -25,6 +29,9 @@ import {
   updateProfileUser,
   updateAvatarUser,
 } from "../../stores/slices/auth.slice";
+import "../complaints/disputes.css";
+
+const { Title, Text } = Typography;
 
 const ProfilePage = () => {
   const [messageApi, contextHolder] = message.useMessage();
@@ -92,60 +99,75 @@ const ProfilePage = () => {
     .toUpperCase();
 
   return (
-    <div style={styles.pageWrapper}>
+    <div className="dispute-resolution-page">
       {contextHolder}
 
-      {/* Sidebar stripe */}
-      <div style={styles.sidebar} />
+      {/* Header Tags */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+        <span style={{
+          background: user?.role === "admin" ? "#e0e7ff" : "#dbeafe",
+          color: user?.role === "admin" ? "#3730a3" : "#1e40af",
+          padding: "4px 14px", borderRadius: 16, fontSize: 12, fontWeight: 600,
+          display: "inline-flex", alignItems: "center", gap: 5,
+        }}>
+          <SafetyCertificateOutlined style={{ fontSize: 12 }} />
+          {roleLabel.toUpperCase()}
+        </span>
+      </div>
 
-      {/* Content */}
-      <div style={styles.content}>
-
-        {/* Page header */}
-        <div style={styles.pageHeader}>
-          <div>
-            <p style={styles.breadcrumb}>Tài khoản</p>
-            <h1 style={styles.pageTitle}>Hồ sơ cá nhân</h1>
-          </div>
+      {/* Title Row */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Title level={2} style={{ margin: 0, color: "var(--dm-title)" }}>Hồ sơ cá nhân</Title>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>Xem và quản lý thông tin tài khoản của bạn.</Text>
+        </Col>
+        <Col>
           {!isEditing ? (
-            <button
-              style={styles.btnOutline}
+            <Button
+              icon={<EditOutlined />}
+              size="large"
               onClick={() => setIsEditing(true)}
+              style={{ borderRadius: 8, fontWeight: 500, borderColor: "var(--dm-refresh-border)", color: "var(--dm-refresh-text)", background: "var(--dm-refresh-bg)" }}
             >
-              <EditOutlined style={{ fontSize: 13 }} />
               Chỉnh sửa
-            </button>
+            </Button>
           ) : (
             <Space size={12}>
-              <button style={styles.btnGhost} onClick={handleCancel}>
+              <Button size="large" onClick={handleCancel} style={{ borderRadius: 8 }}>
                 Hủy bỏ
-              </button>
-              <button
-                style={styles.btnPrimary}
+              </Button>
+              <Button
+                type="primary"
+                icon={<SaveOutlined />}
+                size="large"
+                loading={loading}
                 onClick={handleSave}
-                disabled={loading}
+                style={{ borderRadius: 8, fontWeight: 500, background: "#4f46e5" }}
               >
-                <SaveOutlined style={{ fontSize: 13 }} />
                 {loading ? "Đang lưu..." : "Lưu thay đổi"}
-              </button>
+              </Button>
             </Space>
           )}
-        </div>
+        </Col>
+      </Row>
 
-        {/* Main grid */}
-        <div style={styles.grid}>
-
-          {/* Left column — identity card */}
-          <div style={styles.identityCard}>
-            {/* Avatar area */}
-            <div style={styles.avatarSection}>
-              <div style={styles.avatarRing}>
+      <Row gutter={24}>
+        {/* Left Column — Identity Card */}
+        <Col xs={24} lg={8}>
+          <Card className="dispute-action-card" variant="borderless" style={{ textAlign: "center" }}>
+            {/* Avatar */}
+            <div style={{ position: "relative", display: "inline-block", marginBottom: 20 }}>
+              <div style={{
+                width: 96, height: 96, borderRadius: "50%",
+                border: "3px solid #e5e7eb", overflow: "hidden",
+                background: "var(--dm-tag-gray-bg)", display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
                 {user?.avatarUrl ? (
                   <>
                     <img
                       src={user.avatarUrl}
                       alt="avatar"
-                      style={styles.avatarImg}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", cursor: "zoom-in" }}
                       onClick={() => setIsPreviewOpen(true)}
                     />
                     <Image
@@ -159,70 +181,94 @@ const ProfilePage = () => {
                     />
                   </>
                 ) : (
-                  <div style={styles.avatarFallback}>{initials || <UserOutlined />}</div>
+                  <span style={{ fontSize: 28, fontWeight: 700, color: "var(--dm-refresh-text)", userSelect: "none" }}>
+                    {initials || <UserOutlined />}
+                  </span>
                 )}
-                {avatarLoading && <div style={styles.avatarOverlay}><span style={{ color: "#fff", fontSize: 12 }}>...</span></div>}
+                {avatarLoading && (
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: "rgba(0,0,0,0.35)", borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <span style={{ color: "#fff", fontSize: 12 }}>...</span>
+                  </div>
+                )}
               </div>
               <Upload showUploadList={false} accept="image/*" beforeUpload={beforeUpload}>
-                <button style={styles.cameraBtn} title="Đổi ảnh đại diện">
+                <button
+                  title="Đổi ảnh đại diện"
+                  style={{
+                    position: "absolute", bottom: 0, right: 0,
+                    width: 28, height: 28, borderRadius: "50%",
+                    background: "#4f46e5", border: "2px solid #fff", color: "#fff",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer", padding: 0,
+                  }}
+                >
                   <CameraOutlined style={{ fontSize: 12 }} />
                 </button>
               </Upload>
             </div>
 
-            {/* Name & role */}
-            <div style={styles.identityInfo}>
-              <h2 style={styles.userName}>{user?.fullName || "—"}</h2>
-              <div style={styles.roleBadge}>
-                <SafetyCertificateOutlined style={{ fontSize: 10 }} />
-                {roleLabel}
-              </div>
-              {/* <div style={styles.verifyStack}>
-                <VerificationBadge
-                  ok={!!user?.phoneVerified}
-                  label={user?.phoneVerified ? "SĐT đã xác thực" : "SĐT chưa xác thực"}
-                />
-                <VerificationBadge
-                  ok={!!user?.isEmailVerified}
-                  label={user?.isEmailVerified ? "Email đã xác thực" : "Email chưa xác thực"}
-                />
-              </div> */}
-            </div>
+            {/* Name & Role */}
+            <Title level={4} style={{ margin: "0 0 8px", color: "var(--dm-title)" }}>{user?.fullName || "—"}</Title>
+            <span style={{
+              background: "var(--dm-refresh-bg)", color: "var(--dm-refresh-text)", padding: "4px 14px",
+              borderRadius: 16, fontSize: 11, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase",
+              display: "inline-flex", alignItems: "center", gap: 5,
+            }}>
+              <SafetyCertificateOutlined style={{ fontSize: 10 }} />
+              {roleLabel}
+            </span>
 
             {/* Divider */}
-            <div style={styles.divider} />
+            <div style={{ height: 1, background: "var(--dm-border)", margin: "20px 0 16px" }} />
 
             {/* Quick meta list */}
-            <div style={styles.metaList}>
-              <MetaRow icon={<MailOutlined />} label={user?.email} />
-              <MetaRow icon={<PhoneOutlined />} label={user?.phone} />
-              <MetaRow icon={<LockOutlined />} label={roleLabel} muted />
+            <div style={{ textAlign: "left" }}>
+              {[
+                { icon: <MailOutlined />, value: user?.email },
+                { icon: <PhoneOutlined />, value: user?.phone },
+                { icon: <LockOutlined />, value: roleLabel, muted: true },
+              ].map((item, idx) => (
+                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px dashed var(--dm-dashed)" }}>
+                  <span style={{ fontSize: 13, color: "var(--dm-subtitle)", minWidth: 16 }}>{item.icon}</span>
+                  <span style={{ fontSize: 13, color: item.muted ? "#6b7280" : "#111827", fontStyle: item.muted ? "italic" : "normal" }}>
+                    {item.value || "—"}
+                  </span>
+                </div>
+              ))}
             </div>
-          </div>
+          </Card>
+        </Col>
 
-          {/* Right column — detail panel */}
-          <div style={styles.detailCard}>
-            <div style={styles.cardHeader}>
-              <span style={styles.cardLabel}>Thông tin tài khoản</span>
-              <span style={styles.cardSublabel}>
+        {/* Right Column — Detail Panel */}
+        <Col xs={24} lg={16}>
+          <Card className="dispute-info-card" variant="borderless">
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
+              <IdcardOutlined style={{ fontSize: 20, color: "var(--dm-refresh-text)" }} />
+              <Title level={4} style={{ margin: 0, color: "var(--dm-title)" }}>Thông tin tài khoản</Title>
+              <Text style={{ color: "var(--dm-subtitle)", fontSize: 12, marginLeft: "auto" }}>
                 {isEditing ? "Đang chỉnh sửa — điền thông tin bên dưới" : "Xem và quản lý thông tin của bạn"}
-              </span>
+              </Text>
             </div>
 
             {!isEditing ? (
-              <div style={styles.infoGrid}>
-                <InfoField label="Họ và tên" value={user?.fullName} />
-                <InfoField label="Địa chỉ Email" value={user?.email} />
-                <InfoField label="Số điện thoại" value={user?.phone} />
-                <InfoField label="Vai trò hệ thống" value={roleLabel} />
-                {/* <InfoField
-                  label="Xác thực email"
-                  value={user?.isEmailVerified ? "Đã xác thực" : "Chưa xác thực"}
-                />
-                <InfoField
-                  label="Xác thực số điện thoại"
-                  value={user?.phoneVerified ? "Đã xác thực" : "Chưa xác thực"}
-                /> */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 24px" }}>
+                {[
+                  { label: "Họ và tên", value: user?.fullName },
+                  { label: "Địa chỉ Email", value: user?.email },
+                  { label: "Số điện thoại", value: user?.phone },
+                  { label: "Vai trò hệ thống", value: roleLabel },
+                ].map((item) => (
+                  <div key={item.label} style={{ padding: "16px 0", borderBottom: "1px dashed var(--dm-dashed)" }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>
+                      {item.label}
+                    </div>
+                    <div style={{ fontSize: 15, color: "var(--dm-title)", fontWeight: 500 }}>{item.value || "—"}</div>
+                  </div>
+                ))}
               </div>
             ) : (
               <Form form={form} layout="vertical" requiredMark={false} style={{ marginTop: 4 }}>
@@ -230,52 +276,31 @@ const ProfilePage = () => {
                   <Col xs={24} md={12}>
                     <Form.Item
                       name="fullName"
-                      label={<FieldLabel>Họ và tên</FieldLabel>}
+                      label={<span style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)" }}>Họ và tên</span>}
                     >
-                      <Input
-                        size="large"
-                        prefix={<UserOutlined style={styles.inputIcon} />}
-                        style={styles.input}
-                        placeholder="Nguyễn Văn A"
-                      />
+                      <Input size="large" prefix={<UserOutlined style={{ color: "var(--dm-input-icon)" }} />} placeholder="Nguyễn Văn A" />
                     </Form.Item>
                   </Col>
                   <Col xs={24} md={12}>
                     <Form.Item
                       name="email"
-                      label={<FieldLabel>Email</FieldLabel>}
+                      label={<span style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)" }}>Email</span>}
                       rules={[{ type: "email", message: "Email không hợp lệ" }]}
                     >
-                      <Input
-                        size="large"
-                        prefix={<MailOutlined style={styles.inputIcon} />}
-                        style={styles.input}
-                        placeholder="email@congty.vn"
-                      />
+                      <Input size="large" prefix={<MailOutlined style={{ color: "var(--dm-input-icon)" }} />} placeholder="email@congty.vn" />
                     </Form.Item>
                   </Col>
                   <Col xs={24} md={12}>
                     <Form.Item
                       name="phone"
-                      label={<FieldLabel>Số điện thoại</FieldLabel>}
+                      label={<span style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)" }}>Số điện thoại</span>}
                     >
-                      <Input
-                        size="large"
-                        prefix={<PhoneOutlined style={styles.inputIcon} />}
-                        style={styles.input}
-                        placeholder="0901 234 567"
-                      />
+                      <Input size="large" prefix={<PhoneOutlined style={{ color: "var(--dm-input-icon)" }} />} placeholder="0901 234 567" />
                     </Form.Item>
                   </Col>
                   <Col xs={24} md={12}>
-                    <Form.Item label={<FieldLabel>Vai trò</FieldLabel>}>
-                      <Input
-                        size="large"
-                        value={roleLabel}
-                        disabled
-                        prefix={<LockOutlined style={{ color: "#bbb" }} />}
-                        style={{ ...styles.input, backgroundColor: "#fafafa", color: "#aaa" }}
-                      />
+                    <Form.Item label={<span style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)" }}>Vai trò</span>}>
+                      <Input size="large" value={roleLabel} disabled prefix={<LockOutlined style={{ color: "#bbb" }} />} />
                     </Form.Item>
                   </Col>
                 </Row>
@@ -284,328 +309,18 @@ const ProfilePage = () => {
 
             {/* Security hint row */}
             {!isEditing && (
-              <div style={styles.securityRow}>
-                <LockOutlined style={{ fontSize: 13, color: "#94a3b8" }} />
-                <span style={{ fontSize: 12, color: "#94a3b8" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--dm-border)" }}>
+                <LockOutlined style={{ fontSize: 13, color: "var(--dm-input-icon)" }} />
+                <span style={{ fontSize: 12, color: "var(--dm-input-icon)" }}>
                   Thông tin được bảo mật và mã hóa theo tiêu chuẩn doanh nghiệp.
                 </span>
               </div>
             )}
-          </div>
-        </div>
-      </div>
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
-};
-
-/* ─── Sub-components ─── */
-
-const MetaRow = ({ icon, label, muted }: { icon: React.ReactNode; label?: string | null; muted?: boolean }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
-    <span style={{ fontSize: 13, color: muted ? "var(--text-secondary)" : "var(--text-secondary)", minWidth: 16 }}>{icon}</span>
-    <span style={{ fontSize: 13, color: muted ? "var(--text-secondary)" : "var(--text-primary)", fontStyle: muted ? "italic" : "normal" }}>
-      {label || "—"}
-    </span>
-  </div>
-);
-
-const InfoField = ({ label, value }: { label: string; value?: string | null }) => (
-  <div style={styles.infoField}>
-    <span style={styles.infoLabel}>{label}</span>
-    <span style={styles.infoValue}>{value || "—"}</span>
-  </div>
-);
-
-const FieldLabel = ({ children }: { children: React.ReactNode }) => (
-  <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-secondary)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-    {children}
-  </span>
-);
-
-
-
-/* ─── Styles ─── */
-
-const styles: Record<string, React.CSSProperties> = {
-  pageWrapper: {
-    height: "100%",
-    minHeight: "100%",
-    background: "var(--bg)",
-    display: "flex",
-    overflow: "hidden",
-    fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
-  },
-  sidebar: {
-    width: 4,
-    minHeight: "100vh",
-    background: "linear-gradient(180deg, #1e3a5f 0%, #2563eb 100%)",
-    flexShrink: 0,
-  },
-  content: {
-    flex: 1,
-    width: "100%",
-    maxWidth: "none",
-    margin: "0 auto",
-    height: "100%",
-    minHeight: 0,
-    overflow: "hidden",
-    boxSizing: "border-box",
-    display: "flex",
-    flexDirection: "column",
-    padding: "48px 48px 48px",
-  },
-  pageHeader: {
-    display: "flex",
-    width: "100%",
-    maxWidth: 1040,
-    margin: "0 auto 40px",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-  },
-  breadcrumb: {
-    margin: 0,
-    fontSize: 12,
-    fontWeight: 500,
-    color: "var(--accent)",
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    marginBottom: 6,
-  },
-  pageTitle: {
-    margin: 0,
-    fontSize: 26,
-    fontWeight: 700,
-    color: "var(--text-primary)",
-    letterSpacing: "-0.5px",
-  },
-  grid: {
-    display: "grid",
-    flex: 1,
-    minHeight: 0,
-    width: "100%",
-    maxWidth: 1040,
-    margin: "0 auto",
-    gridTemplateColumns: "260px 1fr",
-    gap: 24,
-    alignItems: "start",
-  },
-  identityCard: {
-    background: "var(--surface)",
-    borderRadius: 16,
-    border: "1px solid var(--border)",
-    padding: "32px 24px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 0,
-  },
-  avatarSection: {
-    position: "relative",
-    marginBottom: 20,
-  },
-  avatarRing: {
-    width: 96,
-    height: 96,
-    borderRadius: "50%",
-    border: "3px solid var(--border)",
-    overflow: "hidden",
-    background: "var(--muted)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarImg: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    cursor: "zoom-in",
-  },
-  avatarFallback: {
-    fontSize: 28,
-    fontWeight: 700,
-    color: "#2563eb",
-    userSelect: "none",
-  },
-  avatarOverlay: {
-    position: "absolute",
-    inset: 0,
-    background: "rgba(0,0,0,0.35)",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cameraBtn: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: "50%",
-    background: "#1e3a5f",
-    border: "2px solid #fff",
-    color: "#fff",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    padding: 0,
-    transition: "background 0.15s",
-  },
-  identityInfo: {
-    textAlign: "center",
-    width: "100%",
-    marginBottom: 20,
-  },
-  userName: {
-    margin: "0 0 8px",
-    fontSize: 18,
-    fontWeight: 700,
-    color: "var(--text-primary)",
-    letterSpacing: "-0.3px",
-  },
-  roleBadge: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    background: "var(--muted)",
-    color: "var(--accent)",
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    padding: "4px 12px",
-    borderRadius: 100,
-    marginBottom: 10,
-  },
-  verifiedTag: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    fontSize: 12,
-    color: "#16a34a",
-    fontWeight: 500,
-  },
-  verifyStack: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 10,
-  },
-  divider: {
-    width: "100%",
-    height: 1,
-    background: "var(--border)",
-    margin: "4px 0 16px",
-  },
-  metaList: {
-    width: "100%",
-  },
-  detailCard: {
-    background: "var(--surface)",
-    borderRadius: 16,
-    border: "1px solid var(--border)",
-    padding: "32px 36px",
-  },
-  cardHeader: {
-    display: "flex",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-    marginBottom: 28,
-    paddingBottom: 20,
-    borderBottom: "1px solid var(--border)",
-  },
-  cardLabel: {
-    fontSize: 15,
-    fontWeight: 700,
-    color: "var(--text-primary)",
-    letterSpacing: "-0.2px",
-  },
-  cardSublabel: {
-    fontSize: 12,
-    color: "var(--text-secondary)",
-  },
-  infoGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "0 24px",
-  },
-  infoField: {
-    padding: "16px 0",
-    borderBottom: "1px solid var(--border)",
-  },
-  infoLabel: {
-    display: "block",
-    fontSize: 10,
-    fontWeight: 700,
-    color: "var(--text-secondary)",
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-    marginBottom: 6,
-  },
-  infoValue: {
-    fontSize: 15,
-    color: "var(--text-primary)",
-    fontWeight: 500,
-  },
-  securityRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 28,
-    paddingTop: 20,
-    borderTop: "1px solid var(--border)",
-  },
-  input: {
-    borderRadius: 10,
-    background: "var(--muted)",
-    borderColor: "var(--border)",
-    color: "var(--text-primary)",
-    fontSize: 14,
-  },
-  inputIcon: {
-    color: "var(--text-secondary)",
-    fontSize: 14,
-  },
-  btnPrimary: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 7,
-    background: "#1e3a5f",
-    color: "#fff",
-    border: "none",
-    borderRadius: 10,
-    padding: "9px 20px",
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: "pointer",
-    letterSpacing: "0.01em",
-    transition: "background 0.15s",
-  },
-  btnOutline: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 7,
-    background: "transparent",
-    color: "var(--text-primary)",
-    border: "1.5px solid var(--border)",
-    borderRadius: 10,
-    padding: "8px 18px",
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "border-color 0.15s, background 0.15s",
-  },
-  btnGhost: {
-    background: "transparent",
-    border: "none",
-    color: "var(--text-secondary)",
-    fontSize: 13,
-    fontWeight: 500,
-    cursor: "pointer",
-    padding: "8px 12px",
-  },
 };
 
 export default ProfilePage;

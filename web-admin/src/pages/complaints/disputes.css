@@ -1,3 +1,100 @@
+/* ─── Dispute / Management page design tokens ─── */
+.dispute-management-page,
+.dispute-resolution-page {
+  --dm-title: #111827;
+  --dm-subtitle: #6b7280;
+  --dm-border: #e5e7eb;
+  --dm-surface: #ffffff;
+  --dm-surface-soft: #f9fafb;
+  --dm-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  --dm-label: #374151;
+
+  /* Status tag backgrounds (light) */
+  --dm-tag-green-bg: #d1fae5;
+  --dm-tag-green-text: #065f46;
+  --dm-tag-red-bg: #fee2e2;
+  --dm-tag-red-text: #991b1b;
+  --dm-tag-yellow-bg: #fef3c7;
+  --dm-tag-yellow-text: #92400e;
+  --dm-tag-blue-bg: #dbeafe;
+  --dm-tag-blue-text: #1e40af;
+  --dm-tag-indigo-bg: #e0e7ff;
+  --dm-tag-indigo-text: #3730a3;
+  --dm-tag-gray-bg: #f3f4f6;
+  --dm-tag-gray-text: #374151;
+  --dm-tag-purple-bg: #ede9fe;
+  --dm-tag-purple-text: #5b21b6;
+  --dm-tag-orange-bg: #ffedd5;
+  --dm-tag-orange-text: #9a3412;
+
+  /* Header stat card */
+  --dm-stat-bg: #ffffff;
+  --dm-stat-border: #e5e7eb;
+  --dm-stat-icon-blue-bg: #dbeafe;
+  --dm-stat-icon-indigo-bg: #e0e7ff;
+  --dm-stat-icon-green-bg: #d1fae5;
+  --dm-stat-icon-red-bg: #fee2e2;
+
+  /* Refresh button */
+  --dm-refresh-bg: #e0e7ff;
+  --dm-refresh-border: #c7d2fe;
+  --dm-refresh-text: #4f46e5;
+
+  /* Filter card */
+  --dm-filter-bg: #ffffff;
+
+  /* Input */
+  --dm-input-icon: #9ca3af;
+
+  /* Dashed divider */
+  --dm-dashed: #e5e7eb;
+}
+
+[data-theme="dark"] .dispute-management-page,
+[data-theme="dark"] .dispute-resolution-page {
+  --dm-title: #edf4ff;
+  --dm-subtitle: #9db3d8;
+  --dm-border: #27406d;
+  --dm-surface: #131f33;
+  --dm-surface-soft: #1a2a45;
+  --dm-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  --dm-label: #c5d3e8;
+
+  --dm-tag-green-bg: rgba(16, 185, 129, 0.18);
+  --dm-tag-green-text: #6ee7b7;
+  --dm-tag-red-bg: rgba(239, 68, 68, 0.18);
+  --dm-tag-red-text: #fca5a5;
+  --dm-tag-yellow-bg: rgba(245, 158, 11, 0.18);
+  --dm-tag-yellow-text: #fde68a;
+  --dm-tag-blue-bg: rgba(37, 99, 235, 0.18);
+  --dm-tag-blue-text: #93c5fd;
+  --dm-tag-indigo-bg: rgba(79, 70, 229, 0.18);
+  --dm-tag-indigo-text: #a5b4fc;
+  --dm-tag-gray-bg: rgba(107, 114, 128, 0.18);
+  --dm-tag-gray-text: #d1d5db;
+  --dm-tag-purple-bg: rgba(124, 58, 237, 0.18);
+  --dm-tag-purple-text: #c4b5fd;
+  --dm-tag-orange-bg: rgba(249, 115, 22, 0.18);
+  --dm-tag-orange-text: #fdba74;
+
+  --dm-stat-bg: #1a2a45;
+  --dm-stat-border: #27406d;
+  --dm-stat-icon-blue-bg: rgba(37, 99, 235, 0.22);
+  --dm-stat-icon-indigo-bg: rgba(79, 70, 229, 0.22);
+  --dm-stat-icon-green-bg: rgba(5, 150, 105, 0.22);
+  --dm-stat-icon-red-bg: rgba(220, 38, 38, 0.22);
+
+  --dm-refresh-bg: rgba(79, 70, 229, 0.18);
+  --dm-refresh-border: rgba(79, 70, 229, 0.35);
+  --dm-refresh-text: #a5b4fc;
+
+  --dm-filter-bg: #1a2a45;
+
+  --dm-input-icon: #6b7f9e;
+
+  --dm-dashed: #27406d;
+}
+
 .dispute-management-page {
   padding: 24px;
   max-width: 1400px;
@@ -15,16 +112,16 @@
 /* Hide default table header background */
 .custom-dispute-table .ant-table-thead > tr > th {
   background: transparent !important;
-  color: #6b7280;
+  color: var(--dm-subtitle);
   font-weight: 500;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--dm-border);
 }
 
 .custom-dispute-table .ant-table-tbody > tr > td {
-  border-bottom: 1px dashed #e5e7eb;
+  border-bottom: 1px dashed var(--dm-border);
 }
 
 .custom-dispute-table .ant-table-tbody > tr:last-child > td {
@@ -33,26 +130,30 @@
 
 /* Resolution Page Cards */
 .dispute-info-card {
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid var(--dm-border) !important;
   border-radius: 12px !important;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-  background: #ffffff !important;
+  box-shadow: var(--dm-shadow) !important;
+  background: var(--dm-surface) !important;
 }
 
 .dispute-action-card {
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid var(--dm-border) !important;
   border-radius: 12px !important;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-  background: #ffffff !important;
+  box-shadow: var(--dm-shadow) !important;
+  background: var(--dm-surface) !important;
 }
 
 .dispute-action-card.border-danger {
   border-color: #fca5a5 !important;
 }
 
+[data-theme="dark"] .dispute-action-card.border-danger {
+  border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
 /* Radio Box Styles */
 .resolution-radio-box {
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--dm-border);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -60,24 +161,29 @@
   align-items: center;
   cursor: pointer;
   transition: all 0.2s;
-  background: #fff;
+  background: var(--dm-surface);
 }
 
 .resolution-radio-box:hover {
-  border-color: #9ca3af;
-  background: #f9fafb;
+  border-color: var(--dm-subtitle);
+  background: var(--dm-surface-soft);
 }
 
 .resolution-radio-box.active {
   border-color: #4f46e5;
-  background: #eef2ff;
+  background: var(--dm-tag-indigo-bg);
 }
 
 .resolution-radio-box.danger.active {
   border-color: #ef4444;
-  background: #fef2f2;
+  background: var(--dm-tag-red-bg);
 }
 
 .resolution-radio-box .ant-radio-wrapper {
   margin: 0;
+}
+
+/* ─── Filter card ─── */
+.dispute-filter-card {
+  background: var(--dm-filter-bg) !important;
 }

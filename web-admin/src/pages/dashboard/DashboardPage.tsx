@@ -1,4 +1,4 @@
-﻿import { useEffect } from "react";
+import { useEffect } from "react";
 import {
   Button,
   Card,
@@ -42,6 +42,9 @@ import type { KeyValueMetric } from "../../types/analytics.type";
 import { useAppDispatch, useAppSelector } from "../../stores/hooks";
 import { fetchDashboardAnalytics } from "../../stores/slices/dashboard-analytics.slice";
 import "./dashboard-enterprise.css";
+import "../complaints/disputes.css";
+
+const { Title, Text } = Typography;
 
 const money = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -113,19 +116,45 @@ const DashboardPage = () => {
   }));
 
   return (
-    <div className="admin-page-shell enterprise-dashboard">
-      <Card className="hero-surface enterprise-header-card" variant="borderless">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-          <div>
-            <Typography.Title level={2} style={{ margin: 0 }}>Bảng điều khiển quản trị</Typography.Title>
-            <Typography.Text type="secondary">Tổng quan hoạt động nền tảng cho thuê bất động sản</Typography.Text>
+    <div className="dispute-management-page enterprise-dashboard">
+      {/* Header */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Title level={2} style={{ margin: 0, color: "var(--dm-title)" }}>Bảng điều khiển quản trị</Title>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>Tổng quan hoạt động nền tảng cho thuê bất động sản</Text>
+        </Col>
+        <Col>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-stat-icon-blue-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <ApartmentOutlined style={{ color: "#2563eb", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Tổng BĐS</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--dm-title)", lineHeight: 1.2 }}>{num.format(metrics.overview.tongBatDongSan)}</div>
+              </div>
+            </div>
+            <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-refresh-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <TeamOutlined style={{ color: "var(--dm-refresh-text)", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Người dùng</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--dm-title)", lineHeight: 1.2 }}>{num.format(metrics.overview.tongNguoiDung)}</div>
+              </div>
+            </div>
+            <Button
+              icon={<ReloadOutlined />}
+              size="large"
+              onClick={loadMetrics}
+              loading={loading}
+              style={{ height: "auto", borderRadius: 8, fontWeight: 500, borderColor: "var(--dm-refresh-border)", color: "var(--dm-refresh-text)", background: "var(--dm-refresh-bg)" }}
+            >
+              Làm mới
+            </Button>
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Button icon={<ReloadOutlined />} onClick={loadMetrics}>Làm mới</Button>
-            <Button type="primary">Xuất báo cáo</Button>
-          </div>
-        </div>
-      </Card>
+        </Col>
+      </Row>
 
       {loading ? (
         <Card variant="borderless" className="enterprise-panel" style={{ marginTop: 14 }}>

@@ -53,6 +53,9 @@ import {
 import envConfig from "../../config";
 import provinceService from "../../services/province.service";
 import type { Province, District } from "../../types/province.type";
+import "../complaints/disputes.css";
+
+const { Title, Text } = Typography;
 
 const money = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -292,64 +295,67 @@ const AiAnalyticsPage = () => {
   ];
 
   return (
-    <div style={{ padding: "0 4px" }}>
+    <div className="dispute-management-page">
       {/* Header */}
-      <Card variant="borderless" style={{ marginBottom: 16, background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)", color: "#fff", borderRadius: 16 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <Typography.Title level={2} style={{ margin: 0, color: "#fff" }}>
-              <RobotOutlined /> Dự báo & AI Analytics
-            </Typography.Title>
-            <Typography.Text style={{ color: "rgba(255,255,255,0.8)" }}>
-              Phân tích giá thuê bằng Machine Learning từ dữ liệu thực tế
-            </Typography.Text>
-          </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <Button icon={<ReloadOutlined />} onClick={fetchAnalytics} loading={loading}>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Title level={2} style={{ margin: 0, color: "var(--dm-title)" }}>
+            <RobotOutlined style={{ marginRight: 8 }} />
+            Dự báo & AI Analytics
+          </Title>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>Phân tích giá thuê bằng Machine Learning từ dữ liệu thực tế</Text>
+        </Col>
+        <Col>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-stat-icon-blue-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <DatabaseOutlined style={{ color: "#2563eb", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Mẫu dữ liệu</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--dm-title)", lineHeight: 1.2 }}>{num.format(analytics?.totalSamples || 0)}</div>
+              </div>
+            </div>
+            <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-tag-green-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <CheckCircleOutlined style={{ color: "#059669", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>R² Accuracy</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: (analytics?.modelAccuracy || 0) > 70 ? "#059669" : "#f97316", lineHeight: 1.2 }}>{analytics?.modelAccuracy || 0}%</div>
+              </div>
+            </div>
+            <Button
+              icon={<ReloadOutlined />}
+              size="large"
+              onClick={fetchAnalytics}
+              loading={loading}
+              style={{ height: "auto", borderRadius: 8, fontWeight: 500, borderColor: "var(--dm-refresh-border)", color: "var(--dm-refresh-text)", background: "var(--dm-refresh-bg)" }}
+            >
               Làm mới
             </Button>
             <Button
               type="primary"
               icon={<ThunderboltOutlined />}
+              size="large"
               onClick={handleTrain}
               loading={training}
-              style={{ background: "#f97316", borderColor: "#f97316" }}
+              style={{ height: "auto", borderRadius: 8, fontWeight: 500, background: "#f97316", borderColor: "#f97316" }}
             >
               {training ? "Đang train..." : "Train Model từ DB"}
             </Button>
           </div>
-        </div>
-      </Card>
+        </Col>
+      </Row>
 
       {loading ? (
-        <Card><Skeleton active paragraph={{ rows: 8 }} /></Card>
+        <Card variant="borderless" style={{ borderRadius: 8, border: "1px solid var(--dm-border)" }}><Skeleton active paragraph={{ rows: 8 }} /></Card>
       ) : (
         <>
           {/* KPI Cards */}
           <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-            <Col xs={24} sm={12} lg={6}>
-              <Card variant="borderless" style={{ borderRadius: 12 }}>
-                <Statistic
-                  title="Tổng mẫu dữ liệu"
-                  value={analytics?.totalSamples || 0}
-                  prefix={<DatabaseOutlined style={{ color: "#2563eb" }} />}
-                  formatter={(v) => num.format(Number(v))}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card variant="borderless" style={{ borderRadius: 12 }}>
-                <Statistic
-                  title="Độ chính xác Model (R²)"
-                  value={analytics?.modelAccuracy || 0}
-                  suffix="%"
-                  prefix={<CheckCircleOutlined style={{ color: "#16a34a" }} />}
-                  valueStyle={{ color: (analytics?.modelAccuracy || 0) > 70 ? "#16a34a" : "#f97316" }}
-                />
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card variant="borderless" style={{ borderRadius: 12 }}>
+            <Col xs={24} sm={12} lg={8}>
+              <Card variant="borderless" style={{ borderRadius: 8, border: "1px solid var(--dm-border)" }}>
                 <Statistic
                   title="Loại BĐS phân tích"
                   value={chartData.length}
@@ -358,8 +364,8 @@ const AiAnalyticsPage = () => {
                 />
               </Card>
             </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Card variant="borderless" style={{ borderRadius: 12 }}>
+            <Col xs={24} sm={12} lg={8}>
+              <Card variant="borderless" style={{ borderRadius: 8, border: "1px solid var(--dm-border)" }}>
                 <Statistic
                   title="Train lần cuối"
                   value={analytics?.lastTrainedAt && analytics.lastTrainedAt !== "Chưa train"
@@ -367,6 +373,16 @@ const AiAnalyticsPage = () => {
                     : "Chưa train"}
                   prefix={<LineChartOutlined style={{ color: "#dc2626" }} />}
                   valueStyle={{ fontSize: 18 }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={24} lg={8}>
+              <Card variant="borderless" style={{ borderRadius: 8, border: "1px solid var(--dm-border)" }}>
+                <Statistic
+                  title="Giá thuê trung bình"
+                  value={chartData.length > 0 ? chartData.reduce((sum, p) => sum + p.avgPrice, 0) / chartData.length : 0}
+                  prefix={<DollarOutlined style={{ color: "#2563eb" }} />}
+                  formatter={(v) => money.format(Number(v))}
                 />
               </Card>
             </Col>

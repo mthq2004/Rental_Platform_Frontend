@@ -27,11 +27,17 @@ import {
   EnvironmentOutlined,
   SafetyOutlined,
   ReloadOutlined,
+  BarChartOutlined,
+  FundOutlined,
+  ExportOutlined,
 } from "@ant-design/icons";
 import type { KeyValueMetric } from "../../types/analytics.type";
 import { useAppDispatch, useAppSelector } from "../../stores/hooks";
 import { fetchDashboardAnalytics } from "../../stores/slices/dashboard-analytics.slice";
 import "../dashboard/dashboard-enterprise.css";
+import "../complaints/disputes.css";
+
+const { Title, Text } = Typography;
 
 const money = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -336,19 +342,53 @@ const StatisticsPage = () => {
   ];
 
   return (
-    <div className="admin-page-shell enterprise-dashboard">
-      <Card className="hero-surface enterprise-header-card" variant="borderless">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", flexWrap: "wrap", gap: 12 }}>
-          <div>
-            <Typography.Title level={2} style={{ margin: 0 }}>Thống kê & Phân tích</Typography.Title>
-            <Typography.Text type="secondary">Doanh thu, khu vực hoạt động và kiểm duyệt rủi ro</Typography.Text>
+    <div className="dispute-management-page enterprise-dashboard">
+      {/* Header */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Title level={2} style={{ margin: 0, color: "var(--dm-title)" }}>Thống kê & Phân tích</Title>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>Doanh thu, khu vực hoạt động và kiểm duyệt rủi ro</Text>
+        </Col>
+        <Col>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-refresh-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <BarChartOutlined style={{ color: "var(--dm-refresh-text)", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Giao dịch</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--dm-title)", lineHeight: 1.2 }}>{num.format(metrics.revenue.giaoDichThanhCong + metrics.revenue.giaoDichThatBai)}</div>
+              </div>
+            </div>
+            <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-tag-green-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <FundOutlined style={{ color: "#059669", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Doanh thu</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--dm-title)", lineHeight: 1.2 }}>{money.format(metrics.revenue.tongDoanhThuUocTinh)}</div>
+              </div>
+            </div>
+            <Button
+              icon={<ReloadOutlined />}
+              size="large"
+              onClick={loadMetrics}
+              loading={loading}
+              style={{ height: "auto", borderRadius: 8, fontWeight: 500, borderColor: "var(--dm-refresh-border)", color: "var(--dm-refresh-text)", background: "var(--dm-refresh-bg)" }}
+            >
+              Làm mới
+            </Button>
+            <Button
+              icon={<ExportOutlined />}
+              size="large"
+              type="primary"
+              style={{ height: "auto", borderRadius: 8, fontWeight: 500, background: "#4f46e5" }}
+            >
+              Xuất báo cáo
+            </Button>
           </div>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <Button icon={<ReloadOutlined />} onClick={loadMetrics}>Làm mới</Button>
-            <Button type="primary">Xuất báo cáo</Button>
-          </div>
-        </div>
-      </Card>
+        </Col>
+      </Row>
 
       {loading ? (
         <Card variant="borderless" className="enterprise-panel" style={{ marginTop: 14 }}>

@@ -11,22 +11,37 @@ import {
   Row,
   Select,
   Space,
-  Statistic,
-  Table,
   DatePicker,
-  Tag,
+  Table,
   Typography,
   message,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { EyeOutlined, LockOutlined, PlusOutlined, SearchOutlined, UnlockOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
+import {
+  EyeOutlined,
+  LockOutlined,
+  PlusOutlined,
+  SearchOutlined,
+  UnlockOutlined,
+  SafetyCertificateOutlined,
+  TeamOutlined,
+  FilterOutlined,
+  ReloadOutlined,
+  ClockCircleOutlined,
+  SyncOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExclamationCircleOutlined,
+  StopOutlined,
+} from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "../../stores/hooks";
 import { banAccount, createAdminAccount, createUserAccount, getAdmins, getUsers, unbanAccount } from "../../stores/slices/user.slice";
 import type { AccountItem, KycStatus, Role } from "../../types/user.type";
+import "../../pages/dashboard/dashboard-enterprise.css";
+import "../../pages/complaints/disputes.css";
 
-
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
 type Props = {
   role: Role;
@@ -42,20 +57,12 @@ type FilterState = {
   limit: number;
 };
 
-const getKycTag = (kycStatus: KycStatus) => {
-  const map: Record<KycStatus, { color: string; label: string }> = {
-    pending: { color: "default", label: "Chờ xác thực" },
-    in_review: { color: "gold", label: "Đang thẩm định" },
-    verified: { color: "success", label: "Đã xác thực" },
-    rejected: { color: "error", label: "Từ chối" },
-    expired: { color: "default", label: "Hết hạn" },
-  };
-
-  return (
-    <Tag color={map[kycStatus].color} icon={<SafetyCertificateOutlined />}>
-      {map[kycStatus].label}
-    </Tag>
-  );
+const kycStatusConfig: Record<KycStatus, { dot: string; bg: string; color: string; label: string }> = {
+  pending: { dot: "#6b7280", bg: "var(--dm-tag-gray-bg)", color: "var(--dm-label)", label: "Chờ xác thực" },
+  in_review: { dot: "#f59e0b", bg: "var(--dm-tag-yellow-bg)", color: "var(--dm-tag-yellow-text)", label: "Đang thẩm định" },
+  verified: { dot: "#10b981", bg: "var(--dm-tag-green-bg)", color: "var(--dm-tag-green-text)", label: "Đã xác thực" },
+  rejected: { dot: "#ef4444", bg: "var(--dm-tag-red-bg)", color: "var(--dm-tag-red-text)", label: "Từ chối" },
+  expired: { dot: "#6b7280", bg: "var(--dm-tag-gray-bg)", color: "var(--dm-label)", label: "Hết hạn" },
 };
 
 const AccountManagementPage = ({ role, title, detailBasePath }: Props) => {
@@ -137,9 +144,8 @@ const AccountManagementPage = ({ role, title, detailBasePath }: Props) => {
   const stats = useMemo(() => {
     const banned = items.filter((item) => item.isBanned).length;
     const verified = items.filter((item) => item.kycStatus === "verified").length;
-    const active = items.filter((item) => item.isActive).length;
 
-    return { banned, verified, active };
+    return { banned, verified };
   }, [items]);
 
   const onSearch = () => {
@@ -223,75 +229,134 @@ const AccountManagementPage = ({ role, title, detailBasePath }: Props) => {
       title: "Tài khoản",
       dataIndex: "fullName",
       key: "fullName",
-      width: 300,
+      width: 280,
       render: (_, record) => (
-        <Space>
-          <Avatar src={record.avatarUrl || undefined}>{record.fullName.slice(0, 1)}</Avatar>
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <Avatar size={40} src={record.avatarUrl || undefined} style={{ flexShrink: 0, backgroundColor: "#6366f1" }}>
+            {record.fullName.slice(0, 1)}
+          </Avatar>
           <div style={{ minWidth: 0 }}>
-            <Text strong ellipsis={{ tooltip: record.fullName }} style={{ maxWidth: 200 }}>
+            <div style={{ fontWeight: 600, color: "var(--dm-title)", fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 200 }}>
               {record.fullName}
-            </Text>
-            <div>
-              <Text type="secondary" ellipsis={{ tooltip: record.email || "Chưa có email" }} style={{ maxWidth: 220 }}>
-                {record.email || "Chưa có email"}
-              </Text>
+            </div>
+            <div style={{ color: "var(--dm-subtitle)", fontSize: 12, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 220 }}>
+              {record.email || "Chưa có email"}
             </div>
           </div>
-        </Space>
+        </div>
       ),
     },
     {
       title: "Điện thoại",
       dataIndex: "phone",
       key: "phone",
-      width: 150,
-      render: (phone) => phone || "-",
+      width: 140,
+      render: (phone) => (
+        <span style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>{phone || "—"}</span>
+      ),
     },
-     ...(role !== "admin"
-    ? [
-        {
-          title: "eKYC",
-          dataIndex: "kycStatus",
-          key: "kycStatus",
-          width: 140,
-          render: (kycStatus: KycStatus) => getKycTag(kycStatus),
-        },
-        {
-          title: "AI Score",
-          key: "kycScore",
-          width: 100,
-          render: (_: unknown, record: AccountItem) => {
-            const score = record.kycScore ?? record.latestKycDocument?.score;
-            return typeof score === "number" ? Math.round(score) : "-";
+    ...(role !== "admin"
+      ? [
+          {
+            title: "eKYC",
+            dataIndex: "kycStatus",
+            key: "kycStatus",
+            width: 150,
+            render: (kycStatus: KycStatus) => {
+              const config = kycStatusConfig[kycStatus] || kycStatusConfig.pending;
+              const iconMap: Record<string, React.ReactNode> = {
+                pending: <ClockCircleOutlined style={{ fontSize: 12 }} />,
+                in_review: <SyncOutlined spin style={{ fontSize: 12 }} />,
+                verified: <CheckCircleOutlined style={{ fontSize: 12 }} />,
+                rejected: <CloseCircleOutlined style={{ fontSize: 12 }} />,
+                expired: <ExclamationCircleOutlined style={{ fontSize: 12 }} />,
+              };
+              return (
+                <span style={{
+                  background: config.bg, color: config.color, padding: "4px 12px",
+                  borderRadius: 16, fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5,
+                }}>
+                  {iconMap[kycStatus]}
+                  {config.label}
+                </span>
+              );
+            },
           },
-        },
-      ]
-    : []),
+          {
+            title: "AI Score",
+            key: "kycScore",
+            width: 90,
+            render: (_: unknown, record: AccountItem) => {
+              const score = record.kycScore ?? record.latestKycDocument?.score;
+              const displayScore = typeof score === "number" ? Math.round(score) : null;
+              if (displayScore === null) return <span style={{ color: "var(--dm-input-icon)" }}>—</span>;
+
+              const scoreColor = displayScore >= 80 ? "#065f46" : displayScore >= 50 ? "#92400e" : "#991b1b";
+              const scoreBg = displayScore >= 80 ? "#d1fae5" : displayScore >= 50 ? "#fef3c7" : "#fee2e2";
+              return (
+                <span style={{
+                  background: scoreBg, color: scoreColor, padding: "4px 10px",
+                  borderRadius: 16, fontSize: 12, fontWeight: 600,
+                }}>
+                  {displayScore}
+                </span>
+              );
+            },
+          },
+        ]
+      : []),
     {
       title: "Trạng thái",
       key: "status",
-      width: 210,
+      width: 200,
       render: (_, record) => (
-        <Space>
-          <Tag color={record.isActive ? "success" : "default"}>{record.isActive ? "Đang hoạt động" : "Ngưng hoạt động"}</Tag>
-          {record.isBanned ? <Tag color="error">Đang bị khóa</Tag> : <Tag color="processing">Bình thường</Tag>}
-        </Space>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+          <span style={{
+            background: record.isActive ? "#d1fae5" : "#f3f4f6",
+            color: record.isActive ? "#065f46" : "#374151",
+            padding: "4px 12px", borderRadius: 16, fontSize: 12, fontWeight: 500,
+            display: "inline-flex", alignItems: "center", gap: 5,
+          }}>
+            {record.isActive ? <CheckCircleOutlined style={{ fontSize: 12 }} /> : <StopOutlined style={{ fontSize: 12 }} />}
+            {record.isActive ? "Đang hoạt động" : "Ngưng hoạt động"}
+          </span>
+          {record.isBanned && (
+            <span style={{
+              background: "var(--dm-stat-icon-red-bg)", color: "var(--dm-tag-red-text)",
+              padding: "4px 12px", borderRadius: 16, fontSize: 12, fontWeight: 500,
+              display: "inline-flex", alignItems: "center", gap: 5,
+            }}>
+              <LockOutlined style={{ fontSize: 12 }} />
+              Đang bị khóa
+            </span>
+          )}
+        </div>
       ),
     },
     {
       title: "Ngày tạo",
       dataIndex: "createdAt",
       key: "createdAt",
-      width: 120,
-      render: (value: string) => new Date(value).toLocaleDateString("vi-VN"),
+      width: 110,
+      render: (value: string) => (
+        <span style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>
+          {new Date(value).toLocaleDateString("vi-VN")}
+        </span>
+      ),
     },
     {
       title: "Hành động",
       key: "actions",
-      width: 260,
+      width: 220,
       render: (_, record) => (
-        <Space wrap size={[8, 8]}>
-          <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`${detailBasePath}/${record.id}`)}>
+        <Space size="small">
+          <Button
+            type="primary"
+            ghost
+            icon={<EyeOutlined />}
+            style={{ background: "var(--dm-tag-blue-bg)", borderColor: "transparent", color: "#2563eb", borderRadius: 6, fontWeight: 500 }}
+            onClick={() => navigate(`${detailBasePath}/${record.id}`)}
+          >
             Chi tiết
           </Button>
           {record.isBanned ? (
@@ -301,13 +366,20 @@ const AccountManagementPage = ({ role, title, detailBasePath }: Props) => {
               okText="Xác nhận"
               cancelText="Huỷ"
             >
-              <Button icon={<UnlockOutlined />} type="default">
+              <Button
+                icon={<UnlockOutlined />}
+                style={{ background: "var(--dm-tag-green-bg)", borderColor: "transparent", color: "var(--dm-tag-green-text)", borderRadius: 6, fontWeight: 500 }}
+              >
                 Mở khóa
               </Button>
             </Popconfirm>
           ) : (
-            <Button icon={<LockOutlined />} danger type="primary" onClick={() => openBanModal(record)}>
-              Khóa tài khoản
+            <Button
+              icon={<LockOutlined />}
+              style={{ background: "var(--dm-tag-red-bg)", borderColor: "transparent", color: "#ef4444", borderRadius: 6, fontWeight: 500 }}
+              onClick={() => openBanModal(record)}
+            >
+              Khóa
             </Button>
           )}
         </Space>
@@ -316,77 +388,98 @@ const AccountManagementPage = ({ role, title, detailBasePath }: Props) => {
   ];
 
   return (
-    <div className="admin-page-shell">
+    <div className="dispute-management-page">
       {contextHolder}
 
-      <Card className="hero-surface" variant="borderless">
-        <Row justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col>
-            <Typography.Title level={3} style={{ marginBottom: 4 }}>
-              {title}
-            </Typography.Title>
-            <Text type="secondary">Quản lý các tài khoản </Text>
-          </Col>
-          <Col>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpenCreate(true)}>
+      {/* Header */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Title level={2} style={{ margin: 0, color: "var(--dm-title)" }}>{title}</Title>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>Quản lý toàn bộ tài khoản {role === "user" ? "người dùng" : "quản trị viên"} trên hệ thống.</Text>
+        </Col>
+        <Col>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-refresh-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <TeamOutlined style={{ color: "var(--dm-refresh-text)", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Tổng tài khoản</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--dm-title)", lineHeight: 1.2 }}>{total}</div>
+              </div>
+            </div>
+            {role !== "admin" && (
+              <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-tag-green-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <SafetyCertificateOutlined style={{ color: "#059669", fontSize: 20 }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Đã xác thực eKYC</div>
+                  <div style={{ fontSize: 24, fontWeight: 600, color: "var(--dm-title)", lineHeight: 1.2 }}>{stats.verified}</div>
+                </div>
+              </div>
+            )}
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              size="large"
+              style={{ height: "auto", background: "#4f46e5", borderRadius: 8, fontWeight: 500 }}
+              onClick={() => setOpenCreate(true)}
+            >
               Thêm tài khoản
             </Button>
-          </Col>
-        </Row>
-      </Card>
-
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} sm={8}>
-          <Card variant="borderless">
-            <Statistic title="Tổng tài khoản đang hiển thị" value={items.length} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card variant="borderless">
-            <Statistic title="Đã xác thực eKYC" value={stats.verified} styles={{ content: { color: "#2f9e44" } }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card variant="borderless">
-            <Statistic title="Đang bị ban" value={stats.banned} styles={{ content: { color: "#d6336c" } }} />
-          </Card>
+            <Button
+              icon={<ReloadOutlined />}
+              size="large"
+              onClick={onSearch}
+              loading={loading}
+              style={{ height: "auto", borderRadius: 8, fontWeight: 500, borderColor: "var(--dm-refresh-border)", color: "var(--dm-refresh-text)", background: "var(--dm-refresh-bg)" }}
+            >
+              Làm mới
+            </Button>
+          </div>
         </Col>
       </Row>
 
-      <Card variant="borderless" style={{ marginTop: 16 }}>
-        <Row gutter={[12, 12]}>
-          <Col xs={24} md={10}>
+      {/* Filter Bar */}
+      <Card variant="borderless" className="dispute-filter-card" style={{ marginBottom: 24, borderRadius: 8, border: "1px solid var(--dm-border)" }}>
+        <Row gutter={16} align="bottom">
+          <Col xs={24} md={role !== "admin" ? 8 : 10}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)", marginBottom: 6 }}>Tìm kiếm tài khoản</div>
             <Input
               value={filters.search}
               placeholder="Tìm theo tên, email, số điện thoại"
               onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
               onPressEnter={onSearch}
-              prefix={<SearchOutlined />}
+              prefix={<SearchOutlined style={{ color: "var(--dm-input-icon)" }} />}
+              size="large"
             />
           </Col>
-            {role !== "admin" && (
-              <Col xs={12} md={6}>
-                <Select
-                  value={filters.kycStatus}
-                  style={{ width: "100%" }}
-                  onChange={(value) => setFilters((prev) => ({ ...prev, kycStatus: value }))}
-                  options={[
-                    { label: "Tất cả eKYC", value: "all" },
-                    { label: "Đã xác thực", value: "verified" },
-                    { label: "Chờ xác thực", value: "pending" },
-                    { label: "Đang thẩm định", value: "in_review" },
-                    { label: "Từ chối", value: "rejected" },
-                    { label: "Hết hạn", value: "expired" },
-                  ]}
-                />
-          </Col>
-
-            )}
-          
-          <Col xs={12} md={4}>
+          {role !== "admin" && (
+            <Col xs={12} md={5}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)", marginBottom: 6 }}>Trạng thái eKYC</div>
+              <Select
+                value={filters.kycStatus}
+                style={{ width: "100%" }}
+                size="large"
+                onChange={(value) => setFilters((prev) => ({ ...prev, kycStatus: value }))}
+                options={[
+                  { label: "Tất cả eKYC", value: "all" },
+                  { label: "Đã xác thực", value: "verified" },
+                  { label: "Chờ xác thực", value: "pending" },
+                  { label: "Đang thẩm định", value: "in_review" },
+                  { label: "Từ chối", value: "rejected" },
+                  { label: "Hết hạn", value: "expired" },
+                ]}
+              />
+            </Col>
+          )}
+          <Col xs={12} md={role !== "admin" ? 5 : 6}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)", marginBottom: 6 }}>Trạng thái ban</div>
             <Select
               value={filters.isBanned}
               style={{ width: "100%" }}
+              size="large"
               onChange={(value) => setFilters((prev) => ({ ...prev, isBanned: value }))}
               options={[
                 { label: "Tất cả trạng thái", value: "all" },
@@ -395,33 +488,37 @@ const AccountManagementPage = ({ role, title, detailBasePath }: Props) => {
               ]}
             />
           </Col>
-          <Col xs={24} md={4}>
-            <Button type="primary" icon={<SearchOutlined />} onClick={onSearch} block>
-              Tìm kiếm
+          <Col xs={24} md={role !== "admin" ? 6 : 8} style={{ textAlign: "right" }}>
+            <Button size="large" onClick={onSearch} icon={<FilterOutlined />} style={{ color: "var(--dm-refresh-text)", borderColor: "var(--dm-refresh-border)", background: "var(--dm-refresh-bg)", width: "100%" }}>
+              Lọc dữ liệu
             </Button>
           </Col>
         </Row>
+      </Card>
 
-        <div ref={tableContainerRef} style={{ marginTop: 16 }}>
+      {/* Table Card */}
+      <Card variant="borderless" className="dispute-table-card" style={{ borderRadius: 8, border: "1px solid var(--dm-border)", padding: 0, overflow: "hidden" }}>
+        <div ref={tableContainerRef}>
           <Table
-            className="management-table-no-x"
+            className="custom-dispute-table"
             rowKey="id"
             columns={columns}
             dataSource={items}
             loading={loading}
             onRow={(record) => ({
-              style: record.kycStatus === "in_review" ? { background: "#fffbe6" } : undefined,
+              style: record.kycStatus === "in_review" ? { background: "var(--dm-tag-yellow-bg)" } : undefined,
             })}
             scroll={{ y: tableScrollY }}
             tableLayout="fixed"
-            pagination={{
-              current: filters.page,
-              pageSize: filters.limit,
-              total,
-              showSizeChanger: true,
-              onChange: (page, pageSize) => setFilters((prev) => ({ ...prev, page, limit: pageSize })),
-            }}
+            pagination={false}
           />
+        </div>
+        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--dm-border)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--dm-surface-soft)" }}>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>Đang hiển thị {items.length} / {total} mục</Text>
+          <Space>
+            <Button disabled={filters.page === 1} onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}>Trước</Button>
+            <Button disabled={items.length < filters.limit} onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}>Tiếp</Button>
+          </Space>
         </div>
       </Card>
 

@@ -9,9 +9,7 @@ import {
   Row,
   Select,
   Space,
-  Statistic,
   Table,
-  Tag,
   Typography,
   App,
 } from "antd";
@@ -21,9 +19,21 @@ import {
   EyeOutlined,
   SearchOutlined,
   ReloadOutlined,
+  HomeFilled,
+  FilterOutlined,
+  EyeInvisibleOutlined,
+  BankOutlined,
+  HomeOutlined,
+  EnvironmentOutlined,
+  ShopOutlined,
+  ApartmentOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { Property } from "../../types/property-new.type";
+import "../../pages/dashboard/dashboard-enterprise.css";
+import "../../pages/complaints/disputes.css";
+
+const { Title, Text } = Typography;
 
 type ApprovalStatus = "pending" | "approved" | "rejected";
 
@@ -39,6 +49,26 @@ type Props = {
   onReject?: (id: string, reason: string) => void;
   onBatchApprove?: (ids: string[]) => void;
   onBatchReject?: (ids: string[], reason: string) => void;
+};
+
+const statusConfig: Record<string, { dot: string; bg: string; color: string; label: string }> = {
+  pending: { dot: "#f59e0b", bg: "var(--dm-tag-yellow-bg)", color: "var(--dm-tag-yellow-text)", label: "Chờ duyệt" },
+  approved: { dot: "#10b981", bg: "var(--dm-tag-green-bg)", color: "var(--dm-tag-green-text)", label: "Đã duyệt" },
+  rejected: { dot: "#ef4444", bg: "var(--dm-tag-red-bg)", color: "var(--dm-tag-red-text)", label: "Từ chối" },
+};
+
+const typeConfig: Record<string, { bg: string; color: string; label: string }> = {
+  apartment: { bg: "var(--dm-tag-blue-bg)", color: "var(--dm-tag-blue-text)", label: "Căn hộ" },
+  house: { bg: "var(--dm-tag-indigo-bg)", color: "var(--dm-tag-indigo-text)", label: "Nhà ở" },
+  land: { bg: "var(--dm-tag-yellow-bg)", color: "var(--dm-tag-yellow-text)", label: "Đất nền" },
+  office: { bg: "var(--dm-tag-purple-bg)", color: "var(--dm-tag-purple-text)", label: "Văn phòng" },
+  room: { bg: "var(--dm-tag-red-bg)", color: "var(--dm-tag-red-text)", label: "Phòng trọ" },
+};
+
+const visibilityConfig: Record<string, { dot: string; bg: string; color: string; label: string }> = {
+  active: { dot: "#10b981", bg: "var(--dm-tag-green-bg)", color: "var(--dm-tag-green-text)", label: "Đang hiển thị" },
+  inactive: { dot: "#6b7280", bg: "var(--dm-tag-gray-bg)", color: "var(--dm-label)", label: "Đã ẩn" },
+  hidden: { dot: "#6b7280", bg: "var(--dm-tag-gray-bg)", color: "var(--dm-label)", label: "Đã ẩn" },
 };
 
 const PropertyModerationBoard = ({
@@ -112,7 +142,6 @@ const PropertyModerationBoard = ({
     () => ({
       total: filtered.length,
       verifiedLandlords: filtered.filter((item) => item.landlord?.email).length,
-      avgPrice: filtered.length ? Math.round(filtered.reduce((sum, item) => sum + item.pricePerMonth, 0) / filtered.length) : 0,
     }),
     [filtered],
   );
@@ -180,63 +209,152 @@ const PropertyModerationBoard = ({
     {
       title: "Bất động sản",
       key: "title",
+      width: 300,
       render: (_, record) => (
-        <Space>
-          <Avatar shape="square" size={44} src={record.images?.[0]?.uri}>
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <Avatar shape="square" size={48} src={record.images?.[0]?.uri} style={{ borderRadius: 8, flexShrink: 0 }}>
             {record.title.slice(0, 1)}
           </Avatar>
           <div>
-            <Typography.Text strong>{record.title}</Typography.Text>
-            <div>
-              <Typography.Text type="secondary">{record.address}</Typography.Text>
+            <div style={{ fontWeight: 600, color: "var(--dm-title)", fontSize: 14 }}>{record.title}</div>
+            <div style={{ color: "var(--dm-subtitle)", fontSize: 12, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 220 }}>
+              {record.address}
             </div>
           </div>
-        </Space>
+        </div>
       ),
     },
     {
-      title: "Loại",
+      title: "Loại BĐS",
       dataIndex: "propertyType",
       key: "propertyType",
-      render: (value: string) => <Tag>{value}</Tag>,
+      width: 120,
+      render: (value: string) => {
+        const config = typeConfig[value] || { bg: "var(--dm-tag-gray-bg)", color: "var(--dm-label)", label: value };
+        const iconMap: Record<string, React.ReactNode> = {
+          apartment: <ApartmentOutlined style={{ fontSize: 12 }} />,
+          house: <HomeOutlined style={{ fontSize: 12 }} />,
+          land: <EnvironmentOutlined style={{ fontSize: 12 }} />,
+          office: <ShopOutlined style={{ fontSize: 12 }} />,
+          room: <BankOutlined style={{ fontSize: 12 }} />,
+        };
+        return (
+          <span style={{
+            background: config.bg, color: config.color, padding: "4px 12px",
+            borderRadius: 16, fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5,
+          }}>
+            {iconMap[value]}
+            {config.label}
+          </span>
+        );
+      },
     },
     {
       title: "Chủ nhà",
       key: "landlord",
-      render: (_, record) => record.landlord?.fullName || "-",
+      width: 160,
+      render: (_, record) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <span style={{ fontWeight: 500, color: "var(--dm-title)", fontSize: 13 }}>{record.landlord?.fullName || "—"}</span>
+          <span style={{ color: "var(--dm-subtitle)", fontSize: 12 }}>{record.landlord?.email || ""}</span>
+        </div>
+      ),
     },
     {
       title: "Giá / tháng",
       dataIndex: "pricePerMonth",
       key: "pricePerMonth",
-      render: (value: number) => `${value.toLocaleString("vi-VN")} VND`,
+      width: 140,
+      render: (value: number) => (
+        <span style={{ fontWeight: 600, color: "var(--dm-title)", fontSize: 14 }}>
+          {value.toLocaleString("vi-VN")} <span style={{ fontWeight: 400, color: "var(--dm-subtitle)", fontSize: 12 }}>VND</span>
+        </span>
+      ),
     },
+    ...(status === "approved"
+      ? [
+          {
+            title: "Hiển thị",
+            key: "visibility",
+            width: 140,
+            render: (_: unknown, record: Property) => {
+              const config = visibilityConfig[record.status] || visibilityConfig.inactive;
+              const visIcon = record.status === "active"
+                ? <EyeOutlined style={{ fontSize: 12 }} />
+                : <EyeInvisibleOutlined style={{ fontSize: 12 }} />;
+              return (
+                <span style={{
+                  background: config.bg, color: config.color, padding: "4px 12px",
+                  borderRadius: 16, fontSize: 12, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 5,
+                }}>
+                  {visIcon}
+                  {config.label}
+                </span>
+              );
+            },
+          },
+        ]
+      : []),
     {
       title: "Ngày đăng",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (value: string) => new Date(value).toLocaleDateString("vi-VN"),
+      width: 110,
+      render: (value: string) => (
+        <span style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>
+          {new Date(value).toLocaleDateString("vi-VN")}
+        </span>
+      ),
     },
     {
       title: "Hành động",
       key: "action",
+      width: status === "pending" ? 240 : 160,
       render: (_, record) => (
-        <Space>
-          <Button icon={<EyeOutlined />} onClick={() => onView?.(record.propertyId)}>Xem</Button>
+        <Space size="small">
+          <Button
+            type="primary"
+            ghost
+            icon={<EyeOutlined />}
+            style={{ background: "var(--dm-tag-blue-bg)", borderColor: "transparent", color: "#2563eb", borderRadius: 6 }}
+            onClick={() => onView?.(record.propertyId)}
+          >
+            Xem
+          </Button>
           {status === "pending" && (
             <>
-              <Button type="primary" icon={<CheckOutlined />} onClick={() => onApprove?.(record.propertyId)}>
+              <Button
+                type="primary"
+                ghost
+                icon={<CheckOutlined />}
+                style={{ background: "var(--dm-tag-green-bg)", borderColor: "transparent", color: "var(--dm-tag-green-text)", borderRadius: 6 }}
+                onClick={() => onApprove?.(record.propertyId)}
+              >
                 Duyệt
               </Button>
-              <Button danger icon={<CloseOutlined />} onClick={() => setRejectingId(record.propertyId)}>
+              <Button
+                type="primary"
+                danger
+                ghost
+                icon={<CloseOutlined />}
+                style={{ background: "var(--dm-tag-red-bg)", borderColor: "transparent", color: "#ef4444", borderRadius: 6 }}
+                onClick={() => setRejectingId(record.propertyId)}
+              >
                 Từ chối
               </Button>
             </>
           )}
           {status === "approved" && (
             <Button
-              type={record.status === "active" ? "default" : "primary"}
-              danger={record.status === "active"}
+              type="primary"
+              ghost
+              icon={record.status === "active" ? <EyeInvisibleOutlined /> : <EyeOutlined />}
+              style={{
+                background: record.status === "active" ? "#fef2f2" : "#d1fae5",
+                borderColor: "transparent",
+                color: record.status === "active" ? "#ef4444" : "#065f46",
+                borderRadius: 6,
+              }}
               onClick={() => onToggleVisibility?.(record.propertyId, record.status !== "active")}
             >
               {record.status === "active" ? "Ẩn tin" : "Hiện tin"}
@@ -258,132 +376,161 @@ const PropertyModerationBoard = ({
   const isAllSelected = filtered.length > 0 && selectedRowKeys.length === filtered.length;
 
   return (
-    <div className="admin-page-shell">
-      <Card className="hero-surface" variant="borderless">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div>
-            <Typography.Title level={3} style={{ marginBottom: 2 }}>
-              {title}
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              Thiết kế bảng điều phối theo chuẩn enterprise, đồng bộ theme với toàn hệ thống.
-            </Typography.Text>
+    <div className="dispute-management-page">
+      {/* Header */}
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Title level={2} style={{ margin: 0, color: "var(--dm-title)" }}>{title}</Title>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>Quản lý duyệt và kiểm duyệt bất động sản trên hệ thống.</Text>
+        </Col>
+        <Col>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
+              <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-stat-icon-blue-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <HomeFilled style={{ color: "#2563eb", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Tổng bài đăng</div>
+                <div style={{ fontSize: 24, fontWeight: 600, color: "var(--dm-title)", lineHeight: 1.2 }}>{stats.total}</div>
+              </div>
+            </div>
+            <Button
+              icon={<ReloadOutlined />}
+              size="large"
+              onClick={onRefresh}
+              loading={loading}
+              style={{ height: "auto", borderRadius: 8, fontWeight: 500, borderColor: "var(--dm-refresh-border)", color: "var(--dm-refresh-text)", background: "var(--dm-refresh-bg)" }}
+            >
+              Làm mới
+            </Button>
           </div>
-          <Button icon={<ReloadOutlined />} onClick={onRefresh} loading={loading}>
-            Làm mới
-          </Button>
-        </div>
-      </Card>
-
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} sm={12}>
-          <Card variant="borderless">
-            <Statistic title="Tổng bài đăng" value={stats.total} />
-          </Card>
         </Col>
-        <Col xs={24} sm={12}>
-          <Card variant="borderless">
-            <Statistic title="Có thông tin landlord" value={stats.verifiedLandlords} />
-          </Card>
-        </Col>
-        {/* <Col xs={24} sm={8}>
-          <Card variant="borderless">
-            <Statistic title="Giá trung bình" value={stats.avgPrice} suffix="VND" />
-          </Card>
-        </Col> */}
       </Row>
 
-      <Card variant="borderless" style={{ marginTop: 16 }}>
-        <Row gutter={[12, 12]}>
-          <Col xs={24} md={12}>
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} prefix={<SearchOutlined />} placeholder="Tìm theo tiêu đề hoặc địa chỉ" />
+      {/* Filter Bar */}
+      <Card variant="borderless" className="dispute-filter-card" style={{ marginBottom: 24, borderRadius: 8, border: "1px solid var(--dm-border)" }}>
+        <Row gutter={16} align="bottom">
+          <Col xs={24} md={8}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)", marginBottom: 6 }}>Tìm kiếm bất động sản</div>
+            <Input
+              prefix={<SearchOutlined style={{ color: "var(--dm-input-icon)" }} />}
+              placeholder="VD: Căn hộ 2PN Quận 7..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              size="large"
+            />
           </Col>
-          <Col xs={12} md={6}>
+          <Col xs={12} md={5}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)", marginBottom: 6 }}>Loại bất động sản</div>
             <Select
               value={selectedType}
               onChange={setSelectedType}
               style={{ width: "100%" }}
+              size="large"
               options={[
                 { label: "Tất cả loại", value: "all" },
-                { label: "Apartment", value: "apartment" },
-                { label: "House", value: "house" },
-                { label: "Land", value: "land" },
-                { label: "Office", value: "office" },
-                { label: "Room", value: "room" },
+                { label: "Căn hộ", value: "apartment" },
+                { label: "Nhà ở", value: "house" },
+                { label: "Đất nền", value: "land" },
+                { label: "Văn phòng", value: "office" },
+                { label: "Phòng trọ", value: "room" },
               ]}
             />
           </Col>
-          <Col xs={12} md={6}>
+          <Col xs={12} md={7}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: "var(--dm-label)", marginBottom: 6 }}>Sắp xếp theo</div>
             <Select
               value={sort}
               onChange={setSort}
               style={{ width: "100%" }}
+              size="large"
               options={[
                 { label: "Mới nhất", value: "newest" },
                 { label: "Cũ nhất", value: "oldest" },
-                { label: "Giá cao", value: "price_high" },
-                { label: "Giá thấp", value: "price_low" },
+                { label: "Giá cao → thấp", value: "price_high" },
+                { label: "Giá thấp → cao", value: "price_low" },
               ]}
             />
           </Col>
+          <Col xs={24} md={4} style={{ textAlign: "right" }}>
+            <Button size="large" icon={<FilterOutlined />} style={{ color: "var(--dm-refresh-text)", borderColor: "var(--dm-refresh-border)", background: "var(--dm-refresh-bg)", width: "100%" }}>
+              Bộ lọc khác
+            </Button>
+          </Col>
         </Row>
+      </Card>
 
-        {/* Batch Action Bar — only visible on pending status */}
-        {status === "pending" && (
-          <div
-            style={{
-              marginTop: 12,
-              padding: "10px 16px",
-              background: selectedRowKeys.length > 0 ? "#EEF2FF" : "#F8FAFC",
-              borderRadius: 8,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 8,
-              border: "1px solid #E2E8F0",
-            }}
-          >
-            <Space>
-              <Button size="small" onClick={handleSelectAll}>
-                {isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
-              </Button>
-              <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-                Đã chọn <Typography.Text strong>{selectedRowKeys.length}</Typography.Text> / {filtered.length} bất động sản
-              </Typography.Text>
-            </Space>
-            <Space>
-              <Button
-                type="primary"
-                icon={<CheckOutlined />}
-                disabled={selectedRowKeys.length === 0}
-                onClick={handleBatchApprove}
-              >
-                Duyệt đã chọn
-              </Button>
-              <Button
-                danger
-                icon={<CloseOutlined />}
-                disabled={selectedRowKeys.length === 0}
-                onClick={handleBatchReject}
-              >
-                Từ chối đã chọn
-              </Button>
-            </Space>
-          </div>
-        )}
+      {/* Batch Action Bar — only visible on pending status */}
+      {status === "pending" && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "12px 20px",
+            background: selectedRowKeys.length > 0 ? "var(--dm-tag-indigo-bg)" : "var(--dm-surface-soft)",
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 8,
+            border: "1px solid var(--dm-border)",
+          }}
+        >
+          <Space>
+            <Button size="small" onClick={handleSelectAll} style={{ borderRadius: 6 }}>
+              {isAllSelected ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+            </Button>
+            <Text style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>
+              Đã chọn <Text strong>{selectedRowKeys.length}</Text> / {filtered.length} bất động sản
+            </Text>
+          </Space>
+          <Space>
+            <Button
+              type="primary"
+              ghost
+              icon={<CheckOutlined />}
+              disabled={selectedRowKeys.length === 0}
+              onClick={handleBatchApprove}
+              style={{ background: "var(--dm-tag-green-bg)", borderColor: "transparent", color: "var(--dm-tag-green-text)", borderRadius: 6, fontWeight: 500 }}
+            >
+              Duyệt đã chọn
+            </Button>
+            <Button
+              type="primary"
+              danger
+              ghost
+              icon={<CloseOutlined />}
+              disabled={selectedRowKeys.length === 0}
+              onClick={handleBatchReject}
+              style={{ background: "var(--dm-tag-red-bg)", borderColor: "transparent", color: "#ef4444", borderRadius: 6, fontWeight: 500 }}
+            >
+              Từ chối đã chọn
+            </Button>
+          </Space>
+        </div>
+      )}
 
-        <div ref={tableContainerRef} style={{ marginTop: 16 }}>
+      {/* Table Card */}
+      <Card variant="borderless" className="dispute-table-card" style={{ borderRadius: 8, border: "1px solid var(--dm-border)", padding: 0, overflow: "hidden" }}>
+        <div ref={tableContainerRef}>
           <Table
             rowKey="propertyId"
-            className="management-table-no-x"
+            className="custom-dispute-table"
             loading={loading}
             columns={columns}
             dataSource={filtered}
             scroll={{ y: tableScrollY }}
             tableLayout="fixed"
             rowSelection={rowSelection}
+            pagination={false}
           />
+        </div>
+        <div style={{ padding: "16px 24px", borderTop: "1px solid var(--dm-border)", display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--dm-surface-soft)" }}>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 13 }}>Đang hiển thị {filtered.length} / {properties.length} mục</Text>
+          <Space>
+            <Button disabled>Trước</Button>
+            <Button disabled>Tiếp</Button>
+          </Space>
         </div>
       </Card>
 
