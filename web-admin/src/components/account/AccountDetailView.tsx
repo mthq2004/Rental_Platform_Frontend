@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Avatar, Button, Card, Col, DatePicker, Descriptions, Image, Input, Modal, Row, Select, Space, Tag, Typography, message } from "antd";
+import { Avatar, Button, Card, Col, DatePicker, Image, Input, Modal, Row, Select, Space, Tag, Typography, message } from "antd";
 import { ArrowLeftOutlined, LockOutlined, SafetyCertificateOutlined, UnlockOutlined, UserOutlined, IdcardOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import type { Role } from "../../types/user.type";

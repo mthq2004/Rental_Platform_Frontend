@@ -51,11 +51,6 @@ type Props = {
   onBatchReject?: (ids: string[], reason: string) => void;
 };
 
-const statusConfig: Record<string, { dot: string; bg: string; color: string; label: string }> = {
-  pending: { dot: "#f59e0b", bg: "var(--dm-tag-yellow-bg)", color: "var(--dm-tag-yellow-text)", label: "Chờ duyệt" },
-  approved: { dot: "#10b981", bg: "var(--dm-tag-green-bg)", color: "var(--dm-tag-green-text)", label: "Đã duyệt" },
-  rejected: { dot: "#ef4444", bg: "var(--dm-tag-red-bg)", color: "var(--dm-tag-red-text)", label: "Từ chối" },
-};
 
 const typeConfig: Record<string, { bg: string; color: string; label: string }> = {
   apartment: { bg: "var(--dm-tag-blue-bg)", color: "var(--dm-tag-blue-text)", label: "Căn hộ" },
@@ -466,7 +461,7 @@ const PropertyModerationBoard = ({
           style={{
             marginBottom: 16,
             padding: "12px 20px",
-            background: selectedRowKeys.length > 0 ? "var(--dm-tag-indigo-bg)" : "var(--dm-surface-soft)",
+            background: selectedRowKeys.length > 0 ? "var(--dm-tag-indigo-bg)" : "var(--dm-stat-bg)",
             borderRadius: 8,
             display: "flex",
             alignItems: "center",
@@ -502,7 +497,7 @@ const PropertyModerationBoard = ({
               icon={<CloseOutlined />}
               disabled={selectedRowKeys.length === 0}
               onClick={handleBatchReject}
-              style={{ background: "var(--dm-tag-red-bg)", borderColor: "transparent", color: "#ef4444", borderRadius: 6, fontWeight: 500 }}
+              style={{ background: "var(--dm-tag-red-bg)", borderColor: "transparent", color: "var(--dm-tag-red-text)", borderRadius: 6, fontWeight: 500 }}
             >
               Từ chối đã chọn
             </Button>
