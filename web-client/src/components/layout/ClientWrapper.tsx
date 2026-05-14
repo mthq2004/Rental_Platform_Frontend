@@ -13,6 +13,7 @@ import PushNotificationInitializer from "@/components/common/PushNotificationIni
 export default function ClientWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isChat = pathname?.startsWith("/chat");
+  const isDashboard = pathname.startsWith("/dashboard");
 
   // Suppress Antd React 19 compatibility warning
   if (typeof window !== "undefined") {
@@ -33,13 +34,13 @@ export default function ClientWrapper({ children }: { children: React.ReactNode 
       <AuthTokenSync />
       <PushNotificationInitializer />
       <NotificationSocketProvider>
-      <ChatSocketProvider>
-        <CallProvider>
-          {children}
-          {!isChat && <AIChatBox />}
-          <CallOverlay />
-        </CallProvider>
-      </ChatSocketProvider>
+        <ChatSocketProvider>
+          <CallProvider>
+            {children}
+            {!isChat && !isDashboard && <AIChatBox />}
+            <CallOverlay />
+          </CallProvider>
+        </ChatSocketProvider>
       </NotificationSocketProvider>
     </ReduxProvider>
   );
