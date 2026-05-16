@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import { PropertyFormData } from "@/types/property.type";
 import { Editor } from "@tinymce/tinymce-react";
+import TextEditor from "@/components/TextEditor";
 const { TextArea } = Input;
 
 interface DescriptionSectionProps {
@@ -192,7 +193,7 @@ export default function DescriptionSection({
                                     className="group relative inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-white overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed bg-linear-to-r from-blue-500 to-blue-600"
                                 >
                                     {/* Shimmer Effect */}
-                                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-linear-to-r from-transparent via-white/20 to-transparent"/>
+                                    <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-linear-to-r from-transparent via-white/20 to-transparent" />
 
                                     {isGeneratingAI ? (
                                         <>
@@ -210,7 +211,7 @@ export default function DescriptionSection({
                             </div>
                         </div>
 
-                        <Editor
+                        {/* <Editor
                             apiKey="kwxyzg10ywt6lk8ia1b6cx1ix2s5ydtgtnnu52mqfavyz6u8"
                             value={formData.description}
                             init={{
@@ -218,39 +219,41 @@ export default function DescriptionSection({
                                 menubar: true,
 
                                 plugins: [
-                                "advlist",
-                                "autolink",
-                                "lists",
-                                "link",
-                                "image",
-                                "charmap",
-                                "preview",
-                                "anchor",
-                                "searchreplace",
-                                "visualblocks",
-                                "code",
-                                "fullscreen",
-                                "insertdatetime",
-                                "media",
-                                "table",
-                                "help",
-                                "wordcount",
+                                    "advlist",
+                                    "autolink",
+                                    "lists",
+                                    "link",
+                                    "image",
+                                    "charmap",
+                                    "preview",
+                                    "anchor",
+                                    "searchreplace",
+                                    "visualblocks",
+                                    "code",
+                                    "fullscreen",
+                                    "insertdatetime",
+                                    "media",
+                                    "table",
+                                    "help",
+                                    "wordcount",
                                 ],
 
                                 toolbar:
-                                "undo redo | blocks | " +
-                                "bold italic underline | forecolor backcolor | " +
-                                "alignleft aligncenter alignright alignjustify | " +
-                                "bullist numlist outdent indent | " +
-                                "link image table | removeformat",
+                                    "undo redo | blocks | " +
+                                    "bold italic underline | forecolor backcolor | " +
+                                    "alignleft aligncenter alignright alignjustify | " +
+                                    "bullist numlist outdent indent | " +
+                                    "link image table | removeformat",
 
                                 content_style:
-                                "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
+                                    "body { font-family:Helvetica,Arial,sans-serif; font-size:14px }",
                             }}
                             onEditorChange={(content) =>
                                 updateFormData("description", content)
                             }
-                            />
+                        /> */}
+
+                        <TextEditor content={formData.description} onChange={(value) => updateFormData("description", value)} />
 
                         {/* AI Tips */}
                         <div className="flex items-start gap-2 mt-3 p-3 bg-linear-to-r from-blue-50 to-sky-50 rounded-lg border border-blue-100">
