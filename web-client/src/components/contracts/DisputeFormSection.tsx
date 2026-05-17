@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import {
   Alert,
+  App,
   Button,
   Card,
   Divider,
@@ -13,7 +14,6 @@ import {
   Tag,
   Typography,
   Upload,
-  message,
 } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import {
@@ -119,6 +119,7 @@ export default function DisputeFormSection({
   existingReports = [],
 }: DisputeFormSectionProps) {
   const [form] = Form.useForm();
+  const { message } = App.useApp();
   const [evidenceFiles, setEvidenceFiles] = useState<UploadFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);

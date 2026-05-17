@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { BRAND, STEP_LABELS } from "./constants";
 import { ActionButton, BottomActionBar, KycErrorModal } from "./KycPrimitives";
 import { StepContent } from "./KycSteps";
-import { message, Modal, Spin } from "antd";
+import { App, Modal, Spin } from "antd";
 import { StepBadge, StepperDots } from "./KycStepper";
 import { StepKey } from "./types";
 import { useAppDispatch } from "@/stores/hooks";
@@ -22,6 +22,7 @@ type KycImages = {
 };
 
 export default function KycFlowMock() {
+  const { message, modal } = App.useApp();
   const [step, setStep] = useState<StepKey>(1);
   const [done, setDone] = useState(false);
   const [images, setImages] = useState<KycImages>({});
@@ -40,7 +41,7 @@ export default function KycFlowMock() {
 
   useEffect(() => {
     if (isAuth && user?.kycStatus === "verified") {
-      Modal.success({
+      modal.success({
         title: "Tài khoản đã xác thực",
         content: "Tài khoản của bạn đã hoàn tất xác thực KYC. Bạn không cần thực hiện lại bước này.",
         okText: "Quay lại trang chủ",

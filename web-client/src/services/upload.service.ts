@@ -5,6 +5,19 @@ import Cookies from "js-cookie";
 
 const API_ENDPOINT = process.env.NEXT_PUBLIC_API_ENDPOINT || "http://localhost:8000";
 
+/**
+ * Get upload URL that avoids CORS issues.
+ * Uses Next.js /api-proxy rewrite when running in the browser,
+ * so XHR requests stay same-origin and bypass CORS restrictions.
+ */
+function getUploadUrl(path: string): string {
+    if (typeof window !== "undefined") {
+        // Browser: use Next.js proxy to avoid CORS
+        return `/api-proxy${path.startsWith("/") ? path : `/${path}`}`;
+    }
+    return `${API_ENDPOINT}/api${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export interface UploadedMedia {
     publicId: string;
     url: string;
@@ -83,17 +96,52 @@ function parseUploadResponse(response: any): UploadedMedia | UploadedMedia[] | n
 }
 
 /**
- * Parse error response from XHR
+ * Vietnamese error messages for common HTTP status codes
+ */
+const HTTP_ERROR_MESSAGES: Record<number, string> = {
+    413: "Tệp tải lên quá lớn. Vui lòng chọn tệp nhỏ hơn 10MB.",
+    401: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+    403: "Bạn không có quyền tải lên tệp. Vui lòng kiểm tra tài khoản.",
+    404: "Không tìm thấy dịch vụ tải lên. Vui lòng thử lại sau.",
+    408: "Yêu cầu đã hết thời gian chờ. Vui lòng thử lại.",
+    429: "Bạn đã gửi quá nhiều yêu cầu. Vui lòng đợi một lát rồi thử lại.",
+    500: "Lỗi máy chủ. Vui lòng thử lại sau.",
+    502: "Máy chủ tạm thời không khả dụng. Vui lòng thử lại sau.",
+    503: "Dịch vụ đang bảo trì. Vui lòng thử lại sau.",
+    504: "Máy chủ phản hồi quá chậm. Vui lòng thử lại sau.",
+};
+
+/**
+ * Parse error response from XHR — returns user-friendly Vietnamese error messages
  */
 function parseErrorResponse(xhr: XMLHttpRequest, context: string): Error {
-    try {
-        const errorResponse = JSON.parse(xhr.responseText);
-        console.error(`[${context}] Error response:`, errorResponse);
-        return new Error(errorResponse.message || `Upload thất bại (HTTP ${xhr.status})`);
-    } catch (e) {
-        console.error(`[${context}] Failed to parse error response:`, xhr.responseText);
-        return new Error(`Upload thất bại (HTTP ${xhr.status}: ${xhr.statusText})`);
+    // 1. Check for well-known HTTP status codes first
+    const knownMessage = HTTP_ERROR_MESSAGES[xhr.status];
+    if (knownMessage) {
+        if (process.env.NODE_ENV === "development") {
+            console.warn(`[${context}] HTTP ${xhr.status}: ${knownMessage}`);
+        }
+        return new Error(knownMessage);
     }
+
+    // 2. Try to parse JSON error response from API
+    const raw = xhr.responseText || "";
+    const isHtml = raw.trimStart().startsWith("<");
+
+    if (!isHtml && raw) {
+        try {
+            const errorResponse = JSON.parse(raw);
+            const msg = errorResponse.message || errorResponse.error;
+            if (msg) {
+                return new Error(msg);
+            }
+        } catch {
+            // Not JSON — fall through to generic message
+        }
+    }
+
+    // 3. Generic fallback in Vietnamese
+    return new Error(`Tải lên thất bại (lỗi ${xhr.status}). Vui lòng thử lại.`);
 }
 
 /**
@@ -132,13 +180,13 @@ export async function uploadImage(
                     if (data) {
                         resolve(data as UploadedMedia);
                     } else {
-                        const errorMsg = response.message || response.error || "Upload failed - invalid response format";
+                        const errorMsg = response.message || response.error || "Tải ảnh lên thất bại — định dạng phản hồi không hợp lệ";
                         console.error('[Upload] Invalid response format:', response);
                         reject(new Error(errorMsg));
                     }
                 } catch (e) {
                     console.error('[Upload] Failed to parse response:', xhr.responseText, e);
-                    reject(new Error("Failed to parse response: " + (e as Error).message));
+                    reject(new Error("Không thể xử lý phản hồi từ máy chủ. Vui lòng thử lại."));
                 }
             } else {
                 reject(parseErrorResponse(xhr, 'Upload'));
@@ -157,7 +205,7 @@ export async function uploadImage(
             reject(new Error("Upload đã bị hủy"));
         });
 
-        xhr.open("POST", `${API_ENDPOINT}/api/estate/upload/image`, true);
+        xhr.open("POST", getUploadUrl("/estate/upload/image"), true);
 
         // Add auth token - IMPORTANT: Set headers AFTER open() but BEFORE send()
         const token = getAuthToken();
@@ -208,13 +256,13 @@ export async function uploadImages(
                     if (data) {
                         resolve(Array.isArray(data) ? data : [data]);
                     } else {
-                        const errorMsg = response.message || response.error || "Upload failed - invalid response format";
+                        const errorMsg = response.message || response.error || "Tải ảnh lên thất bại — định dạng phản hồi không hợp lệ";
                         console.error('[Upload Multiple] Invalid response format:', response);
                         reject(new Error(errorMsg));
                     }
                 } catch (e) {
                     console.error('[Upload Multiple] Failed to parse response:', xhr.responseText, e);
-                    reject(new Error("Failed to parse response: " + (e as Error).message));
+                    reject(new Error("Không thể xử lý phản hồi từ máy chủ. Vui lòng thử lại."));
                 }
             } else {
                 reject(parseErrorResponse(xhr, 'Upload Multiple'));
@@ -233,7 +281,7 @@ export async function uploadImages(
             reject(new Error("Upload đã bị hủy"));
         });
 
-        xhr.open("POST", `${API_ENDPOINT}/api/estate/upload/images`, true);
+        xhr.open("POST", getUploadUrl("/estate/upload/images"), true);
 
         const token = getAuthToken();
         if (token) {
@@ -279,13 +327,13 @@ export async function uploadVideo(
                     if (data) {
                         resolve(data as UploadedMedia);
                     } else {
-                        const errorMsg = response.message || response.error || "Upload failed - invalid response format";
+                        const errorMsg = response.message || response.error || "Tải video lên thất bại — định dạng phản hồi không hợp lệ";
                         console.error('[Video Upload] Invalid response format:', response);
                         reject(new Error(errorMsg));
                     }
                 } catch (e) {
                     console.error('[Video Upload] Failed to parse response:', xhr.responseText, e);
-                    reject(new Error("Failed to parse response: " + (e as Error).message));
+                    reject(new Error("Không thể xử lý phản hồi từ máy chủ. Vui lòng thử lại."));
                 }
             } else {
                 reject(parseErrorResponse(xhr, 'Video Upload'));
@@ -304,7 +352,7 @@ export async function uploadVideo(
             reject(new Error("Upload đã bị hủy"));
         });
 
-        xhr.open("POST", `${API_ENDPOINT}/api/estate/upload/video`, true);
+        xhr.open("POST", getUploadUrl("/estate/upload/video"), true);
 
         const token = getAuthToken();
         if (token) {
@@ -352,13 +400,13 @@ export async function uploadVideos(
                     if (data) {
                         resolve(Array.isArray(data) ? data : [data]);
                     } else {
-                        const errorMsg = response.message || response.error || "Upload failed - invalid response format";
+                        const errorMsg = response.message || response.error || "Tải video lên thất bại — định dạng phản hồi không hợp lệ";
                         console.error('[Video Upload Multiple] Invalid response format:', response);
                         reject(new Error(errorMsg));
                     }
                 } catch (e) {
                     console.error('[Video Upload Multiple] Failed to parse response:', xhr.responseText, e);
-                    reject(new Error("Failed to parse response: " + (e as Error).message));
+                    reject(new Error("Không thể xử lý phản hồi từ máy chủ. Vui lòng thử lại."));
                 }
             } else {
                 reject(parseErrorResponse(xhr, 'Video Upload Multiple'));
@@ -377,7 +425,7 @@ export async function uploadVideos(
             reject(new Error("Upload đã bị hủy"));
         });
 
-        xhr.open("POST", `${API_ENDPOINT}/api/estate/upload/videos`, true);
+        xhr.open("POST", getUploadUrl("/estate/upload/videos"), true);
 
         const token = getAuthToken();
         if (token) {
@@ -433,7 +481,7 @@ export interface S3UploadResult {
  */
 async function getS3PresignedUrl(fileName: string, fileType: string): Promise<{ uploadUrl: string; fileUrl: string }> {
     const token = getAuthToken();
-    const res = await fetch(`${API_ENDPOINT}/api/chat/upload-file`, {
+    const res = await fetch(getUploadUrl("/chat/upload-file"), {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -499,32 +547,54 @@ export function isFileImage(file: File): boolean {
     return file.type.startsWith("image/");
 }
 
+/** Maximum file size per file (5MB) — nginx server limits total request body */
+const MAX_UPLOAD_FILE_SIZE = 5 * 1024 * 1024;
+
 /**
- * Upload mixed files: images → Cloudinary, documents → S3
+ * Validate file size before uploading.
+ * Throws a user-friendly Vietnamese error if file is too large.
+ */
+function validateFileSize(file: File, maxBytes: number = MAX_UPLOAD_FILE_SIZE): void {
+    if (file.size > maxBytes) {
+        const maxMB = Math.round(maxBytes / (1024 * 1024));
+        throw new Error(
+            `Tệp "${file.name}" có dung lượng ${(file.size / (1024 * 1024)).toFixed(1)}MB, vượt quá giới hạn ${maxMB}MB. Vui lòng chọn tệp nhỏ hơn.`
+        );
+    }
+}
+
+/**
+ * Upload mixed files: images → Cloudinary (one-by-one), documents → S3
  * Returns a unified array of attachment metadata.
+ *
+ * Images are uploaded individually (not batched) to avoid exceeding
+ * the nginx reverse-proxy body size limit on the server.
  */
 export async function uploadMixedFiles(
     files: File[]
 ): Promise<{ url: string; type: string; fileName?: string; fileSize?: number }[]> {
+    // 1. Validate all file sizes upfront
+    for (const file of files) {
+        validateFileSize(file);
+    }
+
     const imageFiles = files.filter((f) => isFileImage(f));
     const docFiles = files.filter((f) => !isFileImage(f));
 
     const results: { url: string; type: string; fileName?: string; fileSize?: number }[] = [];
 
-    // Upload images to Cloudinary
-    if (imageFiles.length > 0) {
-        const uploaded = await uploadImages(imageFiles);
-        for (let i = 0; i < uploaded.length; i++) {
-            results.push({
-                url: uploaded[i].secureUrl || uploaded[i].url,
-                type: "image",
-                fileName: imageFiles[i]?.name || uploaded[i].publicId || undefined,
-                fileSize: uploaded[i].bytes || imageFiles[i]?.size || undefined,
-            });
-        }
+    // 2. Upload images one-by-one to avoid 413 (nginx body size limit)
+    for (const imageFile of imageFiles) {
+        const uploaded = await uploadImage(imageFile);
+        results.push({
+            url: uploaded.secureUrl || uploaded.url,
+            type: "image",
+            fileName: imageFile.name || uploaded.publicId || undefined,
+            fileSize: uploaded.bytes || imageFile.size || undefined,
+        });
     }
 
-    // Upload documents to S3
+    // 3. Upload documents to S3
     if (docFiles.length > 0) {
         const uploaded = await uploadFilesToS3(docFiles);
         for (const u of uploaded) {

@@ -296,12 +296,14 @@ export default function ContractDetailPage() {
   const [invoicePayment, setInvoicePayment] = useState<Payment | null>(null);
   const [terminationForm] = Form.useForm();
   const [reviewForm] = Form.useForm();
+
   // Removed reportOpen to clean up unused state
   const [reportDetailOpen, setReportDetailOpen] = useState(false);
   const [reportDetailItem, setReportDetailItem] = useState<ReportItem | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [terminationUpdateOpen, setTerminationUpdateOpen] = useState(false);
   const [terminationUpdateForm] = Form.useForm();
+
   const [terminationDetailOpen, setTerminationDetailOpen] = useState(false);
   const [terminationDetailItem, setTerminationDetailItem] = useState<TerminationRequest | null>(null);
   const [selectedReport, setSelectedReport] = useState<ReportItem | null>(null);
@@ -1197,7 +1199,7 @@ export default function ContractDetailPage() {
               style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.13)", backdropFilter: "blur(8px)" }}
             >
               <p className="text-xs text-white/60 font-medium mb-1.5 uppercase tracking-wide">Tiền thuê / tháng</p>
-              <p className="text-xl font-semibold text-white leading-none">{formatMoney(contract.monthlyRent)}</p>
+              <p className="text-xl font-semibold text-white leading-none">{formatMoney(contract.monthlyRent || property?.pricePerMonth || 0)}</p>
             </div>
             <div
               className="rounded-xl px-5 py-4"
@@ -1237,6 +1239,7 @@ export default function ContractDetailPage() {
                   <Descriptions.Item label="Bên thuê">{tenantDisplayName}</Descriptions.Item>
                   <Descriptions.Item label="Ngày bắt đầu">{formatDate(contract.startDate)}</Descriptions.Item>
                   <Descriptions.Item label="Ngày kết thúc">{formatDate(contract.endDate)}</Descriptions.Item>
+                  <Descriptions.Item label="Tiền thuê / tháng">{formatMoney(contract.monthlyRent || property?.pricePerMonth || 0)}</Descriptions.Item>
                   <Descriptions.Item label="Tiền đặt cọc">{formatMoney(contract.depositAmount)}</Descriptions.Item>
                   <Descriptions.Item label="Ngày thanh toán">Ngày {contract.paymentDueDay} hàng tháng</Descriptions.Item>
                   <Descriptions.Item label="Phí quản lý">{formatMoney(contract.managementFee || 0)}</Descriptions.Item>
@@ -1954,8 +1957,7 @@ export default function ContractDetailPage() {
         onChangeMethod={setSelectedMethod}
       />
 
-      {isMounted && (
-        <Modal
+      <Modal
           open={terminationOpen}
         onCancel={() => setTerminationOpen(false)}
         onOk={handleSubmitTermination}
@@ -1963,7 +1965,7 @@ export default function ContractDetailPage() {
         cancelText="Đóng"
         confirmLoading={terminationActionLoading}
         title="Yêu cầu chấm dứt hợp đồng"
-        forceRender
+        destroyOnHidden
       >
         <Form form={terminationForm} layout="vertical">
           <Form.Item
@@ -1999,10 +2001,8 @@ export default function ContractDetailPage() {
           </Form.Item>
         </Form>
       </Modal>
-      )}
 
-      {isMounted && (
-        <Modal
+      <Modal
           open={reviewOpen}
         onCancel={() => setReviewOpen(false)}
         onOk={handleSubmitReview}
@@ -2010,7 +2010,7 @@ export default function ContractDetailPage() {
         cancelText="Đóng"
         confirmLoading={terminationActionLoading}
         title="Xử lý yêu cầu chấm dứt"
-        forceRender
+        destroyOnHidden
       >
         <Form form={reviewForm} layout="vertical">
           <Form.Item
@@ -2045,10 +2045,8 @@ export default function ContractDetailPage() {
           </Form.Item>
         </Form>
       </Modal>
-      )}
 
-      {isMounted && (
-        <Modal
+      <Modal
           open={terminationUpdateOpen}
         onCancel={() => setTerminationUpdateOpen(false)}
         onOk={handleSubmitTerminationUpdate}
@@ -2056,7 +2054,7 @@ export default function ContractDetailPage() {
         cancelText="Đóng"
         confirmLoading={terminationActionLoading}
         title="Cập nhật trạng thái chấm dứt"
-        forceRender
+        destroyOnHidden
       >
         <Form form={terminationUpdateForm} layout="vertical">
           <Form.Item
@@ -2116,7 +2114,6 @@ export default function ContractDetailPage() {
           </Form.Item>
         </Form>
       </Modal>
-      )}
 
       <Modal
         open={terminationDetailOpen}

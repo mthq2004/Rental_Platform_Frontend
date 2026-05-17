@@ -7,7 +7,7 @@ import {
   HeartFilled,
   EnvironmentOutlined,
 } from "@ant-design/icons";
-import { message } from "antd"; // Import thêm message từ antd
+import { App } from "antd";
 
 interface PropertyCardProps {
   id: string;
@@ -31,6 +31,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   onToggleFavorite,
 }) => {
   const router = useRouter();
+  const { message } = App.useApp();
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();

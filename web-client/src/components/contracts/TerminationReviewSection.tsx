@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import {
   Alert,
+  App,
   Button,
   Card,
   Divider,
@@ -11,7 +12,6 @@ import {
   Tag,
   Typography,
   Upload,
-  message,
 } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import {
@@ -97,6 +97,7 @@ export default function TerminationReviewSection({
   const [reviewNote, setReviewNote] = useState("");
   const [evidenceFiles, setEvidenceFiles] = useState<UploadFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const { message } = App.useApp();
 
   const handleBeforeUpload = (file: File) => {
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {

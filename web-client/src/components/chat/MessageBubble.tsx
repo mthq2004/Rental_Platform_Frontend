@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Image as AntImage, message } from "antd";
+import { Image as AntImage } from "antd";
 import { Message } from "@/types/message.type";
 import ReplyPreview from "./ReplyPreview";
 import ReactionsDisplay from "./ReactionsDisplay";

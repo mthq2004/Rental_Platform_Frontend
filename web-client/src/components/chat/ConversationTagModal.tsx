@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Modal, Checkbox, Button, Spin, message } from "antd";
+import { Modal, Checkbox, Button, Spin, App } from "antd";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import {
   getAllCustomerCategories,
@@ -31,6 +31,7 @@ export default function ConversationTagModal({
   onClose,
 }: ConversationTagModalProps) {
   const dispatch = useAppDispatch();
+  const { message } = App.useApp();
   const { customerCategories, loading } = useAppSelector(
     (state) => state.customerCategory
   );

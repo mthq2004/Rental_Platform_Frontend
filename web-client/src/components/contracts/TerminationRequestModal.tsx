@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Modal, Form, Select, Input, DatePicker, InputNumber, Button, message } from "antd";
+import { Modal, Form, Select, Input, DatePicker, InputNumber, Button, App } from "antd";
 import { ExclamationCircleOutlined } from "@ant-design/icons";
 import { createTerminationRequest } from "@/services/contract.service";
 import dayjs from "dayjs";
@@ -28,6 +28,7 @@ export default function TerminationRequestModal({
 }: TerminationRequestModalProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const { message } = App.useApp();
   const [isMounted, setIsMounted] = useState(false);
 
   React.useEffect(() => {

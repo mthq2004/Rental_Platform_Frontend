@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Tag, Button, Timeline, Card, Empty, Spin, Divider, message, Modal, Input, Select } from "antd";
+import { Tag, Button, Timeline, Card, Empty, Spin, Divider, App, Modal, Input, Select } from "antd";
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -55,6 +55,7 @@ export default function TerminationSection({
   const [requests, setRequests] = useState<TerminationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const { message } = App.useApp();
 
   // Report modal state
   const [reportModalOpen, setReportModalOpen] = useState(false);
