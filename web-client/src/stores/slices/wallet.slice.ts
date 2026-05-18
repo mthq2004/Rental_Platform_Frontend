@@ -126,10 +126,11 @@ export const getWalletTransactions = createAsyncThunk(
 export const initiateWalletTopup = createAsyncThunk(
   'wallet/initiateWalletTopup',
   async (
-    payload: { amount: number; method: WalletTopupMethod },
+    payload: { amount: number; method: WalletTopupMethod; platform?: string },
     { rejectWithValue }
   ) => {
     try {
+      console.log("payload: ", payload);
       return await http.post('/contract/wallet/topup', payload);
     } catch (e: any) {
       return rejectWithValue(e?.message || 'Không thể khởi tạo nạp tiền');

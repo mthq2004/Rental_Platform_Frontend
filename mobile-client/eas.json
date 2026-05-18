@@ -3,55 +3,45 @@
       "version": ">= 18.11.0",
       "appVersionSource": "remote"
     },
-
     "build": {
       "development": {
         "developmentClient": true,
         "distribution": "internal",
-
         "android": {
           "buildType": "apk"
         },
-
         "env": {
           "EXPO_PUBLIC_API_URL": "https://rantel.duckdns.org/api",
-          "EXPO_PUBLIC_SOCKET_URL": "https://rantel.duckdns.org:8000",
+          "EXPO_PUBLIC_SOCKET_URL": "https://rantel.duckdns.org",
           "EXPO_PUBLIC_CLOUDINARY_API_KEY": "866894975371869",
           "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dk8dypvtc"
         }
       },
-
       "preview": {
         "distribution": "internal",
-
         "android": {
           "buildType": "apk"
         },
-
         "env": {
           "EXPO_PUBLIC_API_URL": "https://rantel.duckdns.org/api",
-          "EXPO_PUBLIC_SOCKET_URL": "https://rantel.duckdns.org:8000",
+          "EXPO_PUBLIC_SOCKET_URL": "https://rantel.duckdns.org",
           "EXPO_PUBLIC_CLOUDINARY_API_KEY": "866894975371869",
           "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dk8dypvtc"
         }
       },
-
       "production": {
         "autoIncrement": true,
-
         "android": {
           "buildType": "apk"
         },
-
         "env": {
           "EXPO_PUBLIC_API_URL": "https://rantel.duckdns.org/api",
-          "EXPO_PUBLIC_SOCKET_URL": "https://rantel.duckdns.org:8000",
+          "EXPO_PUBLIC_SOCKET_URL": "https://rantel.duckdns.org",
           "EXPO_PUBLIC_CLOUDINARY_API_KEY": "866894975371869",
           "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dk8dypvtc"
         }
       }
     },
-
     "submit": {
       "production": {}
     }

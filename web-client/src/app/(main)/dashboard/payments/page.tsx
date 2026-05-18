@@ -153,29 +153,31 @@ export default function PaymentsPage() {
 
       console.log("Xác nhận thanh toán: ", {
         paymentId: selectedPayment.paymentId,
-        data: {
+        payload: {
           paymentMethod: methodDraft,
           paymentType: selectedPayment.paymentType,
           paidAmount: selectedPayment.remainingAmount || selectedPayment.amount,
           transactionId: undefined,
           transactionRef: undefined,
+          platform: 'web',
         },
       });
 
-      const payload = await dispatch(
+      const resPayload = await dispatch(
         confirmPayment({
           paymentId: selectedPayment.paymentId,
-          data: {
+          payload: {
             paymentMethod: methodDraft,
             paymentType: selectedPayment.paymentType,
             paidAmount: selectedPayment.remainingAmount || selectedPayment.amount,
             transactionId: undefined,
             transactionRef: undefined,
+            platform: 'web',
           },
         })
       ).unwrap();
 
-      const result = (payload as any)?.data ?? payload;
+      const result = (resPayload as any)?.data ?? resPayload;
 
       if (result?.paymentUrl || result?.payUrl) {
         const redirectUrl = result.paymentUrl || result.payUrl;
