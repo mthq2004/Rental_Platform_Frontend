@@ -176,29 +176,9 @@ export const createReport = async (data: {
   title: string
   description: string
   terminationRequestId?: string
-  evidence?: { uri: string; name: string; type: string }[]
+  attachments?: { url: string; type: string; fileName?: string; fileSize?: number }[]
 }) => {
-  const formData = new FormData()
-  formData.append('rentalId', data.rentalId)
-  formData.append('againstId', data.againstId)
-  formData.append('type', data.type)
-  if (data.reportType) formData.append('reportType', data.reportType)
-  formData.append('priority', data.priority)
-  formData.append('title', data.title)
-  formData.append('description', data.description)
-  if (data.terminationRequestId) formData.append('terminationRequestId', data.terminationRequestId)
-  if (data.evidence?.length) {
-    data.evidence.forEach((file) => {
-      formData.append('evidence', {
-        uri: file.uri,
-        name: file.name || 'evidence.jpg',
-        type: file.type || 'image/jpeg',
-      } as any)
-    })
-  }
-  const res = await apiClient.post('/contract/reports', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  })
+  const res = await apiClient.post('/contract/reports', data)
   return res.data
 }
 

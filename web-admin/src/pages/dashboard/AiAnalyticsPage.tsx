@@ -4,7 +4,6 @@ import {
   Card,
   Checkbox,
   Col,
-  Divider,
   InputNumber,
   Progress,
   Radio,
@@ -49,6 +48,17 @@ import {
   BankOutlined,
   ShoppingCartOutlined,
   ReadOutlined,
+  CarOutlined,
+  TeamOutlined,
+  FireOutlined,
+  PushpinOutlined,
+  ColumnWidthOutlined,
+  ExpandOutlined,
+  VerticalAlignTopOutlined,
+  RocketOutlined,
+  FundOutlined,
+  ToolOutlined,
+  ApartmentOutlined,
 } from "@ant-design/icons";
 import envConfig from "../../config";
 import provinceService from "../../services/province.service";
@@ -129,16 +139,31 @@ const AiAnalyticsPage = () => {
   const [predictForm, setPredictForm] = useState({
     area: 50,
     rooms: 2,
+    bathrooms: 1,
     floors: 1,
     streetFacing: null as boolean | null,
     location: "",
     propertyType: "apartment" as string,
     furnitureStatus: "none" as string,
+    // Proximity
     nearCityCenter: false,
     nearShoppingMall: false,
     nearMarket: false,
     nearSchool: false,
     nearHospital: false,
+    nearPark: false,
+    nearBusStation: false,
+    nearIndustrialZone: false,
+    // Amenities
+    hasElevator: false,
+    hasParking: false,
+    hasGenerator: false,
+    hasPool: false,
+    hasGym: false,
+    hasSecurity: false,
+    // Đất
+    landFrontage: null as number | null,
+    landDepth: null as number | null,
   });
   const [predictResult, setPredictResult] = useState<PredictResult | null>(null);
 
@@ -175,23 +200,43 @@ const AiAnalyticsPage = () => {
   };
 
   const handlePredict = async () => {
+    if (!predictForm.location) {
+      message.warning("Vui lòng chọn Quận/Huyện trước khi dự đoán");
+      return;
+    }
     setPredicting(true);
     try {
+      // Luôn gửi core fields
       const body: Record<string, unknown> = {
         area: predictForm.area,
         rooms: predictForm.rooms,
+        bathrooms: predictForm.bathrooms,
+        floors: predictForm.floors,
         location: predictForm.location,
         propertyType: predictForm.propertyType,
         furnitureStatus: predictForm.furnitureStatus,
+        streetFacing: predictForm.streetFacing,
+        // Proximity
         nearCityCenter: predictForm.nearCityCenter,
         nearShoppingMall: predictForm.nearShoppingMall,
         nearMarket: predictForm.nearMarket,
         nearSchool: predictForm.nearSchool,
         nearHospital: predictForm.nearHospital,
+        nearPark: predictForm.nearPark,
+        nearBusStation: predictForm.nearBusStation,
+        nearIndustrialZone: predictForm.nearIndustrialZone,
+        // Amenities
+        hasElevator: predictForm.hasElevator,
+        hasParking: predictForm.hasParking,
+        hasGenerator: predictForm.hasGenerator,
+        hasPool: predictForm.hasPool,
+        hasGym: predictForm.hasGym,
+        hasSecurity: predictForm.hasSecurity,
       };
-      if (predictForm.propertyType === "house") {
-        body.floors = predictForm.floors;
-        body.streetFacing = predictForm.streetFacing;
+      // Đặc thù đất
+      if (predictForm.propertyType === "land") {
+        if (predictForm.landFrontage) body.landFrontage = predictForm.landFrontage;
+        if (predictForm.landDepth) body.landDepth = predictForm.landDepth;
       }
       const res = await fetch(`${AI_BASE}/predict-price`, {
         method: "POST",
@@ -202,7 +247,8 @@ const AiAnalyticsPage = () => {
         const data = await res.json();
         setPredictResult(data);
       } else {
-        message.error("Dự đoán thất bại");
+        const err = await res.json().catch(() => ({}));
+        message.error(err.detail || "Dự đoán thất bại");
       }
     } catch {
       message.error("Không thể kết nối AI service");
@@ -212,7 +258,7 @@ const AiAnalyticsPage = () => {
 
   useEffect(() => {
     fetchAnalytics();
-    provinceService.getProvinces().then(setProvinces).catch(() => {});
+    provinceService.getProvinces().then(setProvinces).catch(() => { });
   }, []);
 
   const handleProvinceChange = async (code: number) => {
@@ -488,8 +534,20 @@ const AiAnalyticsPage = () => {
                   />
                 </Col>
               )}
-              {/* Số tầng — chỉ cho nhà nguyên căn */}
-              {predictForm.propertyType === "house" && (
+              {/* Phòng tắm — ẩn cho đất */}
+              {predictForm.propertyType !== "land" && (
+                <Col xs={24} sm={12} md={3}>
+                  <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>Phòng tắm</label>
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    min={0}
+                    value={predictForm.bathrooms}
+                    onChange={(v) => setPredictForm((p) => ({ ...p, bathrooms: v || 0 }))}
+                  />
+                </Col>
+              )}
+              {/* Số tầng — chỉ cho nhà nguyên căn và căn hộ */}
+              {(predictForm.propertyType === "house" || predictForm.propertyType === "apartment") && (
                 <Col xs={24} sm={12} md={3}>
                   <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>Số tầng</label>
                   <InputNumber
@@ -571,61 +629,185 @@ const AiAnalyticsPage = () => {
               )}
             </Row>
 
-            {/* Row 2: proximity checkboxes */}
-            <Divider style={{ margin: "16px 0 12px" }} />
-            <div style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: 13, color: "#666", fontWeight: 500 }}>
-                <EnvironmentOutlined style={{ marginRight: 6, color: "#16a34a" }} />
-                Vị trí lân cận (ảnh hưởng đến giá)
-              </span>
+            {/* Đặc thù đất */}
+            {predictForm.propertyType === "land" && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "20px 0 14px", borderBottom: "1px solid #f0f0f0", paddingBottom: 8 }}>
+                  <PushpinOutlined style={{ color: "#f97316", fontSize: 14 }} />
+                  <span style={{ fontSize: 13, color: "#555", fontWeight: 600 }}>Kích thước lô đất</span>
+                </div>
+                <Row gutter={[16, 12]}>
+                  <Col xs={12} sm={8} md={6}>
+                    <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>
+                      <ColumnWidthOutlined style={{ marginRight: 4, color: "#f97316" }} />
+                      Mặt tiền (m)
+                    </label>
+                    <InputNumber
+                      style={{ width: "100%" }}
+                      min={0}
+                      step={0.5}
+                      placeholder="VD: 5.0"
+                      value={predictForm.landFrontage ?? undefined}
+                      onChange={(v) => setPredictForm((p) => ({ ...p, landFrontage: v ?? null }))}
+                    />
+                  </Col>
+                  <Col xs={12} sm={8} md={6}>
+                    <label style={{ display: "block", marginBottom: 4, fontSize: 13, color: "#666" }}>
+                      <ExpandOutlined style={{ marginRight: 4, color: "#f97316" }} />
+                      Chiều sâu (m)
+                    </label>
+                    <InputNumber
+                      style={{ width: "100%" }}
+                      min={0}
+                      step={0.5}
+                      placeholder="VD: 15.0"
+                      value={predictForm.landDepth ?? undefined}
+                      onChange={(v) => setPredictForm((p) => ({ ...p, landDepth: v ?? null }))}
+                    />
+                  </Col>
+                </Row>
+              </>
+            )}
+
+            {/* Proximity checkboxes */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "20px 0 14px", borderBottom: "1px solid #f0f0f0", paddingBottom: 8 }}>
+              <EnvironmentOutlined style={{ color: "#16a34a", fontSize: 14 }} />
+              <span style={{ fontSize: 13, color: "#555", fontWeight: 600 }}>Vị trí lân cận (ảnh hưởng giá)</span>
             </div>
-            <Row gutter={[12, 12]}>
-              <Col xs={12} sm={8} md={5}>
+            <Row gutter={[16, 12]}>
+              <Col xs={24} sm={12} md={6}>
                 <Checkbox
                   checked={predictForm.nearCityCenter}
                   onChange={(e) => setPredictForm((p) => ({ ...p, nearCityCenter: e.target.checked }))}
                 >
-                  <BankOutlined style={{ color: "#2563eb", marginRight: 4 }} />
+                  <BankOutlined style={{ color: "#2563eb", marginRight: 6 }} />
                   Gần trung tâm thành phố
                 </Checkbox>
               </Col>
-              <Col xs={12} sm={8} md={5}>
+              <Col xs={24} sm={12} md={6}>
                 <Checkbox
                   checked={predictForm.nearShoppingMall}
                   onChange={(e) => setPredictForm((p) => ({ ...p, nearShoppingMall: e.target.checked }))}
                 >
-                  <ShoppingCartOutlined style={{ color: "#7c3aed", marginRight: 4 }} />
+                  <ShoppingCartOutlined style={{ color: "#7c3aed", marginRight: 6 }} />
                   Gần trung tâm thương mại
                 </Checkbox>
               </Col>
-              <Col xs={12} sm={8} md={4}>
+              <Col xs={24} sm={12} md={6}>
                 <Checkbox
                   checked={predictForm.nearMarket}
                   onChange={(e) => setPredictForm((p) => ({ ...p, nearMarket: e.target.checked }))}
                 >
-                  <ShopOutlined style={{ color: "#f97316", marginRight: 4 }} />
-                  Gần chợ
+                  <ShopOutlined style={{ color: "#f97316", marginRight: 6 }} />
+                  Gần chợ / siêu thị
                 </Checkbox>
               </Col>
-              <Col xs={12} sm={8} md={4}>
+              <Col xs={24} sm={12} md={6}>
                 <Checkbox
                   checked={predictForm.nearSchool}
                   onChange={(e) => setPredictForm((p) => ({ ...p, nearSchool: e.target.checked }))}
                 >
-                  <ReadOutlined style={{ color: "#16a34a", marginRight: 4 }} />
+                  <ReadOutlined style={{ color: "#16a34a", marginRight: 6 }} />
                   Gần trường học
                 </Checkbox>
               </Col>
-              <Col xs={12} sm={8} md={4}>
+              <Col xs={24} sm={12} md={6}>
                 <Checkbox
                   checked={predictForm.nearHospital}
                   onChange={(e) => setPredictForm((p) => ({ ...p, nearHospital: e.target.checked }))}
                 >
-                  <MedicineBoxOutlined style={{ color: "#dc2626", marginRight: 4 }} />
+                  <MedicineBoxOutlined style={{ color: "#dc2626", marginRight: 6 }} />
                   Gần bệnh viện
                 </Checkbox>
               </Col>
+              <Col xs={24} sm={12} md={6}>
+                <Checkbox
+                  checked={predictForm.nearBusStation}
+                  onChange={(e) => setPredictForm((p) => ({ ...p, nearBusStation: e.target.checked }))}
+                >
+                  <RocketOutlined style={{ color: "#0ea5e9", marginRight: 6 }} />
+                  Gần bến xe / trạm bus
+                </Checkbox>
+              </Col>
+              {(predictForm.propertyType === "apartment" || predictForm.propertyType === "house") && (
+                <Col xs={24} sm={12} md={6}>
+                  <Checkbox
+                    checked={predictForm.nearPark}
+                    onChange={(e) => setPredictForm((p) => ({ ...p, nearPark: e.target.checked }))}
+                  >
+                    <EnvironmentOutlined style={{ color: "#22c55e", marginRight: 6 }} />
+                    Gần công viên
+                  </Checkbox>
+                </Col>
+              )}
+              {(predictForm.propertyType === "land" || predictForm.propertyType === "room") && (
+                <Col xs={24} sm={12} md={6}>
+                  <Checkbox
+                    checked={predictForm.nearIndustrialZone}
+                    onChange={(e) => setPredictForm((p) => ({ ...p, nearIndustrialZone: e.target.checked }))}
+                  >
+                    <ApartmentOutlined style={{ color: "#78716c", marginRight: 6 }} />
+                    Gần khu công nghiệp
+                  </Checkbox>
+                </Col>
+              )}
             </Row>
+
+            {/* Tiện ích nội khu theo loại BĐS */}
+            {predictForm.propertyType !== "land" && (
+              <>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "20px 0 14px", borderBottom: "1px solid #f0f0f0", paddingBottom: 8 }}>
+                  <FundOutlined style={{ color: "#7c3aed", fontSize: 14 }} />
+                  <span style={{ fontSize: 13, color: "#555", fontWeight: 600 }}>Tiện ích nội khu</span>
+                </div>
+                <Row gutter={[16, 12]}>
+                  {(predictForm.propertyType === "apartment" || predictForm.propertyType === "office") && (
+                    <Col xs={24} sm={12} md={6}>
+                      <Checkbox checked={predictForm.hasElevator} onChange={(e) => setPredictForm((p) => ({ ...p, hasElevator: e.target.checked }))}>
+                        <VerticalAlignTopOutlined style={{ color: "#2563eb", marginRight: 6 }} />
+                        Có thang máy
+                      </Checkbox>
+                    </Col>
+                  )}
+                  <Col xs={24} sm={12} md={6}>
+                    <Checkbox checked={predictForm.hasParking} onChange={(e) => setPredictForm((p) => ({ ...p, hasParking: e.target.checked }))}>
+                      <CarOutlined style={{ color: "#f97316", marginRight: 6 }} />
+                      Bãi đậu xe
+                    </Checkbox>
+                  </Col>
+                  {predictForm.propertyType === "office" && (
+                    <Col xs={24} sm={12} md={6}>
+                      <Checkbox checked={predictForm.hasGenerator} onChange={(e) => setPredictForm((p) => ({ ...p, hasGenerator: e.target.checked }))}>
+                        <ThunderboltOutlined style={{ color: "#eab308", marginRight: 6 }} />
+                        Máy phát điện dự phòng
+                      </Checkbox>
+                    </Col>
+                  )}
+                  {(predictForm.propertyType === "apartment" || predictForm.propertyType === "house") && (
+                    <>
+                      <Col xs={24} sm={12} md={6}>
+                        <Checkbox checked={predictForm.hasPool} onChange={(e) => setPredictForm((p) => ({ ...p, hasPool: e.target.checked }))}>
+                          <FireOutlined style={{ color: "#06b6d4", marginRight: 6 }} />
+                          Hồ bơi
+                        </Checkbox>
+                      </Col>
+                      <Col xs={24} sm={12} md={6}>
+                        <Checkbox checked={predictForm.hasGym} onChange={(e) => setPredictForm((p) => ({ ...p, hasGym: e.target.checked }))}>
+                          <ToolOutlined style={{ color: "#8b5cf6", marginRight: 6 }} />
+                          Phòng gym
+                        </Checkbox>
+                      </Col>
+                    </>
+                  )}
+                  <Col xs={24} sm={12} md={6}>
+                    <Checkbox checked={predictForm.hasSecurity} onChange={(e) => setPredictForm((p) => ({ ...p, hasSecurity: e.target.checked }))}>
+                      <TeamOutlined style={{ color: "#16a34a", marginRight: 6 }} />
+                      Bảo vệ 24/7
+                    </Checkbox>
+                  </Col>
+                </Row>
+              </>
+            )}
             <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
               <Button
                 type="primary"
@@ -686,8 +868,8 @@ const AiAnalyticsPage = () => {
                                 predictResult.confidence >= 75
                                   ? "#16a34a"
                                   : predictResult.confidence >= 55
-                                  ? "#f97316"
-                                  : "#dc2626"
+                                    ? "#f97316"
+                                    : "#dc2626"
                               }
                               size="small"
                             />
@@ -774,56 +956,56 @@ const AiAnalyticsPage = () => {
                   .sort((a, b) => b.avgPrice - a.avgPrice)
                   .slice(0, 10)
                   .map((d, idx) => (
-                  <Col xs={24} sm={12} md={8} lg={6} key={`${d.district}-${d.propertyType}-${idx}`}>
-                    <div
-                      style={{
-                        background: idx === 0 ? "#fef9c3" : idx === 1 ? "#f8fafc" : "#fff",
-                        border: `1px solid ${idx === 0 ? "#fde68a" : "#e2e8f0"}`,
-                        borderRadius: 10,
-                        padding: "10px 14px",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
-                          <Tag color={idx === 0 ? "gold" : idx === 1 ? "orange" : "default"}>
-                            #{idx + 1}
-                          </Tag>
-                          {d.propertyType && !districtFilterType && (
-                            <Tag color="blue" style={{ fontSize: 11 }}>
-                              {{
-                                apartment: "Căn hộ",
-                                house: "Nhà nguyên căn",
-                                room: "Phòng trọ",
-                                office: "Văn phòng",
-                                land: "Đất",
-                              }[d.propertyType] ?? d.propertyType}
+                    <Col xs={24} sm={12} md={8} lg={6} key={`${d.district}-${d.propertyType}-${idx}`}>
+                      <div
+                        style={{
+                          background: idx === 0 ? "#fef9c3" : idx === 1 ? "#f8fafc" : "#fff",
+                          border: `1px solid ${idx === 0 ? "#fde68a" : "#e2e8f0"}`,
+                          borderRadius: 10,
+                          padding: "10px 14px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                            <Tag color={idx === 0 ? "gold" : idx === 1 ? "orange" : "default"}>
+                              #{idx + 1}
                             </Tag>
-                          )}
+                            {d.propertyType && !districtFilterType && (
+                              <Tag color="blue" style={{ fontSize: 11 }}>
+                                {{
+                                  apartment: "Căn hộ",
+                                  house: "Nhà nguyên căn",
+                                  room: "Phòng trọ",
+                                  office: "Văn phòng",
+                                  land: "Đất",
+                                }[d.propertyType] ?? d.propertyType}
+                              </Tag>
+                            )}
+                          </div>
+                          <div style={{ fontWeight: 600, fontSize: 13, textTransform: "capitalize" }}>
+                            {d.district}
+                            {d.province && (
+                              <span style={{ fontWeight: 400, color: "#64748b", fontSize: 12 }}>
+                                {", "}{d.province}
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#94a3b8" }}>
+                            {num.format(d.count)} tin đăng
+                          </div>
                         </div>
-                        <div style={{ fontWeight: 600, fontSize: 13, textTransform: "capitalize" }}>
-                          {d.district}
-                          {d.province && (
-                            <span style={{ fontWeight: 400, color: "#64748b", fontSize: 12 }}>
-                              {", "}{d.province}
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: 11, color: "#94a3b8" }}>
-                          {num.format(d.count)} tin đăng
+                        <div style={{ textAlign: "right" }}>
+                          <div style={{ fontWeight: 700, color: "#2563eb", fontSize: 14 }}>
+                            {money.format(d.avgPrice)}
+                          </div>
+                          <div style={{ fontSize: 11, color: "#94a3b8" }}>trung bình</div>
                         </div>
                       </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontWeight: 700, color: "#2563eb", fontSize: 14 }}>
-                          {money.format(d.avgPrice)}
-                        </div>
-                        <div style={{ fontSize: 11, color: "#94a3b8" }}>trung bình</div>
-                      </div>
-                    </div>
-                  </Col>
-                ))}
+                    </Col>
+                  ))}
               </Row>
             </Card>
           )}

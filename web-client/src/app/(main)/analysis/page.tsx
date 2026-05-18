@@ -20,6 +20,7 @@ import {
 import { Space_Grotesk, Fraunces } from "next/font/google";
 import provinceService from "@/services/province.service";
 import { fetchPriceAnalytics } from "@/services/analysis.service";
+import PricePredictorSection from "@/components/analysis/PricePredictorSection";
 import type {
   PriceAnalyticsQuery,
   PriceAnalyticsResponse,
@@ -737,6 +738,9 @@ const AnalysisPage = () => {
             {loading && <p className="text-sm text-slate-500 mt-4">Đang tải dữ liệu...</p>}
             {error && <p className="text-sm text-rose-600 mt-4">{error}</p>}
           </motion.div>
+
+          {/* Price Predictor */}
+          <PricePredictorSection />
         </div>
       </section>
 

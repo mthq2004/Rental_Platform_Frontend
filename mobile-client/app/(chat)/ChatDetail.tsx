@@ -51,6 +51,20 @@ const ChatDetail = () => {
   const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const prevMessagesLength = useRef(messages.length);
   const insets = useSafeAreaInsets();
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (messages.length > prevMessagesLength.current && showScrollToBottom) {
@@ -305,7 +319,7 @@ const ChatDetail = () => {
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
+        keyboardVerticalOffset={0}
       >
         <View className="flex-1">
 
@@ -461,7 +475,7 @@ const ChatDetail = () => {
             </View>
           )}
 
-          <View style={{ paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 8) : Math.max(insets.bottom, 8) }}>
+          <View style={{ paddingBottom: isKeyboardVisible ? 8 : Math.max(insets.bottom, 8) }}>
             <ChatInputBar
               onSendMessage={handleSendMessage}
               onSendImage={handleSendImage}
