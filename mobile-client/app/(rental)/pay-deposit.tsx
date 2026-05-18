@@ -59,14 +59,11 @@ const PayDepositScreen = () => {
   const handlePayment = async () => {
     if (!requestId) return
     try {
-      const result = await dispatch(payHoldingDeposit({ requestId, method: selectedMethod })).unwrap()
-      console.log("kiem tra url payemtn result:", JSON.stringify(result, null, 2));
-      
-      const paymentTarget = result?.paymentUrl || result?.redirectUrl || result?.payUrl 
+      const result = await dispatch(payHoldingDeposit({ requestId, method: selectedMethod, platform: 'mobile' })).unwrap()
+
+      const paymentTarget = result?.paymentUrl || result?.redirectUrl || result?.payUrl
         || result?.data?.paymentUrl || result?.data?.redirectUrl || result?.data?.payUrl
         || result?.data?.data?.paymentUrl || result?.data?.data?.payUrl;
-
-      console.log("kiem tra url payemtn extracted:", paymentTarget);
 
       if (paymentTarget) {
         if (/^https?:\/\//i.test(paymentTarget)) {

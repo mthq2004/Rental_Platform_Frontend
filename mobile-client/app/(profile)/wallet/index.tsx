@@ -72,7 +72,7 @@ export default function WalletScreen() {
     }
 
     try {
-      const resultAction = await dispatch(initiateWalletTopup({ amount, method: topupMethod }));
+      const resultAction = await dispatch(initiateWalletTopup({ amount, method: topupMethod, platform: 'mobile' }));
       if (initiateWalletTopup.fulfilled.match(resultAction)) {
         setTopupModalVisible(false);
         setTopupAmount('');
@@ -92,7 +92,7 @@ export default function WalletScreen() {
         console.log("kiem tra url payemtn extracted:", url);
 
         if (url && /^https?:\/\//i.test(String(url))) {
-          setPaymentUrl(url);
+          openPayment(url);
         } else {
           Alert.alert('Thành công', 'Đã tạo lệnh nạp tiền. Vui lòng kiểm tra trạng thái trong ít phút.');
         }
@@ -177,6 +177,22 @@ export default function WalletScreen() {
         </View>
       </View>
     );
+  };
+
+  const openPayment = async (url: string) => {
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+
+      if (canOpen && url.startsWith("momo://") && topupMethod == 'momo') {
+        await Linking.openURL(url);
+        setTopupModalVisible(false);
+        setPaymentUrl(null);
+      } else {
+        setPaymentUrl(url);
+      }
+    } catch (e) {
+      setPaymentUrl(url);
+    }
   };
 
   if (paymentUrl) {

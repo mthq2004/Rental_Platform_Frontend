@@ -39,7 +39,7 @@ export const reviewRequest = async (data: {
   return res.data
 }
 
-export const payHoldingDeposit = async (data: { requestId: string; method: string }) => {
+export const payHoldingDeposit = async (data: { requestId: string; method: string; platform?: string }) => {
   const res = await apiClient.post('/contract/holding-deposits/pay', data)
   return res.data
 }
@@ -132,7 +132,7 @@ export const getMyPayments = async (params?: { rentalId?: string; status?: strin
   return res.data
 }
 
-export const confirmPayment = async (paymentId: string, data: { paymentMethod: string; paymentType?: string; transactionId?: string; transactionRef?: string; paidAmount?: number }) => {
+export const confirmPayment = async (paymentId: string, data: { paymentMethod: string; paymentType?: string; transactionId?: string; transactionRef?: string; paidAmount?: number; platform?: string }) => {
   const res = await apiClient.post(`/contract/payments/confirm/${paymentId}`, data)
   return res.data
 }

@@ -255,10 +255,7 @@ export const openHoldingDepositWindow = createAsyncThunk(
 
 export const payHoldingDeposit = createAsyncThunk(
   "contract/payHoldingDeposit",
-  async (
-    data: { requestId: string; method: string },
-    { rejectWithValue }
-  ) => {
+  async (data: { requestId: string; method: string; platform?: string }, { rejectWithValue }) => {
     try {
       return await http.post("/contract/holding-deposits/pay", data);
     } catch (e: any) {
@@ -450,9 +447,9 @@ export const updateTerminationStatus = createAsyncThunk(
 
 export const confirmPayment = createAsyncThunk(
   "contract/confirmPayment",
-  async ({ paymentId, data }: { paymentId: string; data: { paymentMethod: string; paymentType?: string; transactionId?: string; transactionRef?: string; paidAmount?: number } }, { rejectWithValue }) => {
+  async (data: { paymentId: string; payload: { paymentMethod: string; paymentType?: string; transactionId?: string; transactionRef?: string; paidAmount?: number; platform?: string } }, { rejectWithValue }) => {
     try {
-      return await http.post(`/contract/payments/confirm/${paymentId}`, data);
+      return await http.post(`/contract/payments/confirm/${data.paymentId}`, data.payload);
     } catch (e: any) {
       return rejectWithValue(e.message);
     }

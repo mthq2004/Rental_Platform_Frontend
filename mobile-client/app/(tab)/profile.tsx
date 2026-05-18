@@ -275,7 +275,7 @@ const AuthenticatedProfile = () => {
       </View>
 
       {/* Stats Row */}
-      <View style={[styles.statsCard, { backgroundColor: isDark ? '#1f2937' : '#ffffff', borderColor: isDark ? '#374151' : '#e5e7eb' }]}>
+      {/* <View style={[styles.statsCard, { backgroundColor: isDark ? '#1f2937' : '#ffffff', borderColor: isDark ? '#374151' : '#e5e7eb' }]}>
         <View style={styles.statItem}>
           <Text className="text-foreground dark:text-foreground-dark text-lg font-bold">0</Text>
           <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1">Tin đăng</Text>
@@ -290,7 +290,7 @@ const AuthenticatedProfile = () => {
           <Text className="text-foreground dark:text-foreground-dark text-lg font-bold">0</Text>
           <Text className="text-gray-500 dark:text-gray-400 text-xs mt-1">Đang theo dõi</Text>
         </View>
-      </View>
+      </View> */}
 
       {/* Verification Card */}
       {isKycApproved ? (

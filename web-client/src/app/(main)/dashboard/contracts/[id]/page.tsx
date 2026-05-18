@@ -673,12 +673,13 @@ export default function ContractDetailPage() {
       const payload = await dispatch(
         confirmPayment({
           paymentId: currentPayment.paymentId,
-          data: {
+          payload: {
             paymentMethod: selectedMethod,
             paymentType: currentPayment.paymentType,
             paidAmount: currentPayment.remainingAmount || currentPayment.amount,
             transactionId: undefined,
             transactionRef: undefined,
+            platform: 'web',
           },
         })
       ).unwrap();

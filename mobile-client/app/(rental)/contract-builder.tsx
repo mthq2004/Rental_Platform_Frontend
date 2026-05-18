@@ -336,7 +336,7 @@ const ContractBuilderScreen = () => {
         { text: 'OK', onPress: () => router.replace('/(rental)/contracts') }
       ])
     } catch (e: any) {
-      Alert.alert('Lỗi', e?.message || 'Không thể lưu hợp đồng nháp.');
+      Alert.alert('Vui lòng thử lại', e || 'Không thể lưu hợp đồng nháp.');
     }
   }
 
@@ -378,7 +378,7 @@ const ContractBuilderScreen = () => {
       }
       Alert.alert('Thành công', 'Đã gửi hợp đồng tới người thuê.', [ { text: 'OK', onPress: () => router.replace('/(rental)/contracts') } ])
     } catch (e: any) {
-      Alert.alert('Lỗi', e?.message || 'Không thể gửi hợp đồng.')
+      Alert.alert('Vui lòng thử lại', e?.message || 'Không thể gửi hợp đồng.')
     }
   }
 

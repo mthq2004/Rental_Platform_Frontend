@@ -271,6 +271,7 @@ function WalletDashboardContent() {
         initiateWalletTopup({
           amount: selectedTopupAmount,
           method: selectedTopupMethod,
+          platform: 'web',
         })
       ).unwrap();
 
@@ -279,6 +280,7 @@ function WalletDashboardContent() {
       setCurrentTopupId(result.transactionId || null);
 
       if (result?.paymentUrl) {
+        console.log("payment url: ", result.paymentUrl);
         window.open(result.paymentUrl, "_blank", "noopener,noreferrer");
       }
 

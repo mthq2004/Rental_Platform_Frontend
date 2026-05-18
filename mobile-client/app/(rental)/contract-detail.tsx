@@ -180,7 +180,7 @@ const ContractDetail = () => {
   const [updateTermNote, setUpdateTermNote] = useState('')
   const [updateTermResolution, setUpdateTermResolution] = useState<'continue_contract' | 'terminate_contract'>('continue_contract')
 
-  
+
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportTitle, setReportTitle] = useState('')
   const [reportDesc, setReportDesc] = useState('')
@@ -224,16 +224,16 @@ const ContractDetail = () => {
       // Load termination, reports, renewals (non-blocking)
       contractService.getTerminationRequests(resolvedId).then(r => {
         const d = unwrap(r); setTerminationRequests(Array.isArray(d) ? d : d?.data || d?.items || [])
-      }).catch(() => {})
+      }).catch(() => { })
       contractService.getReportsByContract(resolvedId).then(r => {
         const d = unwrap(r); setReportItems(Array.isArray(d) ? d : d?.data || d?.items || [])
-      }).catch(() => {})
+      }).catch(() => { })
       contractService.getRenewalsByContract(resolvedId).then(r => {
         const d = unwrap(r); setRenewalRequests(Array.isArray(d) ? d : d?.data || d?.items || [])
-      }).catch(() => {})
+      }).catch(() => { })
       contractService.getContractAppendices(resolvedId).then(r => {
         const d = unwrap(r); setContractAppendices(Array.isArray(d) ? d : d?.data || d?.items || [])
-      }).catch(() => {})
+      }).catch(() => { })
 
       // 1. If contract already has property object, use it
       if (c?.property) {
@@ -429,6 +429,7 @@ const ContractDetail = () => {
         paymentMethod: method,
         paymentType: currentPayment.paymentType,
         paidAmount: currentPayment.remainingAmount || currentPayment.amount,
+        platform: 'mobile',
       })
       const payload = unwrap(res)
       console.log("kiem tra url payemtn payload:", JSON.stringify(payload, null, 2));
@@ -437,7 +438,7 @@ const ContractDetail = () => {
       const target = payload?.paymentUrl || payload?.redirectUrl || payload?.payUrl
         || payload?.data?.paymentUrl || payload?.data?.redirectUrl || payload?.data?.payUrl
         || payload?.data?.data?.paymentUrl || payload?.data?.data?.payUrl;
-      
+
       console.log("kiem tra url payemtn extracted:", target);
 
       if (target && /^https?:\/\//i.test(target)) {
@@ -494,30 +495,34 @@ const ContractDetail = () => {
   const handleApproveRenewal = (id: string) => {
     Alert.alert('Xác nhận', 'Bạn có chắc chắn muốn duyệt yêu cầu này?', [
       { text: 'Hủy', style: 'cancel' },
-      { text: 'Duyệt', onPress: async () => {
-        try {
-          await contractService.approveRenewal(id, {})
-          Alert.alert('Thành công', 'Đã duyệt yêu cầu')
-          loadDetail(false)
-        } catch (e: any) {
-          Alert.alert('Lỗi', e?.message || 'Thất bại')
+      {
+        text: 'Duyệt', onPress: async () => {
+          try {
+            await contractService.approveRenewal(id, {})
+            Alert.alert('Thành công', 'Đã duyệt yêu cầu')
+            loadDetail(false)
+          } catch (e: any) {
+            Alert.alert('Lỗi', e?.message || 'Thất bại')
+          }
         }
-      }}
+      }
     ])
   }
 
   const handleRejectRenewal = (id: string) => {
     Alert.alert('Từ chối', 'Xác nhận từ chối yêu cầu gia hạn này?', [
       { text: 'Hủy', style: 'cancel' },
-      { text: 'Từ chối', style: 'destructive', onPress: async () => {
-        try {
-          await contractService.rejectRenewal(id, { reviewNote: 'Từ chối qua ứng dụng di động' })
-          Alert.alert('Thành công', 'Đã từ chối yêu cầu')
-          loadDetail(false)
-        } catch (e: any) {
-          Alert.alert('Lỗi', e?.message || 'Thất bại')
+      {
+        text: 'Từ chối', style: 'destructive', onPress: async () => {
+          try {
+            await contractService.rejectRenewal(id, { reviewNote: 'Từ chối qua ứng dụng di động' })
+            Alert.alert('Thành công', 'Đã từ chối yêu cầu')
+            loadDetail(false)
+          } catch (e: any) {
+            Alert.alert('Lỗi', e?.message || 'Thất bại')
+          }
         }
-      }}
+      }
     ])
   }
 
@@ -795,9 +800,9 @@ const ContractDetail = () => {
       <SafeAreaView style={{ flex: 1, backgroundColor: current.background }}>
         <KeyboardSafeWrapper scrollable={false} style={{ flex: 1, backgroundColor: current.background }}>
 
-          <ScreenHeader 
-            title="Chi tiết hợp đồng" 
-            subtitle={contract?.contractCode ? contract.contractCode : undefined} 
+          <ScreenHeader
+            title="Chi tiết hợp đồng"
+            subtitle={contract?.contractCode ? contract.contractCode : undefined}
             rightComponent={
               <TouchableOpacity onPress={onRefresh} disabled={refreshing} style={{ padding: 6 }}>
                 <RefreshCw size={18} color={colors.primary} />
@@ -1214,7 +1219,7 @@ const ContractDetail = () => {
                               {r.note && (
                                 <Text style={{ fontSize: 13, color: current.text, marginTop: 4 }}>Ghi chú: {r.note}</Text>
                               )}
-                              
+
                               {r.status === 'pending' && (
                                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
                                   {isOwner ? (
@@ -1344,9 +1349,9 @@ const ContractDetail = () => {
                               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Text style={{ fontSize: 13, fontWeight: '700', color: current.text }}>
                                   {t.reason === 'unilateral_termination' ? 'Đơn phương chấm dứt' :
-                                   t.reason === 'mutual_agreement' ? 'Hai bên thỏa thuận' :
-                                   t.reason === 'breach_of_contract' ? 'Vi phạm hợp đồng' :
-                                   t.reason === 'force_majeure' ? 'Bất khả kháng' : t.reason}
+                                    t.reason === 'mutual_agreement' ? 'Hai bên thỏa thuận' :
+                                      t.reason === 'breach_of_contract' ? 'Vi phạm hợp đồng' :
+                                        t.reason === 'force_majeure' ? 'Bất khả kháng' : t.reason}
                                 </Text>
                                 <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: ts.bg }}>
                                   <Text style={{ fontSize: 11, fontWeight: '700', color: ts.color }}>{ts.label}</Text>
@@ -1554,59 +1559,59 @@ const ContractDetail = () => {
             <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
               <View style={{ backgroundColor: current.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
                 <View style={{ width: 40, height: 4, backgroundColor: current.border, borderRadius: 2, alignSelf: 'center', marginBottom: 22 }} />
-                
+
                 <Text style={{ fontSize: 18, fontWeight: '900', color: current.text, marginBottom: 8 }}>Gia hạn hợp đồng</Text>
                 <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 20 }}>
                   Đề xuất gia hạn thêm thời gian thuê. Chủ nhà sẽ nhận được thông báo để xem xét.
                 </Text>
-                  
-                  <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Số tháng gia hạn (tháng):</Text>
-                  <SyncTextInput
-                    placeholder="Ví dụ: 6"
-                    keyboardType="number-pad"
-                    value={renewalDuration}
-                    onChangeText={setRenewalDuration}
-                    placeholderTextColor={theme.textInactive}
-                    style={{
-                      borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
-                      fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 16
-                    }}
-                  />
 
-                  <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600', marginTop: 12 }}>Ghi chú (Tùy chọn):</Text>
-                  <SyncTextInput
-                    placeholder="Lý do hoặc mong muốn của bạn..."
-                    placeholderTextColor={theme.textInactive}
-                    multiline
-                    numberOfLines={3}
-                    value={renewalNote}
-                    onChangeText={setRenewalNote}
-                    style={{
-                      borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
-                      fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 24, textAlignVertical: 'top', minHeight: 80
-                    }}
-                  />
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Số tháng gia hạn (tháng):</Text>
+                <SyncTextInput
+                  placeholder="Ví dụ: 6"
+                  keyboardType="number-pad"
+                  value={renewalDuration}
+                  onChangeText={setRenewalDuration}
+                  placeholderTextColor={theme.textInactive}
+                  style={{
+                    borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                    fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 16
+                  }}
+                />
 
-                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
-                    <TouchableOpacity
-                      onPress={() => setShowRenewalModal(false)}
-                      disabled={renewalLoading}
-                      style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: current.border, alignItems: 'center' }}
-                    >
-                      <Text style={{ fontSize: 14, color: current.text, fontWeight: '700' }}>Hủy</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={submitRenewal}
-                      disabled={renewalLoading}
-                      style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#3730A3', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
-                    >
-                      {renewalLoading ? <ActivityIndicator size="small" color="#FFF" /> : <Ionicons name="send" size={16} color="#FFF" />}
-                      <Text style={{ fontSize: 14, color: '#FFF', fontWeight: '700' }}>Gửi yêu cầu</Text>
-                    </TouchableOpacity>
-                  </View>
+                <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600', marginTop: 12 }}>Ghi chú (Tùy chọn):</Text>
+                <SyncTextInput
+                  placeholder="Lý do hoặc mong muốn của bạn..."
+                  placeholderTextColor={theme.textInactive}
+                  multiline
+                  numberOfLines={3}
+                  value={renewalNote}
+                  onChangeText={setRenewalNote}
+                  style={{
+                    borderWidth: 1, borderColor: current.border, borderRadius: 12, padding: 12,
+                    fontSize: 14, color: current.text, backgroundColor: current.card, marginBottom: 24, textAlignVertical: 'top', minHeight: 80
+                  }}
+                />
+
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
+                  <TouchableOpacity
+                    onPress={() => setShowRenewalModal(false)}
+                    disabled={renewalLoading}
+                    style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: current.border, alignItems: 'center' }}
+                  >
+                    <Text style={{ fontSize: 14, color: current.text, fontWeight: '700' }}>Hủy</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={submitRenewal}
+                    disabled={renewalLoading}
+                    style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: '#3730A3', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}
+                  >
+                    {renewalLoading ? <ActivityIndicator size="small" color="#FFF" /> : <Ionicons name="send" size={16} color="#FFF" />}
+                    <Text style={{ fontSize: 14, color: '#FFF', fontWeight: '700' }}>Gửi yêu cầu</Text>
+                  </TouchableOpacity>
                 </View>
-                <FloatingKeyboardBar />
               </View>
+              <FloatingKeyboardBar />
+            </View>
           </Modal>
 
           {/* ══════════════════════════════════════════════════════════════
@@ -1616,9 +1621,9 @@ const ContractDetail = () => {
             <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
               <View style={{ backgroundColor: current.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
                 <View style={{ width: 40, height: 4, backgroundColor: current.border, borderRadius: 2, alignSelf: 'center', marginBottom: 22 }} />
-                
+
                 <Text style={{ fontSize: 18, fontWeight: '900', color: current.text, marginBottom: 16 }}>Yêu cầu chấm dứt hợp đồng</Text>
-                
+
                 <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Lý do chấm dứt:</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                   {[
@@ -1711,7 +1716,7 @@ const ContractDetail = () => {
             <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
               <View style={{ backgroundColor: current.background, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40 }}>
                 <View style={{ width: 40, height: 4, backgroundColor: current.border, borderRadius: 2, alignSelf: 'center', marginBottom: 22 }} />
-                
+
                 <Text style={{ fontSize: 13, color: theme.textInactive, marginBottom: 8, fontWeight: '600' }}>Loại khiếu nại:</Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
                   {[
