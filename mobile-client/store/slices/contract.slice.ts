@@ -34,7 +34,7 @@ export const createRentalRequest = createAsyncThunk(
 
 export const payHoldingDeposit = createAsyncThunk(
   'contract/payHoldingDeposit',
-  async (data: { requestId: string; method: string }, { rejectWithValue }) => {
+  async (data: { requestId: string; method: string; platform?: string }, { rejectWithValue }) => {
     try {
       return await contractService.payHoldingDeposit(data)
     } catch (e: any) {

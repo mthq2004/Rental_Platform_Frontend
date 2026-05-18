@@ -31,6 +31,29 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   const imageUrl =
     image ?? "https://via.placeholder.com/400x300.png?text=No+Image";
 
+  const propertyTypeLabel = [
+    {
+      id: "apartment",
+      label: "Chung cư / Căn hộ"
+    },
+    {
+      id: "house",
+      label: "Nhà ở"
+    },
+    {
+      id: "room",
+      label: "Phòng trọ"
+    },
+    {
+      id: "office",
+      label: "Văn phòng"
+    },
+    {
+      id: "land",
+      label: "Đất"
+    }
+  ].find((type) => type.id === property.propertyType)?.label || "Bất động sản";
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -48,7 +71,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         {/* Type badge */}
         <View className="absolute top-3 left-3 bg-blue-600 px-2 py-1 rounded-full">
           <Text className="text-white text-xs font-medium capitalize">
-            {propertyType}
+            {propertyTypeLabel}
           </Text>
         </View>
 

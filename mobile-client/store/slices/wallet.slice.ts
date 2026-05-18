@@ -115,7 +115,7 @@ export const getWalletTransactions = createAsyncThunk(
       if (params?.type) qs.push(`type=${params.type}`);
       if (params?.status) qs.push(`status=${params.status}`);
       if (qs.length > 0) url += `?${qs.join('&')}`;
-      
+
       const response = await apiClient.get(url);
       return response.data;
     } catch (e: any) {
@@ -127,11 +127,12 @@ export const getWalletTransactions = createAsyncThunk(
 export const initiateWalletTopup = createAsyncThunk(
   'wallet/initiateWalletTopup',
   async (
-    payload: { amount: number; method: WalletTopupMethod },
+    payload: { amount: number; method: WalletTopupMethod; platform?: string },
     { rejectWithValue }
   ) => {
     try {
       const response = await apiClient.post('/contract/wallet/topup', payload);
+      console.log('Topup response:', response);
       return response.data;
     } catch (e: any) {
       return rejectWithValue(e?.response?.data?.message || e?.message || 'Không thể khởi tạo nạp tiền');

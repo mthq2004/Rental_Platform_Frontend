@@ -283,7 +283,7 @@ export default function RentalRequestsPage() {
 
     try {
       const result = await dispatch(
-        payHoldingDeposit({ requestId: payingRequest.requestId, method: payMethod })
+        payHoldingDeposit({ requestId: payingRequest.requestId, method: payMethod, platform: 'web' })
       ).unwrap();
 
       const payload = (result as any)?.data ?? result ?? {};
