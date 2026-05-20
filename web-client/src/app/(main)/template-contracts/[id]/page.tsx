@@ -720,8 +720,8 @@ const RentalContractContent = () => {
         fromRequestId: requestData?.contract.id,
         startDate: String(formData["contract.startDate"] || requestData!.contract.startDate),
         endDate: String(formData["contract.endDate"] || requestData!.contract.endDate),
-        monthlyRent: parseSafeNumber(formData["contract.monthlyRent"]),
-        depositAmount: parseSafeNumber(formData["contract.depositAmount"]),
+        monthlyRent: parseSafeNumber(formData["property.monthlyRent"]),
+        depositAmount: parseSafeNumber(formData["property.depositAmount"]), 
         electricityCostPerKwh: parseSafeNumber(formData["contract.electricityCostPerKwh"]),
         waterCostPerM3: parseSafeNumber(formData["contract.waterCostPerM3"]),
         managementFee: parseSafeNumber(formData["contract.managementFee"]),
@@ -737,7 +737,7 @@ const RentalContractContent = () => {
         contractData: formData,
         contractHtml: editorContent,
       };
-
+      
       const resultAction = await dispatch(createContract(payload));
       if (createContract.fulfilled.match(resultAction)) {
         const contract = resultAction.payload.data;
