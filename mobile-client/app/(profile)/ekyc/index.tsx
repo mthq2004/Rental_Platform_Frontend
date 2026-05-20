@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import { COLORS } from '@/utils/colors';
+import { useAppSelector } from '@/store/hook';
 import {
   Shield,
   CreditCard,
@@ -22,12 +24,16 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
-  Smartphone,
+  Clock,
+  CheckCircle2,
 } from 'lucide-react-native';
+
+const { width } = Dimensions.get('window');
 
 const EkycIntroScreen = () => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { user } = useAppSelector((state) => state.auth);
 
   const steps = [
     {
@@ -54,11 +60,68 @@ const EkycIntroScreen = () => {
   ];
 
   const tips = [
-    { icon: Eye, title: 'No glare', desc: 'Tránh ánh sáng trực tiếp chiếu vào thẻ' },
-    { icon: Camera, title: 'Not blurry', desc: 'Ảnh chụp rõ nét, không bị rung tay' },
-    { icon: EyeOff, title: "Don't cover information", desc: 'Không dùng ngón tay che thông tin' },
+    { icon: Eye, title: 'Không lóa sáng', desc: 'Tránh ánh sáng trực tiếp chiếu vào thẻ' },
+    { icon: Camera, title: 'Ảnh rõ nét', desc: 'Ảnh chụp rõ nét, không bị rung tay' },
+    { icon: EyeOff, title: 'Không che khuất', desc: 'Không dùng ngón tay hay vật phẩm che thông tin' },
   ];
 
+  // 1. STATE: VERIFIED / APPROVED
+  if (user?.kycStatus === 'verified' || user?.kycStatus === 'approved') {
+    return (
+      <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark justify-center items-center">
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <View style={styles.centerCard}>
+          <View style={[styles.iconOuter, { backgroundColor: isDark ? '#042f2e' : '#e6f4ea' }]}>
+            <CheckCircle2 size={64} color="#10b981" />
+          </View>
+          <Text className="text-foreground dark:text-foreground-dark text-2xl font-bold mt-6 text-center">
+            Tài khoản đã xác minh!
+          </Text>
+          <Text className="text-gray-500 dark:text-gray-400 text-sm mt-3 text-center px-6 leading-5">
+            Chúc mừng! Hồ sơ KYC của bạn đã được xác thực thành công. Bạn hiện có quyền truy cập đầy đủ vào tất cả các tính năng của nền tảng.
+          </Text>
+          
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backCta, { backgroundColor: '#0d9488' }]}
+            activeOpacity={0.85}
+          >
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Quay lại</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // 2. STATE: PENDING REVIEW / IN_REVIEW
+  if (user?.kycStatus === 'in_review') {
+    return (
+      <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark justify-center items-center">
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <View style={styles.centerCard}>
+          <View style={[styles.iconOuter, { backgroundColor: isDark ? '#1a1005' : '#fff7ed' }]}>
+            <Clock size={64} color="#f97316" />
+          </View>
+          <Text className="text-foreground dark:text-foreground-dark text-2xl font-bold mt-6 text-center">
+            Đang chờ duyệt hồ sơ
+          </Text>
+          <Text className="text-gray-500 dark:text-gray-400 text-sm mt-3 text-center px-6 leading-5">
+            Hồ sơ eKYC của bạn đang được quản trị viên thẩm định thủ công. Vui lòng chờ phản hồi trong thời gian sớm nhất.
+          </Text>
+          
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backCta, { backgroundColor: isDark ? '#374151' : '#e5e7eb' }]}
+            activeOpacity={0.85}
+          >
+            <Text className="text-foreground dark:text-foreground-dark font-bold text-base">Quay lại</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // 3. STATE: UNVERIFIED OR REJECTED (SHOW INTRO)
   return (
     <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -105,6 +168,19 @@ const EkycIntroScreen = () => {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Rejection Card Alert */}
+        {user?.kycStatus === 'rejected' && (
+          <View style={[styles.rejectionCard, { backgroundColor: isDark ? '#450a0a' : '#fef2f2', borderColor: isDark ? '#7f1d1d' : '#fecaca' }]}>
+            <AlertTriangle size={22} color="#ef4444" style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: '#ef4444', fontWeight: '700', fontSize: 14 }}>Hồ sơ KYC bị từ chối</Text>
+              <Text className="text-gray-500 dark:text-gray-300 text-xs mt-1 leading-4 font-medium">
+                Lý do từ chối: {user?.kycRejectionReason || 'Ảnh có thể bị mờ, lóa hoặc không khớp. Vui lòng thử lại.'}
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Hero */}
         <View style={styles.heroSection}>
           <View style={[styles.secureBadge, { backgroundColor: isDark ? '#042f2e' : '#ccfbf1' }]}>
@@ -211,12 +287,38 @@ const EkycIntroScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
+  centerCard: {
+    paddingHorizontal: 28,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    width: '100%',
+  },
+  iconOuter: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backCta: {
+    width: '100%',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 2,
+  },
+  rejectionCard: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
   },
   backBtn: {
     width: 36,
@@ -227,7 +329,7 @@ const styles = StyleSheet.create({
   },
   heroSection: {
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 16,
   },
   secureBadge: {
     flexDirection: 'row',

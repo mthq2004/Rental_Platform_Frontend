@@ -40,7 +40,7 @@ export type User = {
   walletAddress: string | null;
   walletType: string | null;
 
-  kycStatus: 'pending' | 'approved' | 'rejected' | 'verified';
+  kycStatus: 'pending' | 'approved' | 'rejected' | 'verified' | 'in_review';
   kycSubmittedAt: string | null;
   kycVerifiedAt: string | null;
   kycExpiredAt: string | null;

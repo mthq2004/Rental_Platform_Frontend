@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Button, Space, Dropdown, Tooltip, Modal } from "antd";
+import { Button, Space, Dropdown, Tooltip, App } from "antd";
 import { HeartOutlined, MessageOutlined, AppstoreOutlined } from "@ant-design/icons";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -13,6 +13,7 @@ import { getMissingPostingRequirements } from "@/utils/profile-completeness";
 
 
 const Header = () => {
+  const { modal } = App.useApp();
   const router = useRouter();
   const pathname = usePathname();
   const isDashboard = pathname?.startsWith("/dashboard") ?? false;
@@ -50,7 +51,7 @@ const Header = () => {
     console.log("Đăng tin clicked");
     if (isAuth) {
       if (!user) {
-        Modal.info({
+        modal.info({
           title: "Đang tải hồ sơ",
           content: "Vui lòng thử lại sau vài giây khi hệ thống tải xong thông tin tài khoản.",
           centered: true,
@@ -65,7 +66,7 @@ const Header = () => {
       } else {
         const onlyMissingKyc = missingRequirements.length === 1 && missingRequirements[0] === "Xác thực KYC";
 
-        Modal.confirm({
+        modal.confirm({
           title: "Chưa đủ điều kiện đăng tin",
           content: `Bạn cần bổ sung: ${missingRequirements.join(", ")}`,
           okText: onlyMissingKyc ? "Đi tới KYC" : "Cập nhật hồ sơ",

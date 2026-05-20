@@ -124,12 +124,16 @@ const RegisterFlow: React.FC = () => {
     return true;
   };
 
-  const handlePhoneSubmit = (): void => {
+  const handlePhoneSubmit = async (): Promise<void> => {
     Keyboard.dismiss();
     if (!validatePhoneStep()) return;
-    dispatch(requestOtp(phoneNumber))
-
-    setCurrentStep('otp');
+    try {
+      await dispatch(requestOtp(phoneNumber)).unwrap();
+      setCurrentStep('otp');
+    } catch (err: any) {
+      const msg = typeof err === 'string' ? err : 'Yêu cầu OTP thất bại';
+      showToast(msg, 'error');
+    }
   };
 
   const handleSocialLogin = (provider: string): void => {
