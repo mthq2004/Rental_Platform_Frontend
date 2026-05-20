@@ -12,9 +12,9 @@ export function getMissingPostingRequirements(user: UserType | null | undefined)
     missing.push("Họ và tên");
   }
 
-  if (!user.email?.trim()) {
-    missing.push("Email");
-  }
+  // if (!user.email?.trim()) {
+  //   missing.push("Email");
+  // }
 
   if (!user.phone?.trim()) {
     missing.push("Số điện thoại");
@@ -56,9 +56,9 @@ export function getMissingRentalRequirements(user: UserType | null | undefined):
     missing.push("Họ và tên");
   }
 
-  if (!user.email?.trim()) {
-    missing.push("Email");
-  }
+  // if (!user.email?.trim()) {
+  //   missing.push("Email");
+  // }
 
   if (!user.phone?.trim()) {
     missing.push("Số điện thoại");
