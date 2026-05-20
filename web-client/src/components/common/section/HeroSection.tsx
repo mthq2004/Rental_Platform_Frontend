@@ -11,6 +11,8 @@ import { useRouter } from "next/navigation";
 import provinceService from "@/services/province.service";
 import { Province, District, Ward } from "@/types/province.type";
 import { useAnimatedPlaceholder } from "@/hooks/useAnimatedPlaceholder";
+import { useInstantSearch } from "@/hooks/useInstantSearch";
+import SearchSuggestions from "@/components/common/SearchSuggestions";
 
 const HeroSection = () => {
   const router = useRouter();
@@ -67,8 +69,6 @@ const HeroSection = () => {
     { value: "room", label: "Phòng trọ" },
   ];
 
-  // Thêm biến này ở phần khai báo (Bạn đã có isAnyDropdownOpen ở code trên nhưng chưa dùng ở thẻ section)
-  const isAnyDropdownOpen = isLocationModalOpen || isOpenType;
 
 
   /* ===================== FETCH DATA ===================== */
@@ -191,7 +191,37 @@ const HeroSection = () => {
   };
 
   const [isFocused, setIsFocused] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const isAnyDropdownOpen = isLocationModalOpen || isOpenType || showSuggestions;
   const animatedPlaceholder = useAnimatedPlaceholder(!searchKeyword && !isFocused);
+  const { keywords, loading: suggestionsLoading } = useInstantSearch(
+    searchKeyword,
+    "home",
+    300
+  );
+
+  const handleInputFocus = () => {
+    setIsFocused(true);
+    setShowSuggestions(true);
+  };
+
+  const handleInputBlur = () => {
+    setIsFocused(false);
+    // Delay hiding to allow click on suggestions
+    setTimeout(() => setShowSuggestions(false), 200);
+  };
+
+  const handleSelectKeyword = (keyword: string) => {
+    setSearchKeyword(keyword);
+    setShowSuggestions(false);
+    // Navigate with the selected keyword
+    const params = new URLSearchParams();
+    params.set("keyword", keyword);
+    if (selectedPropertyType) params.set("propertyType", selectedPropertyType);
+    if (appliedProvince) params.set("city", appliedProvince.name);
+    if (appliedDistrict) params.set("district", appliedDistrict.name);
+    router.push(`/search?${params.toString()}`);
+  };
   /* ===================== RENDER ===================== */
 
   return (
@@ -257,9 +287,14 @@ const HeroSection = () => {
                 hover:border-blue-500 focus:border-blue-500 focus:outline-none
                 text-gray-800 placeholder-transparent shadow-sm transition-all duration-200"
               value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
+              onChange={(e) => {
+                setSearchKeyword(e.target.value);
+                if (e.target.value.trim().length >= 1) {
+                  setShowSuggestions(true);
+                }
+              }}
+              onFocus={handleInputFocus}
+              onBlur={handleInputBlur}
               onKeyDown={(e) => e.key === "Enter" && handleSearchNavigate()}
             />
             {!searchKeyword && (
@@ -268,6 +303,15 @@ const HeroSection = () => {
                 <span className="inline-block w-0.5 h-4 bg-red-400 ml-px animate-[blink_0.75s_step-start_infinite] rounded-sm" />
               </span>
             )}
+
+            {/* AI Search Suggestions - Home mode: keywords only */}
+            <SearchSuggestions
+              visible={showSuggestions && searchKeyword.trim().length >= 1}
+              keywords={keywords}
+              loading={suggestionsLoading}
+              mode="home"
+              onSelectKeyword={handleSelectKeyword}
+            />
           </div>
 
           {/* Location Button */}

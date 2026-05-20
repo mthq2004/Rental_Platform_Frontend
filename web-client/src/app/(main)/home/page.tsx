@@ -2,10 +2,10 @@ import React, { Suspense } from "react";
 import PropertyListings from "@/components/common/PropertyListings";
 import PriceReference from "@/components/common/PriceReference";
 import FooterTop from "@/components/layout/footer/FooterTop";
-import HeroSection from "@/components/common/section/HeroSection";
 import RegionSection from "@/components/common/section/RegionSection";
 import MapSection from "@/components/common/section/MapSection";
 import AuthExchangeHandler from "@/components/common/AuthExchangeHandler";
+import HeroSection from "@/components/common/section/HeroSection";
 
 const HomePage = () => {
 
