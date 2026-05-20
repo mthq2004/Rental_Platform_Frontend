@@ -14,6 +14,7 @@ import { useThemeColors } from '@/utils/colors'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import ScreenHeader from '@/components/common/ScreenHeader'
+import NebulaLoader from '@/components/NebulaLoader'
 
 // Simple status labels
 const STATUS_LABELS: Record<string, string> = {
@@ -67,6 +68,8 @@ const extractPropertyInfo = (request: RequestItem) => {
 
   return { id: property?.id || request?.propertyId || '', title, address, imageUrl, raw: property }
 }
+
+
 
 const PropertyGroupHeader: React.FC<{ title: string; address?: string; imageUrl?: string }> = ({ title, address, imageUrl }) => (
   <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
@@ -202,6 +205,11 @@ const RequestsScreen: React.FC = () => {
       }
     ])
   }
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadData();
+  };
 
   const handleOpenSelectedDeposits = async () => {
     if (selectedOwnerRequestIds.length === 0) return
@@ -419,11 +427,11 @@ const RequestsScreen: React.FC = () => {
     ))
   }
 
-  const isLoading = loading || ownerLoading
+  const isLoading = (loading || ownerLoading) && !refreshing
 
   return (
     <AuthGuard>
-      <KeyboardSafeWrapper scrollable={false} style={{ flex: 1, backgroundColor: current.background }}>
+      <KeyboardSafeWrapper scrollable={false} dismissKeyboardOnTap={false} style={{ flex: 1, backgroundColor: current.background }}>
         <SafeAreaView style={{ flex: 1, backgroundColor: current.background }}>
           <ScreenHeader title="Quản lý yêu cầu" />
 
@@ -473,12 +481,18 @@ const RequestsScreen: React.FC = () => {
             </View>
           ) : null}
 
-          <ScrollView contentContainerStyle={{ paddingBottom: 120 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData() }} tintColor={colors.primary} />}>
+          <ScrollView 
+            contentContainerStyle={{ paddingBottom: 120 }} 
+            refreshControl={<RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              tintColor={colors.primary} 
+            />}
+          >
 
             {isLoading ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#0040d1" />
-                <Text style={{ marginTop: 12, color: current.textInactive, fontSize: 13 }}>Đang tải dữ liệu...</Text>
+                <NebulaLoader size={30} label='Đang tải dữ liệu...' />
               </View>
             ) : (
               <View style={{ paddingHorizontal: 16 }}>

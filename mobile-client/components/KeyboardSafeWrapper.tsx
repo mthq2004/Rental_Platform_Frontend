@@ -16,6 +16,7 @@ interface KeyboardSafeWrapperProps {
   contentContainerStyle?: StyleProp<ViewStyle>;
   scrollable?: boolean;
   keyboardShouldPersistTaps?: ScrollViewProps['keyboardShouldPersistTaps'];
+  dismissKeyboardOnTap?: boolean;
 }
 
 /**
@@ -36,25 +37,32 @@ const KeyboardSafeWrapper: React.FC<KeyboardSafeWrapperProps> = ({
   contentContainerStyle,
   scrollable = true,
   keyboardShouldPersistTaps = 'handled',
+  dismissKeyboardOnTap = true,
 }) => {
+  const content = scrollable ? (
+    <ScrollView
+      className={`flex-1 ${className}`}
+      style={style}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+      keyboardDismissMode="interactive"
+      contentContainerStyle={contentContainerStyle}
+      // Tắt tự scroll khi keyboard mở
+      automaticallyAdjustKeyboardInsets={false}
+    >
+      {children}
+    </ScrollView>
+  ) : (
+    <View className={`flex-1 ${className}`} style={style}>
+      {children}
+    </View>
+  );
+
+  if (!dismissKeyboardOnTap) return content;
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-      {scrollable ? (
-        <ScrollView
-          className={`flex-1 ${className}`}
-          style={style}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-          keyboardDismissMode="interactive"
-          contentContainerStyle={contentContainerStyle}
-          // Tắt tự scroll khi keyboard mở
-          automaticallyAdjustKeyboardInsets={false}
-        >
-          {children}
-        </ScrollView>
-      ) : (
-        <View className={`flex-1 ${className}`} style={style}>{children}</View>
-      )}
+      {content}
     </TouchableWithoutFeedback>
   );
 };

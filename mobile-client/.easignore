@@ -1,0 +1,15 @@
+node_modules/
+.git/
+.vscode/
+android/app/build/
+android/build/
+android/.gradle/
+ios/build/
+ios/Pods/
+.expo/
+.expo-shared/
+.cache/
+dist/
+coverage/
+.turbo/
+*.log

@@ -11,6 +11,7 @@ import { getAllCustomerCategories, addConversationToCategory } from '@/store/sli
 import { fetchConversations, archiveConversation, deleteConversation } from '@/store/slices/conversation.slice';
 import { useColorScheme } from 'nativewind';
 import { router } from 'expo-router';
+import NebulaLoader from '../NebulaLoader';
 
 interface ChatListProps {
   onSelectChat: (conversation: Conversation) => void;
@@ -197,7 +198,7 @@ const ChatList: React.FC<ChatListProps> = ({ onSelectChat }) => {
   if (loading && conversations.length === 0) {
     return (
       <View className="flex-1 items-center justify-center bg-gray-50 dark:bg-background-dark">
-        <Text className="text-gray-500 dark:text-gray-400">Đang tải...</Text>
+        <NebulaLoader size={40}/>
       </View>
     );
   }

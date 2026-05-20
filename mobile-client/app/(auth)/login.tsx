@@ -109,8 +109,8 @@ const LoginScreen = () => {
     }
 
     try {
-      const authUrl = `${apiBaseUrl}/estate/auth/google`;
       const redirectUri = Linking.createURL('/(auth)/login');
+      const authUrl = `${apiBaseUrl}/estate/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
       if (result.type !== 'success') {

@@ -34,6 +34,7 @@ import { Ionicons } from '@expo/vector-icons'
 import ScreenHeader from '@/components/common/ScreenHeader'
 import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext'
 import FloatingKeyboardBar from '@/components/common/FloatingKeyboardBar'
+import NebulaLoader from '@/components/NebulaLoader'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const SMARTCA_POLLING_MS = 4000
@@ -762,8 +763,7 @@ const ContractDetail = () => {
     return (
       <AuthGuard>
         <SafeAreaView style={{ flex: 1, backgroundColor: current.background, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ color: theme.textInactive, marginTop: 12, fontSize: 13 }}>Đang tải hợp đồng...</Text>
+          <NebulaLoader size={40} label='Đang tải hợp đồng'/>
         </SafeAreaView>
       </AuthGuard>
     )
@@ -798,7 +798,7 @@ const ContractDetail = () => {
   return (
     <AuthGuard>
       <SafeAreaView style={{ flex: 1, backgroundColor: current.background }}>
-        <KeyboardSafeWrapper scrollable={false} style={{ flex: 1, backgroundColor: current.background }}>
+        <KeyboardSafeWrapper scrollable={false} dismissKeyboardOnTap={false} style={{ flex: 1, backgroundColor: current.background }}>
 
           <ScreenHeader
             title="Chi tiết hợp đồng"

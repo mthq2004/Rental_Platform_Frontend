@@ -207,7 +207,24 @@ export default function WalletScreen() {
         <WebView
           source={{ uri: paymentUrl }}
           onNavigationStateChange={(navState) => {
-            if (navState.url.includes('/payment/vnpay_return') || navState.url.includes('returnUrl') || navState.url.includes('vnpay_return')) {
+            if (navState.url.includes('/payment/result')) {
+              setPaymentUrl(null)
+              const queryParams: Record<string, string> = {}
+              const urlParts = navState.url.split('?')
+              if (urlParts.length > 1) {
+                const searchParamsStr = urlParts[1].split('&')
+                searchParamsStr.forEach((param) => {
+                  const [key, value] = param.split('=')
+                  if (key && value) {
+                    queryParams[key] = decodeURIComponent(value)
+                  }
+                })
+              }
+              router.replace({
+                pathname: '/(rental)/payment-result',
+                params: queryParams,
+              })
+            } else if (navState.url.includes('/payment/vnpay_return') || navState.url.includes('returnUrl') || navState.url.includes('vnpay_return')) {
               setPaymentUrl(null)
               Alert.alert('Thông báo', 'Giao dịch của bạn đang được xử lý. Vui lòng kiểm tra lại trạng thái trong ít phút.', [
                 { text: 'OK', onPress: () => loadData() },

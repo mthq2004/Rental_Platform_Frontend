@@ -6,6 +6,7 @@ import { PropertyInfoTab } from '@/components/detail/PropertyInfoTab'
 import { Schedule, ScheduleTab } from '@/components/detail/ScheduleTab'
 import { TabBar, TabKey } from '@/components/detail/TabBar'
 import { VideoPlayerModal } from '@/components/detail/VideoPlayerModal'
+import NebulaLoader from '@/components/NebulaLoader'
 import { useAppDispatch, useAppSelector } from '@/store/hook'
 import {
   cancelBooking,
@@ -390,7 +391,7 @@ const PropertyDetail = () => {
   if (propertyLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-white dark:bg-gray-950">
-        <Text className="text-gray-600 dark:text-gray-400">Đang tải...</Text>
+        <NebulaLoader size={40}/>
       </View>
     )
   }
