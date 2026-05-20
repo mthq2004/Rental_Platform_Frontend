@@ -98,14 +98,12 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f7b691f7-0cca-48bd-b5b5-8d9f345757e2"
+        "projectId": "01e934a4-6db2-4173-88d7-9a506d766875"
       }
     },
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/f7b691f7-0cca-48bd-b5b5-8d9f345757e2"
-    }
+    "owner": "machthang"
   }
 }

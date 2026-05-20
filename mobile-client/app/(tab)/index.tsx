@@ -18,9 +18,11 @@ import {
   ScrollView,
   Dimensions,
   StatusBar,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
+import NebulaLoader from '@/components/NebulaLoader';
 
 const Home = () => {
   const [selectedPropertyTypeId, setSelectedPropertyTypeId] = useState<string>(
@@ -35,6 +37,7 @@ const Home = () => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === 'dark';
   const isInitialLoading = loading
+  const [refreshing, setRefreshing] = useState(false);
 
   const properties = data
 
@@ -69,6 +72,26 @@ const Home = () => {
     });
   };
 
+  const onRefresh = async () => {
+    try {
+      setRefreshing(true);
+
+      if (isAuth) {
+        await dispatch(getListProperty()).unwrap();
+      } else {
+        await dispatch(getFeaturedPropertiesThunk(10)).unwrap();
+      }
+
+      await dispatch(getNumberPropertyByCity(selectedPropertyTypeId)).unwrap();
+      await dispatch(getProvinces()).unwrap();
+
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
 
 
   useEffect(() => {
@@ -99,7 +122,7 @@ const Home = () => {
   if (isInitialLoading) {
     return (
       <SafeAreaView edges={['left', 'right', 'bottom']} className="flex-1 items-center justify-center">
-        <Text>Đang tải...</Text>
+        <NebulaLoader size={40}/>
       </SafeAreaView>
     )
   }
@@ -115,6 +138,15 @@ const Home = () => {
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={isDark ? "#fff" : "#000"}
+            colors={["#2563eb"]}
+            progressBackgroundColor={isDark ? "#111827" : "#ffffff"}
+          />
+        }
       >
         <HeaderBanner />
         <SearchFilter />

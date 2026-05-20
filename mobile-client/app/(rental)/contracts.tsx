@@ -130,7 +130,7 @@ const ContractsScreen = () => {
 
   return (
     <AuthGuard>
-      <KeyboardSafeWrapper scrollable={false} style={{ flex: 1, backgroundColor: current.background }}>
+      <KeyboardSafeWrapper scrollable={false} dismissKeyboardOnTap={false} style={{ flex: 1, backgroundColor: current.background }}>
         <SafeAreaView style={{ flex: 1, backgroundColor: current.background }}>
           <ScreenHeader title="Quản lý hợp đồng" />
 

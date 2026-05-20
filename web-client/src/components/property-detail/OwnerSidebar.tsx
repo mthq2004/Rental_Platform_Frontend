@@ -499,7 +499,19 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
               onChange={handleStartDateChange}
               className="w-full"
               placeholder="Chọn ngày bắt đầu"
-              disabledDate={(d) => d.isBefore(dayjs(), "day")}
+              disabledDate={(current) => {
+                if (!current) return false;
+                
+                // Ngày mai (Mốc bắt đầu được chọn)
+                const tomorrow = dayjs().add(1, 'day').startOf('day');
+                
+                // 10 ngày kể từ ngày mai
+                const maxDate = dayjs().add(10, 'day').endOf('day');
+                
+                // Khóa tất cả các ngày TRƯỚC ngày mai (bao gồm cả hôm nay) VÀ SAU ngày maxDate
+                return current.isBefore(tomorrow, 'day') || current.isAfter(maxDate, 'day');
+              }}
+              // disabledDate={(d) => d.isBefore(dayjs(), "day")}
               format="DD/MM/YYYY"
             />
           </div>
