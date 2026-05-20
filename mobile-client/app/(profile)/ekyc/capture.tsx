@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { useColorScheme } from 'nativewind';
 import {
   CreditCard, Camera, User, Zap,
@@ -56,45 +55,21 @@ export default function EkycCaptureScreen() {
   const key = step === 1 ? 'front' : step === 2 ? 'back' : 'selfie';
   const curImg = imgs[key];
   const isSelfie = step === 3;
-
-  // Frame layout (center of screen) — used to calculate crop
   const frameW = isSelfie ? OVAL_W : CARD_W;
   const frameH = isSelfie ? OVAL_H : CARD_H;
-
-  const cropPhoto = async (uri: string) => {
-    // Get actual photo size
-    const { width: pw, height: ph } = await new Promise<{ width: number; height: number }>((res) => {
-      Image.getSize(uri, (w, h) => res({ width: w, height: h }));
-    });
-
-    // Camera preview fills the screen, so compute scale
-    const scaleX = pw / SW;
-    const scaleY = ph / SH;
-
-    // Frame center position on screen
-    const fx = (SW - frameW) / 2;
-    const fy = (SH - frameH) / 2;
-
-    const cropX = Math.max(0, Math.round(fx * scaleX));
-    const cropY = Math.max(0, Math.round(fy * scaleY));
-    const cropW = Math.min(pw - cropX, Math.round(frameW * scaleX));
-    const cropH = Math.min(ph - cropY, Math.round(frameH * scaleY));
-
-    const result = await ImageManipulator.manipulateAsync(
-      uri,
-      [{ crop: { originX: cropX, originY: cropY, width: cropW, height: cropH } }],
-      { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG }
-    );
-    return result.uri;
-  };
 
   const handleCapture = async () => {
     if (!cameraRef.current || capturing) return;
     setCapturing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.9, skipProcessing: false });
-      const croppedUri = await cropPhoto(photo.uri);
-      setImgs((p) => ({ ...p, [key]: croppedUri }));
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.9,
+        skipProcessing: false,
+      });
+      // Use raw photo directly — the overlay frame is a visual guide only.
+      // Cropping is unreliable on Android due to EXIF rotation and
+      // sensor aspect ratio differences. Backend OCR handles full photos.
+      setImgs((p) => ({ ...p, [key]: photo.uri }));
     } catch (e) {
       showToast('Chụp ảnh thất bại', 'error');
     }
@@ -164,7 +139,7 @@ export default function EkycCaptureScreen() {
 
       {/* Camera hoặc Preview ảnh */}
       {curImg ? (
-        <Image source={{ uri: curImg }} style={StyleSheet.absoluteFill} resizeMode="contain" />
+        <Image source={{ uri: curImg }} style={StyleSheet.absoluteFill} resizeMode="cover" />
       ) : (
         <CameraView
           ref={cameraRef}
@@ -173,9 +148,8 @@ export default function EkycCaptureScreen() {
         />
       )}
 
-      {/* Overlay mask — chỉ hiện khi chưa chụp */}
-      {!curImg && (
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* Overlay mask — luôn hiện để user thấy khung */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
           {/* Top overlay */}
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }} />
 
@@ -185,7 +159,7 @@ export default function EkycCaptureScreen() {
             {/* Transparent hole */}
             <View style={{
               width: frameW, height: frameH,
-              borderWidth: 2.5, borderColor: '#0d9488',
+              borderWidth: 2.5, borderColor: curImg ? '#14b8a6' : '#0d9488',
               borderRadius: isSelfie ? frameW : 14,
               backgroundColor: 'transparent',
             }}>
@@ -205,7 +179,6 @@ export default function EkycCaptureScreen() {
           {/* Bottom overlay */}
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' }} />
         </View>
-      )}
 
       {/* Header */}
       <SafeAreaView edges={['top']} style={S.headerWrap}>

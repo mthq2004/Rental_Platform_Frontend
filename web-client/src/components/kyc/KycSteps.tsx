@@ -1,8 +1,10 @@
 import {
+  AlertTriangle,
   BadgeCheck,
   Camera,
   Check,
   CheckCircle2,
+  Clock,
   ImageUp,
   IdCard,
   Lock,
@@ -11,6 +13,7 @@ import {
   Sparkles,
   User,
   UserCircle2,
+  XCircle,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -43,7 +46,7 @@ export function StepOne() {
       </div>
 
       <div className="mt-4">
-        <Field label="Email" placeholder={user?.email || "Chưa có thông tin"} icon={<Lock className="h-4 w-4" />} suffix="ĐÃ XÁC THỰC" />
+        <Field label="Email" placeholder={user?.email || "Chưa có thông tin"} icon={<Lock className="h-4 w-4" />} suffix={user?.email ? "ĐÃ XÁC THỰC" : undefined} />
       </div>
 
       <div className="mt-6 rounded-2xl border px-4 py-3 text-xs md:text-sm" style={{ borderColor: "#DCE8FF", background: "#F6F9FF", color: BRAND.muted }}>
@@ -259,11 +262,17 @@ export function StepFour({
   backImage,
   selfieImage,
   kycData,
+  onRetry,
+  onSendToAdmin,
+  isFailed,
 }: {
   frontImage?: string;
   backImage?: string;
   selfieImage?: string;
   kycData?: any;
+  onRetry?: () => void;
+  onSendToAdmin?: () => void;
+  isFailed?: boolean;
 }) {
   const score = kycData?.score ?? kycData?.similarity ?? (kycData ? 0 : 0);
   const flags = Array.isArray(kycData?.flags) ? kycData.flags : [];
@@ -273,10 +282,12 @@ export function StepFour({
     in_review: "Đang thẩm định",
     verified: "Đã xác minh",
     rejected: "Bị từ chối",
+    failed: "Xác thực thất bại",
     expired: "Hết hạn",
   };
 
   const status = statusMap[String(kycData?.status || "pending")] || "Chờ xác thực";
+  const showFailureBlock = isFailed || kycData?.status === "failed";
 
   return (
     <section className="rounded-3xl border bg-white p-5 shadow-sm md:p-8 mb-6" style={{ borderColor: BRAND.border }}>
@@ -284,19 +295,69 @@ export function StepFour({
         Kiểm tra thông tin
       </h2>
       <p className="mt-2 text-sm md:text-base" style={{ color: BRAND.muted }}>
-        Thông tin đã được hệ thống xác thực tự động. Vui lòng kiểm tra trước khi hoàn tất.
+        {showFailureBlock
+          ? "Hệ thống không thể xác minh thông tin của bạn. Vui lòng kiểm tra lại hoặc gửi yêu cầu xác thực thủ công."
+          : "Thông tin đã được hệ thống xác thực tự động. Vui lòng kiểm tra trước khi hoàn tất."}
       </p>
+
+      {/* Failure alert banner */}
+      {showFailureBlock && (
+        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="flex-1">
+              <p className="text-base font-bold text-red-700">Xác thực thất bại</p>
+              <p className="mt-1 text-sm leading-relaxed text-red-600">
+                Hệ thống nhận diện FPT không thể xác minh thông tin của bạn. Ảnh có thể bị mờ, lóa hoặc không khớp.
+              </p>
+              {typeof score === "number" && (
+                <div className="mt-3 flex items-center gap-2">
+                  <span className="text-sm font-semibold text-red-700">Độ tin cậy:</span>
+                  <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-bold text-red-700">
+                    {Math.round(score)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            {onRetry && (
+              <button
+                onClick={onRetry}
+                className="flex-1 rounded-2xl px-5 py-3.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-95 shadow-md shadow-blue-200"
+                style={{ background: BRAND.primary }}
+              >
+                Kiểm tra & Thử lại
+              </button>
+            )}
+            {onSendToAdmin && (
+              <button
+                onClick={onSendToAdmin}
+                className="flex-1 rounded-2xl border px-5 py-3.5 text-sm font-bold transition hover:bg-slate-50 active:scale-95"
+                style={{ borderColor: BRAND.border, color: BRAND.text }}
+              >
+                Gửi quản trị viên (Chờ xác thực)
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Tag
-          icon={<CheckCircle2 className="h-4 w-4" />}
-          text={kycData ? "Dữ liệu: Hợp lệ" : "Đang xử lý"}
-          color="#1A9A54" bg="#E8F8EF"
+          icon={showFailureBlock ? <XCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+          text={showFailureBlock ? "Dữ liệu: Không hợp lệ" : kycData ? "Dữ liệu: Hợp lệ" : "Đang xử lý"}
+          color={showFailureBlock ? "#DC2626" : "#1A9A54"}
+          bg={showFailureBlock ? "#FEF2F2" : "#E8F8EF"}
         />
         <Tag
           icon={<BadgeCheck className="h-4 w-4" />}
           text={`Độ tin cậy: ${Math.round(score)}%`}
-          color="#1E63F0" bg="#EAF1FF"
+          color={showFailureBlock ? "#DC2626" : "#1E63F0"}
+          bg={showFailureBlock ? "#FEF2F2" : "#EAF1FF"}
         />
         <Tag
           icon={<Shield className="h-4 w-4" />}
@@ -308,10 +369,10 @@ export function StepFour({
       <div className="mt-6 rounded-2xl border p-4 md:p-5" style={{ borderColor: BRAND.border }}>
         <p className="mb-4 text-xs font-bold uppercase tracking-widest text-[#7E8AA0]">Thông tin trích xuất</p>
         <div className="grid gap-4 text-sm md:grid-cols-2 md:text-base">
-          <ReadOnlyCell label="Họ và tên" value={kycData?.fullName || "Bùi Kim Nam"} />
-          <ReadOnlyCell label="Số định danh" value={kycData?.idNumber || "031092004567"} />
-          <ReadOnlyCell label="Ngày sinh" value={kycData?.dob || "15 / 08 / 1992"} />
-          <ReadOnlyCell label="Giới tính" value={kycData?.gender || "Nam"} />
+          <ReadOnlyCell label="Họ và tên" value={kycData?.fullName || "—"} />
+          <ReadOnlyCell label="Số định danh" value={kycData?.idNumber || "—"} />
+          <ReadOnlyCell label="Ngày sinh" value={kycData?.dob || "—"} />
+          <ReadOnlyCell label="Giới tính" value={kycData?.gender || "—"} />
         </div>
 
         {flags.length > 0 && (
@@ -371,6 +432,39 @@ export function Completion() {
   );
 }
 
+export function PendingReview({ kycData }: { kycData?: any }) {
+  return (
+    <section className="mx-auto w-full max-w-2xl rounded-3xl border bg-white p-6 text-center shadow-sm md:p-10" style={{ borderColor: BRAND.border }}>
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full" style={{ background: "#FFF7ED" }}>
+        <div className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: "#F97316" }}>
+          <Clock className="h-8 w-8 text-white" />
+        </div>
+      </div>
+      <h2 className="mt-6 text-3xl font-extrabold md:text-4xl" style={{ color: BRAND.text }}>
+        Đang chờ quản trị viên xử lý
+      </h2>
+      <p className="mx-auto mt-3 max-w-xl text-sm md:text-base" style={{ color: BRAND.muted }}>
+        Hồ sơ xác thực của bạn đã được gửi đến quản trị viên để thẩm định thủ công. Bạn sẽ nhận được thông báo khi có kết quả.
+      </p>
+
+      <div className="mx-auto mt-6 max-w-md space-y-3 rounded-2xl border p-4 text-left" style={{ borderColor: BRAND.border }}>
+        <StatusItem title="Trạng thái" value="Đang thẩm định" />
+        <StatusItem title="Phương thức" value="Xác thực thủ công bởi Admin" />
+        {kycData?.kycDocumentId && (
+          <StatusItem title="Mã hồ sơ" value={kycData.kycDocumentId} />
+        )}
+      </div>
+
+      <div className="mx-auto mt-5 max-w-md rounded-2xl border px-4 py-3 text-left text-xs md:text-sm" style={{ borderColor: "#FED7AA", background: "#FFF7ED", color: "#9A3412" }}>
+        <div className="flex items-start gap-2">
+          <Shield className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "#F97316" }} />
+          <p>Vui lòng không gửi lại hồ sơ trong thời gian chờ. Quản trị viên sẽ xem xét và phản hồi trong thời gian sớm nhất.</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function StepContent({
   step,
   done,
@@ -384,6 +478,10 @@ export function StepContent({
   onCaptureBack,
   onCaptureSelfie,
   onPickSelfie,
+  onRetry,
+  onSendToAdmin,
+  isFailed,
+  pendingReview,
 }: {
   step: StepKey;
   done: boolean;
@@ -397,7 +495,15 @@ export function StepContent({
   onCaptureBack: (file: File) => void;
   onCaptureSelfie: (imageDataUrl: string) => void;
   onPickSelfie: (file: File) => void;
+  onRetry?: () => void;
+  onSendToAdmin?: () => void;
+  isFailed?: boolean;
+  pendingReview?: boolean;
 }) {
+  if (pendingReview) {
+    return <PendingReview kycData={kycData} />;
+  }
+
   if (done) {
     return <Completion />;
   }
@@ -421,5 +527,5 @@ export function StepContent({
     return <StepThree selfieImage={selfieImage} onCaptureSelfie={onCaptureSelfie}  />;
   }
 
-  return <StepFour frontImage={frontImage} backImage={backImage} selfieImage={selfieImage} kycData={kycData} />;
+  return <StepFour frontImage={frontImage} backImage={backImage} selfieImage={selfieImage} kycData={kycData} onRetry={onRetry} onSendToAdmin={onSendToAdmin} isFailed={isFailed} />;
 }

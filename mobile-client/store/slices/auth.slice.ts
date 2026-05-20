@@ -360,7 +360,7 @@ export const authSlice = createSlice({
                 state.user = null;
                 state.message = {
                     type: "error",
-                    message: "Đăng ký thất bại!",
+                    message: (action.payload as string) || "Đăng ký thất bại!",
                 }
             });
 
