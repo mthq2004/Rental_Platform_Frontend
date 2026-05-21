@@ -112,6 +112,24 @@ const fmtDateTime = (v?: string | null) => {
 
 const unwrap = (res: any) => res?.data?.data ?? res?.data ?? res
 
+const getExplorerTxUrl = (txHash?: string, chainId?: number | null) => {
+  if (!txHash) return null
+  switch (Number(chainId)) {
+    case 1:
+      return `https://etherscan.io/tx/${txHash}`
+    case 11155111:
+      return `https://sepolia.etherscan.io/tx/${txHash}`
+    case 5:
+      return `https://goerli.etherscan.io/tx/${txHash}`
+    case 137:
+      return `https://polygonscan.com/tx/${txHash}`
+    case 56:
+      return `https://bscscan.com/tx/${txHash}`
+    default:
+      return null
+  }
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 const ContractDetail = () => {
   useEnableFloatingKeyboard()
@@ -146,6 +164,7 @@ const ContractDetail = () => {
   const [verifyLoading, setVerifyLoading] = useState(false)
   const [verifyResult, setVerifyResult] = useState<{ ok: boolean; checkedAt: string } | null>(null)
   const [verifyError, setVerifyError] = useState<string | null>(null)
+  const [paymentVerifyState, setPaymentVerifyState] = useState<Record<string, { status: 'idle' | 'loading' | 'success' | 'error'; message?: string; checkedAt?: string }>>({})
 
   // Termination, Report & Renewal state
   const [terminationRequests, setTerminationRequests] = useState<any[]>([])
@@ -206,6 +225,47 @@ const ContractDetail = () => {
   const paymentProgress = payments.length ? Math.round((paidCount / payments.length) * 100) : 0
 
   const statusConf = STATUS_CONFIG[contract?.status] || STATUS_CONFIG.draft
+
+  const openExplorerTx = useCallback((txHash?: string, chainId?: number | null) => {
+    const url = getExplorerTxUrl(txHash, chainId)
+    if (!url) return
+    Linking.openURL(url).catch(() => { })
+  }, [])
+
+  const handleVerifyPaymentBlockchain = useCallback(async (paymentId: string) => {
+    setPaymentVerifyState(prev => ({
+      ...prev,
+      [paymentId]: { status: 'loading' },
+    }))
+
+    try {
+      const res = await contractService.verifyPaymentBlockchain(paymentId)
+      const data = unwrap(res)
+      const ok = data?.verified === true
+      const messageText = ok
+        ? 'Thanh toan trung khop du lieu blockchain'
+        : (data?.message || 'Khong tim thay giao dich tren blockchain')
+
+      setPaymentVerifyState(prev => ({
+        ...prev,
+        [paymentId]: {
+          status: ok ? 'success' : 'error',
+          checkedAt: new Date().toISOString(),
+          message: messageText,
+        },
+      }))
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Xac thuc blockchain that bai'
+      setPaymentVerifyState(prev => ({
+        ...prev,
+        [paymentId]: {
+          status: 'error',
+          checkedAt: new Date().toISOString(),
+          message: errorMessage,
+        },
+      }))
+    }
+  }, [])
 
   // ── Data Loading ───────────────────────────────────────────────────────────
   const loadDetail = useCallback(async (showLoader = true) => {
@@ -1084,6 +1144,54 @@ const ContractDetail = () => {
                       </Text>
                     </View>
                   )}
+
+                  {currentPayment?.status === 'paid' && (
+                    currentPayment?.blockchainProof?.txHash ? (
+                      <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: '#ECFDF5', borderWidth: 1, borderColor: '#A7F3D0' }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#065F46' }}>Da ghi nhan blockchain</Text>
+                        <Text style={{ fontSize: 11, color: '#047857', marginTop: 4 }} numberOfLines={1}>
+                          TX: {currentPayment.blockchainProof.txHash}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>
+                          Block: {String(currentPayment.blockchainProof.blockNumber)} · Chain: {currentPayment.blockchainProof.chainId}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => openExplorerTx(currentPayment.blockchainProof?.txHash, currentPayment.blockchainProof?.chainId)}
+                          style={{ marginTop: 8, alignSelf: 'flex-start' }}
+                        >
+                          <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>Tra cuu giao dich</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={{ marginTop: 12, padding: 12, borderRadius: 12, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: current.border }}>
+                        <Text style={{ fontSize: 12, color: '#64748B' }}>Dang ghi nhan blockchain. Vui long thu lai sau.</Text>
+                      </View>
+                    )
+                  )}
+                  {currentPayment?.status === 'paid' && (
+                    <View style={{ marginTop: 10 }}>
+                      <TouchableOpacity
+                        onPress={() => handleVerifyPaymentBlockchain(currentPayment.paymentId)}
+                        style={{ alignSelf: 'flex-start' }}
+                        disabled={paymentVerifyState[currentPayment.paymentId]?.status === 'loading'}
+                      >
+                        <Text style={{ fontSize: 12, color: colors.primary, fontWeight: '800' }}>
+                          Xac thuc blockchain
+                        </Text>
+                      </TouchableOpacity>
+                      {paymentVerifyState[currentPayment.paymentId]?.message && (
+                        <Text
+                          style={{
+                            marginTop: 6,
+                            fontSize: 11,
+                            color: paymentVerifyState[currentPayment.paymentId]?.status === 'success' ? '#16A34A' : '#DC2626',
+                          }}
+                        >
+                          {paymentVerifyState[currentPayment.paymentId]?.message}
+                        </Text>
+                      )}
+                    </View>
+                  )}
                 </View>
               ) : (
                 <View style={{ backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, padding: 20, alignItems: 'center' }}>
@@ -1111,6 +1219,7 @@ const ContractDetail = () => {
                       <View style={{ height: 1, backgroundColor: current.border }} />
                       {sortedPayments.map((p, i) => {
                         const ps = PAYMENT_STATUS[p.status] || PAYMENT_STATUS.pending
+                        const proof = p?.blockchainProof
                         return (
                           <View key={`pay-${i}`}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
@@ -1122,6 +1231,38 @@ const ContractDetail = () => {
                                 <Text style={{ fontSize: 11, color: theme.textInactive, marginTop: 2 }}>
                                   {PAYMENT_TYPE_LABEL[p.paymentType] || p.paymentType} · {fmtDate(p.dueDate)}
                                 </Text>
+                                {proof?.txHash && (
+                                  <TouchableOpacity
+                                    onPress={() => openExplorerTx(proof?.txHash, proof?.chainId)}
+                                    style={{ marginTop: 4, alignSelf: 'flex-start' }}
+                                  >
+                                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>
+                                      Blockchain: {proof.txHash.substring(0, 12)}...
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                                {p.status === 'paid' && (
+                                  <TouchableOpacity
+                                    onPress={() => handleVerifyPaymentBlockchain(p.paymentId)}
+                                    style={{ marginTop: 4, alignSelf: 'flex-start' }}
+                                    disabled={paymentVerifyState[p.paymentId]?.status === 'loading'}
+                                  >
+                                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: '700' }}>
+                                      Xac thuc blockchain
+                                    </Text>
+                                  </TouchableOpacity>
+                                )}
+                                {paymentVerifyState[p.paymentId]?.message && (
+                                  <Text
+                                    style={{
+                                      marginTop: 4,
+                                      fontSize: 10,
+                                      color: paymentVerifyState[p.paymentId]?.status === 'success' ? '#16A34A' : '#DC2626',
+                                    }}
+                                  >
+                                    {paymentVerifyState[p.paymentId]?.message}
+                                  </Text>
+                                )}
                               </View>
                               <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: ps.bg }}>
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: ps.color }}>{ps.label}</Text>

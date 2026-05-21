@@ -16,7 +16,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import PrimaryButton from '@/components/PrimaryButton';
 import Header from '@/components/auth/Header';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { googleExchange, login, resetMessage } from '@/store/slices/auth.slice';
+import { facebookExchange, googleExchange, login, resetMessage } from '@/store/slices/auth.slice';
 import { Toast } from '@/components/Notification';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -25,10 +25,12 @@ import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
 import { validatePhone, validatePhoneRealtime } from '@/utils/validation';
 import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
 
+WebBrowser.maybeCompleteAuthSession();
+
 const LoginScreen = () => {
   useEnableFloatingKeyboard();
   const navigation = useNavigation();
-  const { code, redirect_to } = useLocalSearchParams<{ code?: string; redirect_to?: string }>();
+  const { code, redirect_to, provider } = useLocalSearchParams<{ code?: string; redirect_to?: string; provider?: string }>();
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -97,20 +99,23 @@ const LoginScreen = () => {
   };
 
   const handleSocialLogin = async (platform: string): Promise<void> => {
-    if (platform !== 'Google') {
+    const apiBaseUrl = getApiBaseUrl();
+    if (!apiBaseUrl) {
+      showToast('Thiếu EXPO_PUBLIC_API_URL để đăng nhập mạng xã hội', 'error');
+      return;
+    }
+
+    const normalized = platform.toLowerCase();
+    if (!['google', 'facebook'].includes(normalized)) {
       showToast('Chức năng này đang được phát triển', 'error');
       return;
     }
 
-    const apiBaseUrl = getApiBaseUrl();
-    if (!apiBaseUrl) {
-      showToast('Thiếu EXPO_PUBLIC_API_URL để đăng nhập Google', 'error');
-      return;
-    }
-
     try {
-      const redirectUri = Linking.createURL('/(auth)/login');
-      const authUrl = `${apiBaseUrl}/estate/auth/google?redirect_uri=${encodeURIComponent(redirectUri)}`;
+      const redirectUri = Linking.createURL('/(auth)/login', {
+        queryParams: { provider: normalized },
+      });
+      const authUrl = `${apiBaseUrl}/estate/auth/${normalized}?redirect_uri=${encodeURIComponent(redirectUri)}`;
 
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
       if (result.type !== 'success') {
@@ -119,13 +124,18 @@ const LoginScreen = () => {
 
       const callbackCode = new URL(result.url).searchParams.get('code');
       if (!callbackCode) {
-        showToast('Không nhận được mã xác thực từ Google', 'error');
+        showToast(`Không nhận được mã xác thực từ ${platform}`, 'error');
         return;
       }
 
-      dispatch(googleExchange(callbackCode));
+      setHandledOAuthCode(callbackCode);
+      if (normalized === 'google') {
+        dispatch(googleExchange(callbackCode));
+      } else {
+        dispatch(facebookExchange(callbackCode));
+      }
     } catch (error) {
-      showToast('Đăng nhập Google thất bại, vui lòng thử lại', 'error');
+      showToast(`Đăng nhập ${platform} thất bại, vui lòng thử lại`, 'error');
     }
   };
 
@@ -190,8 +200,13 @@ const LoginScreen = () => {
     }
 
     setHandledOAuthCode(code);
+    const oauthProvider = (provider || 'google').toString().toLowerCase();
+    if (oauthProvider === 'facebook') {
+      dispatch(facebookExchange(code));
+      return;
+    }
     dispatch(googleExchange(code));
-  }, [code, dispatch, handledOAuthCode]);
+  }, [code, dispatch, handledOAuthCode, provider]);
 
 
   return (

@@ -200,6 +200,24 @@ const formatMoney = (value: number | string | null | undefined) => {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(parsed);
 };
 
+const getExplorerTxUrl = (txHash?: string, chainId?: number | null) => {
+  if (!txHash) return null;
+  switch (Number(chainId)) {
+    case 1:
+      return `https://etherscan.io/tx/${txHash}`;
+    case 11155111:
+      return `https://sepolia.etherscan.io/tx/${txHash}`;
+    case 5:
+      return `https://goerli.etherscan.io/tx/${txHash}`;
+    case 137:
+      return `https://polygonscan.com/tx/${txHash}`;
+    case 56:
+      return `https://bscscan.com/tx/${txHash}`;
+    default:
+      return null;
+  }
+};
+
 const getPropertyImage = (property?: PropertyDetailApiData | null) => property?.images?.[0]?.uri || null;
 
 const getPropertyTitle = (property?: PropertyDetailApiData | null) => property?.title || "Bất động sản";
@@ -320,6 +338,7 @@ export default function ContractDetailPage() {
   const [verifyResult, setVerifyResult] = useState<{ ok: boolean; checkedAt: string } | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [paymentVerifyState, setPaymentVerifyState] = useState<Record<string, { status: "idle" | "loading" | "success" | "error"; checkedAt?: string; message?: string }>>({});
 
   useEffect(() => {
     setIsMounted(true);
@@ -377,6 +396,8 @@ export default function ContractDetailPage() {
     [contractId, payments]
   );
   const currentPayment = useMemo(() => getCurrentPayment(paymentItems), [paymentItems]);
+  const currentPaymentProof = currentPayment?.blockchainProof;
+  const currentPaymentExplorerUrl = getExplorerTxUrl(currentPaymentProof?.txHash, currentPaymentProof?.chainId);
   const paidCount = paymentItems.filter((payment) => payment.status === "paid").length;
   const paymentProgress = paymentItems.length ? Math.round((paidCount / paymentItems.length) * 100) : 0;
   const contractStatus = contract ? (STATUS_CONFIG[contract.status as RentalContractStatus] || STATUS_CONFIG.draft) : null;
@@ -719,6 +740,41 @@ export default function ContractDetailPage() {
     setInvoiceOpen(true);
     if (contract?.rentalId) {
       dispatch(getInvoicePayments({ rentalId: contract.rentalId, limit: 200 }));
+    }
+  };
+
+  const handleVerifyPaymentBlockchain = async (paymentId: string) => {
+    setPaymentVerifyState((prev) => ({
+      ...prev,
+      [paymentId]: { status: "loading" },
+    }));
+
+    try {
+      const payload = await http.get(`/contract/payments/${paymentId}/verify-blockchain`);
+      const result = (payload as any)?.data ?? payload;
+      const ok = result?.verified === true;
+      const messageText = ok
+        ? "Thanh toán trùng khớp dữ liệu blockchain"
+        : result?.message || "Không tìm thấy giao dịch trên blockchain";
+
+      setPaymentVerifyState((prev) => ({
+        ...prev,
+        [paymentId]: {
+          status: ok ? "success" : "error",
+          checkedAt: new Date().toISOString(),
+          message: messageText,
+        },
+      }));
+    } catch (error: any) {
+      const errorMessage = error?.message || "Xác thực blockchain thất bại";
+      setPaymentVerifyState((prev) => ({
+        ...prev,
+        [paymentId]: {
+          status: "error",
+          checkedAt: new Date().toISOString(),
+          message: errorMessage,
+        },
+      }));
     }
   };
 
@@ -1274,6 +1330,9 @@ export default function ContractDetailPage() {
                     <div className="space-y-3">
                       {paymentItems.map((payment) => {
                         const cfg = PAYMENT_STATUS_CONFIG[payment.status] || PAYMENT_STATUS_CONFIG.pending;
+                        const proof = payment.blockchainProof;
+                        const explorerUrl = getExplorerTxUrl(proof?.txHash, proof?.chainId);
+                        const verifyState = paymentVerifyState[payment.paymentId];
                         return (
                           <div key={payment.paymentId} className="rounded-2xl border border-slate-200 p-4 transition hover:border-blue-200 hover:bg-blue-50/40">
                             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1303,6 +1362,51 @@ export default function ContractDetailPage() {
                                 </Button>
                               </div>
                             </div>
+                            {proof?.txHash ? (
+                              <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-700">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2 font-semibold">
+                                    <SafetyCertificateOutlined />
+                                    Đã ghi nhận blockchain
+                                  </div>
+                                  {explorerUrl && (
+                                    <a
+                                      href={explorerUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-emerald-700 hover:text-emerald-800 underline"
+                                    >
+                                      Tra cứu giao dịch
+                                    </a>
+                                  )}
+                                </div>
+                                <div className="mt-1 break-all font-mono text-[11px]">TX: {proof.txHash}</div>
+                                <div className="mt-1 text-[11px] text-emerald-600">
+                                  Block: {String(proof.blockNumber)} · Chain: {proof.chainId}
+                                </div>
+                              </div>
+                            ) : payment.status === "paid" ? (
+                              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                                Đang ghi nhận blockchain. Vui lòng thử lại sau.
+                              </div>
+                            ) : null}
+                            {payment.status === "paid" && (
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <Button
+                                  size="small"
+                                  icon={<SafetyCertificateOutlined />}
+                                  onClick={() => handleVerifyPaymentBlockchain(payment.paymentId)}
+                                  loading={verifyState?.status === "loading"}
+                                >
+                                  Xác thực blockchain
+                                </Button>
+                                {verifyState?.message && (
+                                  <span className={`text-xs ${verifyState.status === "success" ? "text-emerald-600" : "text-rose-600"}`}>
+                                    {verifyState.message}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1824,6 +1928,51 @@ export default function ContractDetailPage() {
                         <Descriptions.Item label="Còn lại">{formatMoney(currentPayment.remainingAmount)}</Descriptions.Item>
                         <Descriptions.Item label="Hạn thanh toán">{formatDate(currentPayment.dueDate)}</Descriptions.Item>
                       </Descriptions>
+                      {currentPaymentProof?.txHash ? (
+                        <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-700">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 font-semibold">
+                              <SafetyCertificateOutlined />
+                              Đã ghi nhận blockchain
+                            </div>
+                            {currentPaymentExplorerUrl && (
+                              <a
+                                href={currentPaymentExplorerUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-emerald-700 hover:text-emerald-800 underline"
+                              >
+                                Tra cứu giao dịch
+                              </a>
+                            )}
+                          </div>
+                          <div className="mt-1 break-all font-mono text-[11px]">TX: {currentPaymentProof.txHash}</div>
+                          <div className="mt-1 text-[11px] text-emerald-600">
+                            Block: {String(currentPaymentProof.blockNumber)} · Chain: {currentPaymentProof.chainId}
+                          </div>
+                        </div>
+                      ) : currentPayment.status === "paid" ? (
+                        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                          Đang ghi nhận blockchain. Vui lòng thử lại sau.
+                        </div>
+                      ) : null}
+                      {currentPayment.status === "paid" && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Button
+                            size="small"
+                            icon={<SafetyCertificateOutlined />}
+                            onClick={() => handleVerifyPaymentBlockchain(currentPayment.paymentId)}
+                            loading={paymentVerifyState[currentPayment.paymentId]?.status === "loading"}
+                          >
+                            Xác thực blockchain
+                          </Button>
+                          {paymentVerifyState[currentPayment.paymentId]?.message && (
+                            <span className={`text-xs ${paymentVerifyState[currentPayment.paymentId]?.status === "success" ? "text-emerald-600" : "text-rose-600"}`}>
+                              {paymentVerifyState[currentPayment.paymentId]?.message}
+                            </span>
+                          )}
+                        </div>
+                      )}
                       <div className="mt-4 flex flex-col gap-2">
                         <Button block icon={<FileTextOutlined />} onClick={() => handleOpenInvoice(currentPayment)} loading={invoicePaymentsLoading}>
                           Xem hóa đơn

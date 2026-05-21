@@ -137,6 +137,11 @@ export const confirmPayment = async (paymentId: string, data: { paymentMethod: s
   return res.data
 }
 
+export const verifyPaymentBlockchain = async (paymentId: string) => {
+  const res = await apiClient.get(`/contract/payments/${paymentId}/verify-blockchain`)
+  return res.data
+}
+
 // ── Termination ────────────────────────────────────────────────────────────
 
 export const createTerminationRequest = async (data: {

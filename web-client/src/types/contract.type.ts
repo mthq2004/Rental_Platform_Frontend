@@ -129,6 +129,14 @@ export interface SignatureLog {
 export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'partial' | 'cancelled' | 'refunded';
 export type PaymentType = 'rent' | 'deposit' | 'electricity' | 'water' | 'internet' | 'parking' | 'management_fee' | 'service_fee' | 'late_fee' | 'damage_fee' | 'early_termination' | 'other';
 
+export interface PaymentBlockchainProof {
+  payloadHash: string;
+  txHash: string;
+  blockNumber: string | number;
+  chainId: number;
+  recordedAt: string;
+}
+
 export interface Payment {
   paymentId: string;
   rentalId: string;
@@ -144,6 +152,7 @@ export interface Payment {
   paidAt?: string;
   confirmedAt?: string;
   createdAt: string;
+  blockchainProof?: PaymentBlockchainProof | null;
   contract?: {
     rentalId: string;
     contractCode: string;

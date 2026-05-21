@@ -20,13 +20,15 @@ import ValidationItem from '@/components/ValidationItem';
 import Header from '@/components/auth/Header';
 import OTPInput from '@/components/auth/OTPInput';
 import { useAppDispatch, useAppSelector } from '@/store/hook';
-import { otpVerified, register, requestOtp, resetMessage } from '@/store/slices/auth.slice';
+import { facebookExchange, googleExchange, otpVerified, register, requestOtp, resetMessage } from '@/store/slices/auth.slice';
 import { Toast } from '@/components/Notification';
 import { router } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import KeyboardSafeWrapper from '@/components/KeyboardSafeWrapper';
 import { validatePhone, validatePhoneRealtime, validateFullNameRealtime } from '@/utils/validation';
 import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
 type Step = 'phone' | 'otp' | 'password';
 
@@ -56,6 +58,8 @@ const TimerComponent = ({ timer, onResend }: { timer: number; onResend: () => vo
     )}
   </View>
 );
+
+WebBrowser.maybeCompleteAuthSession();
 
 const RegisterFlow: React.FC = () => {
   useEnableFloatingKeyboard();
@@ -136,8 +140,53 @@ const RegisterFlow: React.FC = () => {
     }
   };
 
-  const handleSocialLogin = (provider: string): void => {
-    console.log(`Đăng ký với ${provider}`);
+  const getApiBaseUrl = (): string => {
+    const raw = process.env.EXPO_PUBLIC_API_URL?.trim();
+    if (!raw) {
+      return '';
+    }
+
+    return raw.replace(/\/+$/, '');
+  };
+
+  const handleSocialLogin = async (provider: string): Promise<void> => {
+    const apiBaseUrl = getApiBaseUrl();
+    if (!apiBaseUrl) {
+      showToast('Thiếu EXPO_PUBLIC_API_URL để đăng nhập mạng xã hội', 'error');
+      return;
+    }
+
+    const normalized = provider.toLowerCase();
+    if (!['google', 'facebook'].includes(normalized)) {
+      showToast('Chức năng này đang được phát triển', 'error');
+      return;
+    }
+
+    try {
+      const redirectUri = Linking.createURL('/(auth)/login', {
+        queryParams: { provider: normalized },
+      });
+      const authUrl = `${apiBaseUrl}/estate/auth/${normalized}?redirect_uri=${encodeURIComponent(redirectUri)}`;
+
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
+      if (result.type !== 'success') {
+        return;
+      }
+
+      const callbackCode = new URL(result.url).searchParams.get('code');
+      if (!callbackCode) {
+        showToast(`Không nhận được mã xác thực từ ${provider}`, 'error');
+        return;
+      }
+
+      if (normalized === 'google') {
+        dispatch(googleExchange(callbackCode));
+      } else {
+        dispatch(facebookExchange(callbackCode));
+      }
+    } catch (error) {
+      showToast(`Đăng nhập ${provider} thất bại, vui lòng thử lại`, 'error');
+    }
   };
 
   const handleOtpChange = (text: string, index: number): void => {
