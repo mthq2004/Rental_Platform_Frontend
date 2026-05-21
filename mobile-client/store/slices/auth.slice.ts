@@ -43,6 +43,22 @@ export const googleExchange = createAsyncThunk(
     }
 );
 
+export const facebookExchange = createAsyncThunk(
+    "auth/facebookExchange",
+    async (code: string, { rejectWithValue }) => {
+        try {
+            const res = await apiClient.post(
+                "/estate/auth/facebook/exchange",
+                { code }
+            );
+
+            return res.data.data;
+        } catch (err: any) {
+            return rejectWithValue(getErrorMessage(err, "Đăng nhập Facebook thất bại"));
+        }
+    }
+);
+
 export const getProfile = createAsyncThunk(
     "auth/getProfile",
     async (_, { rejectWithValue }) => {
@@ -313,6 +329,33 @@ export const authSlice = createSlice({
                 state.message = {
                     type: "error_login",
                     message: "Đăng nhập Google thất bại!",
+                };
+                clearAuthStorage();
+            })
+        builder
+            .addCase(facebookExchange.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(facebookExchange.fulfilled, (state, action) => {
+                const { accessToken, refreshToken, user } = action.payload;
+
+                state.loading = false;
+                state.isAuth = true;
+                state.user = user;
+                state.message = {
+                    type: "success_login",
+                    message: "Đăng nhập Facebook thành công!",
+                };
+
+                saveAccessToken(accessToken);
+                saveRefreshToken(refreshToken);
+            })
+            .addCase(facebookExchange.rejected, (state) => {
+                state.loading = false;
+                state.message = {
+                    type: "error_login",
+                    message: "Đăng nhập Facebook thất bại!",
                 };
                 clearAuthStorage();
             })
