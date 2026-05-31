@@ -16,6 +16,7 @@ import {
   BankOutlined,
   TeamOutlined,
   HomeOutlined,
+  LinkOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -133,6 +134,7 @@ const Sidebar: React.FC = () => {
     if (path.includes("/news")) return "news";
     if (path === "/dashboard" && queryTab === "ai") return "ai-analytics";
     if (path.includes("/ai-analytics")) return "ai-analytics";
+    if (path.includes("/blockchain")) return "blockchain";
     if (path.includes("/settings")) return "settings";
     if (path.includes("/profile")) return "profile";
     if (path.includes("/owners")) return "owners";
@@ -180,6 +182,8 @@ const Sidebar: React.FC = () => {
       items.push({ title: "Quản lý tin tức" });
     } else if (path === "/dashboard" && queryTab === "ai") {
       items.push({ title: "AI Analytics" });
+    } else if (path.includes("/blockchain")) {
+      items.push({ title: "Blockchain Explorer" });
     } else if (path.includes("/ai-analytics")) {
       items.push({ title: "Dự báo & AI Analytics" });
     } else {
@@ -286,6 +290,13 @@ const Sidebar: React.FC = () => {
         },
         // Có thể thêm "Báo cáo vi phạm", "Hỗ trợ khách hàng" vào đây
       ],
+    },
+    // --- BLOCKCHAIN EXPLORER ---
+    {
+      key: "blockchain",
+      icon: <LinkOutlined />,
+      label: "Blockchain Explorer",
+      onClick: () => navigate("/dashboard/blockchain"),
     },
     // --- NHÓM PHÂN TÍCH DỮ LIỆU ---
     {

@@ -2408,6 +2408,22 @@ export default function ContractDetailPage() {
                 </Radio>
               </div>
             </Radio.Group>
+            <div className="rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3">
+              <div className="flex items-start gap-2.5">
+                <span className="text-lg leading-none mt-0.5">📱</span>
+                <div>
+                  <div className="text-sm font-medium text-amber-800">Chưa có tài khoản SmartCA VNPT?</div>
+                  <a
+                    href="https://youtu.be/ohOoNN8x3bQ?si=V_RftOIcu0TDkcKF"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-amber-700 hover:text-amber-900 underline underline-offset-2"
+                  >
+                    Xem video hướng dẫn đăng ký tại đây →
+                  </a>
+                </div>
+              </div>
+            </div>
             <Alert
               type="info"
               showIcon

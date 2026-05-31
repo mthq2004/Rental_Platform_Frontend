@@ -1,0 +1,234 @@
+/* ─── Blockchain Explorer Styling ─── */
+.blockchain-explorer-page {
+  --dm-title: #111827;
+  --dm-subtitle: #6b7280;
+  --dm-border: #e5e7eb;
+  --dm-surface: #ffffff;
+  --dm-surface-soft: #f9fafb;
+  --dm-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  --dm-label: #374151;
+
+  /* Tag colors (Light) */
+  --dm-tag-green-bg: #d1fae5;
+  --dm-tag-green-text: #065f46;
+  --dm-tag-red-bg: #fee2e2;
+  --dm-tag-red-text: #991b1b;
+  --dm-tag-yellow-bg: #fef3c7;
+  --dm-tag-yellow-text: #92400e;
+  --dm-tag-blue-bg: #dbeafe;
+  --dm-tag-blue-text: #1e40af;
+  --dm-tag-indigo-bg: #e0e7ff;
+  --dm-tag-indigo-text: #3730a3;
+  --dm-tag-gray-bg: #f3f4f6;
+  --dm-tag-gray-text: #374151;
+  --dm-tag-purple-bg: #ede9fe;
+  --dm-tag-purple-text: #5b21b6;
+  --dm-tag-orange-bg: #ffedd5;
+  --dm-tag-orange-text: #9a3412;
+
+  /* Card and stats (Light) */
+  --dm-stat-bg: #ffffff;
+  --dm-stat-border: #e5e7eb;
+  --dm-stat-icon-blue-bg: #dbeafe;
+  --dm-stat-icon-indigo-bg: #e0e7ff;
+  --dm-stat-icon-green-bg: #d1fae5;
+  --dm-stat-icon-red-bg: #fee2e2;
+
+  /* Refresh & Filters */
+  --dm-refresh-bg: #e0e7ff;
+  --dm-refresh-border: #c7d2fe;
+  --dm-refresh-text: #4f46e5;
+  --dm-filter-bg: #ffffff;
+  --dm-input-icon: #9ca3af;
+  --dm-dashed: #e5e7eb;
+}
+
+[data-theme="dark"] .blockchain-explorer-page {
+  --dm-title: #edf4ff;
+  --dm-subtitle: #9db3d8;
+  --dm-border: #27406d;
+  --dm-surface: #131f33;
+  --dm-surface-soft: #1a2a45;
+  --dm-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  --dm-label: #c5d3e8;
+
+  /* Tag colors (Dark) */
+  --dm-tag-green-bg: rgba(16, 185, 129, 0.18);
+  --dm-tag-green-text: #6ee7b7;
+  --dm-tag-red-bg: rgba(239, 68, 68, 0.18);
+  --dm-tag-red-text: #fca5a5;
+  --dm-tag-yellow-bg: rgba(245, 158, 11, 0.18);
+  --dm-tag-yellow-text: #fde68a;
+  --dm-tag-blue-bg: rgba(37, 99, 235, 0.18);
+  --dm-tag-blue-text: #93c5fd;
+  --dm-tag-indigo-bg: rgba(79, 70, 229, 0.18);
+  --dm-tag-indigo-text: #a5b4fc;
+  --dm-tag-gray-bg: rgba(107, 114, 128, 0.18);
+  --dm-tag-gray-text: #d1d5db;
+  --dm-tag-purple-bg: rgba(124, 58, 237, 0.18);
+  --dm-tag-purple-text: #c4b5fd;
+  --dm-tag-orange-bg: rgba(249, 115, 22, 0.18);
+  --dm-tag-orange-text: #fdba74;
+
+  /* Card and stats (Dark) */
+  --dm-stat-bg: #1a2a45;
+  --dm-stat-border: #27406d;
+  --dm-stat-icon-blue-bg: rgba(37, 99, 235, 0.22);
+  --dm-stat-icon-indigo-bg: rgba(79, 70, 229, 0.22);
+  --dm-stat-icon-green-bg: rgba(5, 150, 105, 0.22);
+  --dm-stat-icon-red-bg: rgba(220, 38, 38, 0.22);
+
+  /* Refresh & Filters */
+  --dm-refresh-bg: rgba(79, 70, 229, 0.18);
+  --dm-refresh-border: rgba(79, 70, 229, 0.35);
+  --dm-refresh-text: #a5b4fc;
+  --dm-filter-bg: #1a2a45;
+  --dm-input-icon: #6b7f9e;
+  --dm-dashed: #27406d;
+}
+
+.blockchain-explorer-page {
+  padding: 24px;
+  max-width: 1560px;
+  margin: 0 auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--dm-title);
+  background: transparent;
+}
+
+/* Status Cards & Connection panel */
+.connection-info-card {
+  background: var(--dm-surface) !important;
+  border: 1px solid var(--dm-border) !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  box-shadow: var(--dm-shadow) !important;
+  margin-bottom: 20px;
+}
+
+.connection-item {
+  border-right: 1px solid var(--dm-border);
+  padding: 0 16px;
+}
+
+.connection-item:last-child {
+  border-right: none;
+}
+
+.connection-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dm-subtitle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.connection-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dm-title);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+}
+
+/* Custom Table Header */
+.custom-blockchain-table .ant-table {
+  background: transparent !important;
+}
+
+.custom-blockchain-table .ant-table-thead > tr > th {
+  background: transparent !important;
+  color: var(--dm-subtitle) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--dm-border) !important;
+}
+
+.custom-blockchain-table .ant-table-tbody > tr > td {
+  border-bottom: 1px dashed var(--dm-border) !important;
+  background: transparent !important;
+  color: var(--dm-title) !important;
+}
+
+.custom-blockchain-table .ant-table-tbody > tr:hover > td {
+  background: var(--dm-surface-soft) !important;
+}
+
+.custom-blockchain-table .ant-table-tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+/* Timeline Custom Styles */
+.timeline-container {
+  padding: 24px 8px;
+  background: var(--dm-surface-soft);
+  border-radius: 12px;
+  border: 1px solid var(--dm-border);
+  max-height: 800px;
+  overflow-y: auto;
+}
+
+.timeline-item-card {
+  background: var(--dm-surface) !important;
+  border: 1px solid var(--dm-border) !important;
+  border-radius: 10px !important;
+  padding: 16px !important;
+  box-shadow: var(--dm-shadow) !important;
+  transition: all 0.2s ease-in-out;
+  margin-bottom: 4px;
+  margin-left: 8px;
+  position: relative;
+}
+
+.timeline-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+  border-color: #4f46e5 !important;
+}
+
+.timeline-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--dm-surface);
+  position: absolute;
+  left: -27px;
+  top: 24px;
+  z-index: 10;
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+}
+
+.view-toggle-btn {
+  border-radius: 6px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.view-toggle-btn.active {
+  background: var(--dm-tag-indigo-bg) !important;
+  color: var(--dm-tag-indigo-text) !important;
+  border-color: transparent !important;
+}
+
+/* Tabs style */
+.custom-blockchain-tabs .ant-tabs-nav {
+  border-bottom: 1px solid var(--dm-border) !important;
+  margin-bottom: 20px !important;
+}
+
+.custom-blockchain-tabs .ant-tabs-tab {
+  color: var(--dm-subtitle) !important;
+  font-weight: 500 !important;
+}
+
+.custom-blockchain-tabs .ant-tabs-tab-active {
+  color: #4f46e5 !important;
+}
+
+.custom-blockchain-tabs .ant-tabs-ink-bar {
+  background: #4f46e5 !important;
+}

@@ -313,10 +313,18 @@ export interface ContractAppendixItem {
   contractId: string;
   type: ContractAppendixType;
   appendixNumber: number;
-  startDate: string;
-  endDate: string;
+  title?: string;
+  startDate?: string;
+  endDate?: string;
+  effectiveDate?: string;
   content?: string;
   createdById: string;
+  status: string; // active, pending_approval, rejected
+  approvedAt?: string;
+  rejectedAt?: string;
+  rejectedReason?: string;
+  version?: number;
+  appendixHash?: string;
   signedAt?: string;
   blockchainTxHash?: string;
   createdAt: string;

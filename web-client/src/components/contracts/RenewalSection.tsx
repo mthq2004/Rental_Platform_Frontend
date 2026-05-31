@@ -13,6 +13,7 @@ import {
   Divider,
   App,
   Alert,
+  DatePicker,
 } from "antd";
 import {
   SyncOutlined,
@@ -22,6 +23,7 @@ import {
   CalendarOutlined,
   FileAddOutlined,
   HistoryOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import {
@@ -32,6 +34,9 @@ import {
   cancelRenewal,
   getContractAppendices,
   getContractDetail,
+  createAdjustmentAppendix,
+  approveAppendix,
+  rejectAppendix,
 } from "@/stores/slices/contract.slice";
 import type { RenewalRequestItem, ContractAppendixItem } from "@/types/contract.type";
 import dayjs from "dayjs";
@@ -43,6 +48,12 @@ const RENEWAL_STATUS_CONFIG: Record<string, { label: string; color: string; icon
   approved: { label: "Đã duyệt", color: "success", icon: <CheckCircleOutlined /> },
   rejected: { label: "Đã từ chối", color: "error", icon: <CloseCircleOutlined /> },
   cancelled: { label: "Đã hủy", color: "default", icon: <CloseCircleOutlined /> },
+};
+
+const APPENDIX_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  active: { label: "Hiệu lực", color: "success" },
+  pending_approval: { label: "Chờ duyệt", color: "processing" },
+  rejected: { label: "Đã từ chối", color: "error" },
 };
 
 interface RenewalSectionProps {
@@ -72,10 +83,20 @@ export default function RenewalSection({
   const [approveNote, setApproveNote] = useState("");
   const [showAppendices, setShowAppendices] = useState(false);
 
+  // Adjustment appendix form
+  const [adjustmentModalOpen, setAdjustmentModalOpen] = useState(false);
+  const [adjTitle, setAdjTitle] = useState("");
+  const [adjContent, setAdjContent] = useState("");
+  const [adjEffectiveDate, setAdjEffectiveDate] = useState<dayjs.Dayjs | null>(null);
+
+  // Reject appendix form
+  const [rejectAppendixReason, setRejectAppendixReason] = useState("");
+
   const isOwner = userId === ownerId;
   const isTenant = userId === tenantId;
   const canRenew = isTenant && contractStatus === "near_expiration";
   const hasPendingRequest = renewalRequests.some((r) => r.status === "pending");
+  const isContractActive = ["active", "near_expiration", "renewed"].includes(contractStatus);
 
   useEffect(() => {
     dispatch(getRenewalsByContract(rentalId));
@@ -188,9 +209,99 @@ export default function RenewalSection({
     setShowAppendices(true);
   };
 
-  const formatDate = (dateStr: string) => {
+  // ─── Adjustment Appendix Handlers ──────────────────────
+
+  const handleCreateAdjustment = async () => {
+    if (!adjTitle.trim() || !adjContent.trim() || !adjEffectiveDate) {
+      message.warning("Vui lòng điền đầy đủ thông tin phụ lục");
+      return;
+    }
+
+    try {
+      await dispatch(
+        createAdjustmentAppendix({
+          contractId: rentalId,
+          title: adjTitle,
+          content: adjContent,
+          effectiveDate: adjEffectiveDate.format("YYYY-MM-DD"),
+        })
+      ).unwrap();
+      message.success("Đã tạo phụ lục chỉnh sửa, chờ người thuê duyệt");
+      setAdjustmentModalOpen(false);
+      setAdjTitle("");
+      setAdjContent("");
+      setAdjEffectiveDate(null);
+      dispatch(getContractAppendices(rentalId));
+    } catch (err: any) {
+      message.error(err || "Tạo phụ lục thất bại");
+    }
+  };
+
+  const handleApproveAppendix = (appendixId: string) => {
+    modal.confirm({
+      title: "Duyệt phụ lục chỉnh sửa",
+      icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
+      content: "Bạn xác nhận đồng ý với nội dung phụ lục chỉnh sửa này?",
+      okText: "Đồng ý",
+      okType: "primary",
+      cancelText: "Hủy",
+      onOk: async () => {
+        try {
+          await dispatch(approveAppendix({ appendixId })).unwrap();
+          message.success("Đã duyệt phụ lục chỉnh sửa");
+          dispatch(getContractAppendices(rentalId));
+        } catch (err: any) {
+          message.error(err || "Duyệt thất bại");
+        }
+      },
+    });
+  };
+
+  const handleRejectAppendix = (appendixId: string) => {
+    modal.confirm({
+      title: "Từ chối phụ lục chỉnh sửa",
+      icon: <CloseCircleOutlined style={{ color: "#ff4d4f" }} />,
+      content: (
+        <div className="space-y-3">
+          <p className="text-slate-600">Vui lòng nêu lý do từ chối phụ lục:</p>
+          <TextArea
+            placeholder="Lý do từ chối..."
+            rows={3}
+            value={rejectAppendixReason}
+            onChange={(e) => setRejectAppendixReason(e.target.value)}
+          />
+        </div>
+      ),
+      okText: "Từ chối",
+      okButtonProps: { danger: true },
+      cancelText: "Hủy",
+      onOk: async () => {
+        if (!rejectAppendixReason.trim()) {
+          message.warning("Vui lòng nhập lý do từ chối");
+          throw new Error("Missing reason");
+        }
+        try {
+          await dispatch(rejectAppendix({ appendixId, reason: rejectAppendixReason })).unwrap();
+          message.success("Đã từ chối phụ lục chỉnh sửa");
+          setRejectAppendixReason("");
+          dispatch(getContractAppendices(rentalId));
+        } catch (err: any) {
+          if (err !== "Missing reason") message.error(err || "Từ chối thất bại");
+        }
+      },
+    });
+  };
+
+  const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return "—";
     return dayjs(dateStr).format("DD/MM/YYYY");
+  };
+
+  const getAppendixTimelineColor = (appendix: ContractAppendixItem) => {
+    if (appendix.status === 'rejected') return 'red';
+    if (appendix.status === 'pending_approval') return 'orange';
+    if (appendix.signedAt || appendix.status === 'active') return 'green';
+    return 'blue';
   };
 
   return (
@@ -227,6 +338,16 @@ export default function RenewalSection({
           >
             Phụ lục
           </Button>
+          {isOwner && isContractActive && (
+            <Button
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => setAdjustmentModalOpen(true)}
+              style={{ borderColor: "#8b5cf6", color: "#8b5cf6" }}
+            >
+              Tạo phụ lục điều chỉnh
+            </Button>
+          )}
           {canRenew && !hasPendingRequest && (
             <Button
               type="primary"
@@ -431,6 +552,106 @@ export default function RenewalSection({
         </div>
       </Modal>
 
+      {/* Create adjustment appendix modal */}
+      <Modal
+        open={adjustmentModalOpen}
+        title={
+          <div className="flex items-center gap-2 py-0.5">
+            <EditOutlined className="text-purple-500" />
+            <span className="text-base font-semibold text-slate-800">Tạo phụ lục chỉnh sửa hợp đồng</span>
+          </div>
+        }
+        onCancel={() => {
+          setAdjustmentModalOpen(false);
+          setAdjTitle("");
+          setAdjContent("");
+          setAdjEffectiveDate(null);
+        }}
+        footer={null}
+        destroyOnHidden
+        width={560}
+        className="[&_.ant-modal-content]:rounded-2xl"
+      >
+        <div className="space-y-4 pt-2">
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">
+              Tiêu đề phụ lục *
+            </label>
+            <Input
+              value={adjTitle}
+              onChange={(e) => setAdjTitle(e.target.value)}
+              placeholder="VD: Điều chỉnh giá thuê tháng 7/2026"
+              size="large"
+              maxLength={200}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">
+              <CalendarOutlined className="mr-1" />
+              Ngày hiệu lực *
+            </label>
+            <DatePicker
+              value={adjEffectiveDate}
+              onChange={(date) => setAdjEffectiveDate(date)}
+              format="DD/MM/YYYY"
+              size="large"
+              className="w-full"
+              placeholder="Chọn ngày hiệu lực"
+              disabledDate={(current) => current && current < dayjs().startOf('day')}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-600 mb-1.5">
+              Nội dung điều chỉnh *
+            </label>
+            <TextArea
+              value={adjContent}
+              onChange={(e) => setAdjContent(e.target.value)}
+              placeholder="Mô tả chi tiết nội dung điều chỉnh: thay đổi giá thuê, điều khoản, v.v..."
+              rows={5}
+              maxLength={2000}
+              showCount
+            />
+          </div>
+
+          <Alert
+            type="warning"
+            showIcon
+            title={
+              <span className="text-sm text-amber-700">
+                Phụ lục chỉnh sửa sẽ được gửi đến người thuê để xem xét và duyệt. Nội dung phụ lục <strong>không thể sửa đổi</strong> sau khi tạo (immutable).
+              </span>
+            }
+            className="rounded-xl border-amber-200 bg-amber-50"
+          />
+
+          <div className="flex justify-end gap-2.5 pt-1">
+            <Button
+              onClick={() => {
+                setAdjustmentModalOpen(false);
+                setAdjTitle("");
+                setAdjContent("");
+                setAdjEffectiveDate(null);
+              }}
+              className="rounded-lg h-9 px-5"
+            >
+              Hủy
+            </Button>
+            <Button
+              type="primary"
+              loading={renewalActionLoading}
+              onClick={handleCreateAdjustment}
+              className="rounded-lg h-9 px-5"
+              style={{ background: "#8b5cf6", borderColor: "#8b5cf6" }}
+            >
+              Tạo phụ lục
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Appendices modal */}
       <Modal
         open={showAppendices}
@@ -442,7 +663,7 @@ export default function RenewalSection({
         }
         onCancel={() => setShowAppendices(false)}
         footer={null}
-        width={600}
+        width={650}
         destroyOnHidden
         className="[&_.ant-modal-content]:rounded-2xl"
       >
@@ -457,26 +678,87 @@ export default function RenewalSection({
           <Timeline
             className="pt-3"
             items={contractAppendices.map((appendix: ContractAppendixItem) => ({
-              color: appendix.signedAt ? "green" : "blue",
+              color: getAppendixTimelineColor(appendix),
               children: (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
+                <div className="space-y-2 pb-1">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold text-slate-700">
                       Phụ lục #{appendix.appendixNumber}
                     </span>
                     <Tag color={appendix.type === "renewal" ? "blue" : "orange"}>
                       {appendix.type === "renewal" ? "Gia hạn" : appendix.type === "adjustment" ? "Điều chỉnh" : "Mở rộng"}
                     </Tag>
+                    {(() => {
+                      const statusCfg = APPENDIX_STATUS_CONFIG[appendix.status] || APPENDIX_STATUS_CONFIG.active;
+                      return (
+                        <Tag color={statusCfg.color}>
+                          {statusCfg.label}
+                        </Tag>
+                      );
+                    })()}
                     {appendix.signedAt && (
                       <Tag color="success" icon={<CheckCircleOutlined />}>Đã ký</Tag>
                     )}
                   </div>
-                  <div className="text-sm text-slate-600">
-                    {formatDate(appendix.startDate)} → {formatDate(appendix.endDate)}
-                  </div>
-                  {appendix.content && (
-                    <div className="text-sm text-slate-500 italic">{appendix.content}</div>
+
+                  {/* Title for adjustment appendices */}
+                  {appendix.title && (
+                    <div className="text-sm font-medium text-slate-700">
+                      {appendix.title}
+                    </div>
                   )}
+
+                  {/* Date info */}
+                  <div className="text-sm text-slate-600">
+                    {appendix.type === "adjustment" && appendix.effectiveDate ? (
+                      <span>Ngày hiệu lực: <strong>{formatDate(appendix.effectiveDate)}</strong></span>
+                    ) : appendix.startDate && appendix.endDate ? (
+                      <span>{formatDate(appendix.startDate)} → {formatDate(appendix.endDate)}</span>
+                    ) : null}
+                  </div>
+
+                  {/* Content */}
+                  {appendix.content && (
+                    <div className="text-sm text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 whitespace-pre-wrap">
+                      {appendix.content}
+                    </div>
+                  )}
+
+                  {/* Rejected reason */}
+                  {appendix.status === "rejected" && appendix.rejectedReason && (
+                    <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+                      <strong>Lý do từ chối:</strong> {appendix.rejectedReason}
+                    </div>
+                  )}
+
+                  {/* Action buttons for pending adjustment */}
+                  {appendix.type === "adjustment" && appendix.status === "pending_approval" && isTenant && (
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<CheckCircleOutlined />}
+                        loading={renewalActionLoading}
+                        onClick={() => handleApproveAppendix(appendix.id)}
+                        style={{ background: "#16a34a", borderColor: "#16a34a" }}
+                        className="!rounded-lg"
+                      >
+                        Đồng ý
+                      </Button>
+                      <Button
+                        danger
+                        size="small"
+                        icon={<CloseCircleOutlined />}
+                        loading={renewalActionLoading}
+                        onClick={() => handleRejectAppendix(appendix.id)}
+                        className="!rounded-lg"
+                      >
+                        Từ chối
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Meta info */}
                   <div className="text-xs text-slate-400">
                     Tạo ngày {dayjs(appendix.createdAt).format("HH:mm DD/MM/YYYY")}
                     {appendix.blockchainTxHash && (

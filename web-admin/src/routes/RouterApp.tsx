@@ -20,6 +20,7 @@ import SettingsPage from "../pages/settings/SettingsPage";
 import ProfilePage from "../pages/profile/ProfilePage";
 import NewsListPage from "../pages/news/NewsListPage";
 import NewsEditorPage from "../pages/news/NewsEditorPage";
+import BlockchainExplorerPage from "../pages/blockchain/BlockchainExplorerPage";
 
 const router = createBrowserRouter([
   {
@@ -104,6 +105,10 @@ const router = createBrowserRouter([
           {
             path: "settings",
             element: <SettingsPage />,
+          },
+          {
+            path: "blockchain",
+            element: <BlockchainExplorerPage />,
           },
         ],
       },

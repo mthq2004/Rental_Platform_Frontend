@@ -579,6 +579,41 @@ export const getContractAppendices = createAsyncThunk(
   }
 );
 
+// ─── Appendix Actions ──────────────────────────────────────────
+
+export const createAdjustmentAppendix = createAsyncThunk(
+  "contract/createAdjustmentAppendix",
+  async (data: { contractId: string; title: string; content: string; effectiveDate: string }, { rejectWithValue }) => {
+    try {
+      return await http.post("/contract/renewals/appendix", data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const approveAppendix = createAsyncThunk(
+  "contract/approveAppendix",
+  async ({ appendixId, note }: { appendixId: string; note?: string }, { rejectWithValue }) => {
+    try {
+      return await http.put(`/contract/renewals/appendix/${appendixId}/approve`, { note });
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
+export const rejectAppendix = createAsyncThunk(
+  "contract/rejectAppendix",
+  async ({ appendixId, reason }: { appendixId: string; reason: string }, { rejectWithValue }) => {
+    try {
+      return await http.put(`/contract/renewals/appendix/${appendixId}/reject`, { reason });
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
 // ─── Slice ───────────────────────────────────────────────────────
 
 export const contractSlice = createSlice({
@@ -816,7 +851,7 @@ export const contractSlice = createSlice({
       })
       .addCase(getContractAppendices.rejected, (state) => { state.appendicesLoading = false; });
 
-    for (const thunk of [createRenewalRequest, approveRenewal, rejectRenewal, cancelRenewal]) {
+    for (const thunk of [createRenewalRequest, approveRenewal, rejectRenewal, cancelRenewal, createAdjustmentAppendix, approveAppendix, rejectAppendix]) {
       builder
         .addCase(thunk.pending, (state) => { state.renewalActionLoading = true; })
         .addCase(thunk.fulfilled, (state) => { state.renewalActionLoading = false; })

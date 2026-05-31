@@ -1,3 +1,4 @@
+import { useEffect, useState, useCallback } from "react";
 import {
   BellOutlined,
   GlobalOutlined,
@@ -5,16 +6,205 @@ import {
   MoonOutlined,
   SettingOutlined,
   SunOutlined,
+  DollarOutlined,
+  EditOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Col, Divider, Form, Input, Row, Select, Space, Switch, Typography } from "antd";
+import {
+  Button,
+  Card,
+  Col,
+  Divider,
+  Form,
+  Input,
+  Row,
+  Select,
+  Space,
+  Switch,
+  Typography,
+  Table,
+  Tag,
+  Modal,
+  InputNumber,
+  message,
+  Spin,
+} from "antd";
 import ThemeToggle from "../../components/theme/ThemeToggle";
 import { useTheme } from "../../contexts/ThemeContext";
+import http from "../../utils/api";
 import "../complaints/disputes.css";
 
 const { Title, Text } = Typography;
 
+const PROPERTY_TYPE_LABELS: Record<string, string> = {
+  room: "Phòng trọ",
+  house: "Nhà nguyên căn",
+  apartment: "Căn hộ",
+  office: "Văn phòng",
+  land: "Đất nền",
+};
+
 const SettingsPage = () => {
   const { theme, setTheme } = useTheme();
+
+  // Listing Fee Configuration States
+  const [configs, setConfigs] = useState<any[]>([]);
+  const [loadingConfigs, setLoadingConfigs] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<any>(null);
+  const [submittingConfig, setSubmittingConfig] = useState(false);
+  const [seedingConfigs, setSeedingConfigs] = useState(false);
+
+  const [form] = Form.useForm();
+
+  // Fetch listing fee configurations
+  const fetchConfigs = useCallback(async () => {
+    setLoadingConfigs(true);
+    try {
+      const res = await http.get("/estate/listing-fee/configs");
+      if (Array.isArray(res.data)) {
+        setConfigs(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch listing fee configs:", err);
+      message.error("Không thể lấy cấu hình phí đăng tin.");
+    } finally {
+      setLoadingConfigs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchConfigs();
+  }, [fetchConfigs]);
+
+  // Seed default configs
+  const handleSeedConfigs = async () => {
+    setSeedingConfigs(true);
+    try {
+      const res = await http.post("/estate/listing-fee/admin/seed");
+      message.success(res.data?.message || "Đã khởi tạo cấu hình phí mặc định thành công.");
+      fetchConfigs();
+    } catch (err: any) {
+      console.error("Failed to seed configs:", err);
+      message.error(err.response?.data?.message || "Khởi tạo thất bại.");
+    } finally {
+      setSeedingConfigs(false);
+    }
+  };
+
+  // Open Edit Config Modal
+  const handleOpenEdit = (record: any) => {
+    setEditingConfig(record);
+    form.setFieldsValue({
+      feeAmount: Number(record.feeAmount),
+      durationDays: record.durationDays,
+      freeTrialDays: record.freeTrialDays,
+      isActive: record.isActive,
+      description: record.description,
+    });
+    setIsEditModalOpen(true);
+  };
+
+  // Submit Edited Config
+  const handleEditSubmit = async () => {
+    if (!editingConfig) return;
+
+    try {
+      const values = await form.validateFields();
+      setSubmittingConfig(true);
+
+      await http.put(`/estate/listing-fee/admin/config/${editingConfig.id}`, values);
+      message.success(`Đã cập nhật cấu hình phí cho ${PROPERTY_TYPE_LABELS[editingConfig.propertyType] || editingConfig.propertyType} thành công.`);
+      setIsEditModalOpen(false);
+      setEditingConfig(null);
+      fetchConfigs();
+    } catch (err: any) {
+      console.error("Edit failed:", err);
+      message.error(err.response?.data?.message || "Cập nhật cấu hình thất bại.");
+    } finally {
+      setSubmittingConfig(false);
+    }
+  };
+
+  const columns = [
+    {
+      title: "Loại bất động sản",
+      dataIndex: "propertyType",
+      key: "propertyType",
+      render: (text: string) => (
+        <span style={{ fontWeight: 600, color: "var(--dm-title)" }}>
+          {PROPERTY_TYPE_LABELS[text] || text}
+        </span>
+      ),
+    },
+    {
+      title: "Phí gia hạn (VND)",
+      dataIndex: "feeAmount",
+      key: "feeAmount",
+      render: (val: any) => (
+        <Text strong style={{ color: "var(--dm-title)" }}>
+          {Number(val).toLocaleString("vi-VN")} đ
+        </Text>
+      ),
+    },
+    {
+      title: "Thời hạn hiển thị",
+      dataIndex: "durationDays",
+      key: "durationDays",
+      render: (val: number) => (
+        <Tag color="blue" style={{ borderRadius: 4 }}>
+          {val} ngày
+        </Tag>
+      ),
+    },
+    {
+      title: "Dùng thử miễn phí",
+      dataIndex: "freeTrialDays",
+      key: "freeTrialDays",
+      render: (val: number) => (
+        <Tag color="green" style={{ borderRadius: 4 }}>
+          {val} ngày
+        </Tag>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "isActive",
+      key: "isActive",
+      render: (val: boolean) => (
+        <Tag
+          style={
+            val
+              ? { background: "var(--dm-tag-green-bg)", color: "var(--dm-tag-green-text)", border: 0 }
+              : { background: "var(--dm-tag-red-bg)", color: "var(--dm-tag-red-text)", border: 0 }
+          }
+        >
+          {val ? "Hoạt động" : "Tạm khóa"}
+        </Tag>
+      ),
+    },
+    {
+      title: "Mô tả",
+      dataIndex: "description",
+      key: "description",
+      render: (text: string) => (
+        <span style={{ fontSize: 13, color: "var(--dm-subtitle)" }}>
+          {text || "—"}
+        </span>
+      ),
+    },
+    {
+      title: "",
+      key: "actions",
+      render: (_: any, record: any) => (
+        <Button
+          type="text"
+          icon={<EditOutlined style={{ color: "#2563eb" }} />}
+          onClick={() => handleOpenEdit(record)}
+        />
+      ),
+    },
+  ];
 
   return (
     <div className="dispute-management-page">
@@ -22,13 +212,13 @@ const SettingsPage = () => {
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
         <Col>
           <Title level={2} style={{ margin: 0, color: "var(--dm-title)" }}>Cài đặt hệ thống</Title>
-          <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>Trung tâm cấu hình cho giao diện quản trị. Chế độ sáng/tối được lưu localStorage và đồng bộ toàn trang.</Text>
+          <Text style={{ color: "var(--dm-subtitle)", fontSize: 15 }}>Quản lý các thông số cấu hình chung, giao diện quản trị sáng/tối và cấu hình phí hiển thị đăng tin của hệ thống.</Text>
         </Col>
         <Col>
           <div style={{ display: "flex", gap: 16 }}>
             <div style={{ border: "1px solid var(--dm-border)", borderRadius: 8, padding: "16px 20px", display: "flex", gap: 16, alignItems: "center", background: "var(--dm-stat-bg)", boxShadow: "var(--dm-shadow)" }}>
               <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--dm-refresh-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <SettingOutlined style={{ color: "var(--dm-refresh-text)", fontSize: 20 }} />
+                <SettingOutlined style={{ color: "var(--dm-refresh-text)", fontSize: 20, margin: "auto" }} />
               </div>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "var(--dm-subtitle)", letterSpacing: 0.5, textTransform: "uppercase" }}>Chế độ hiện tại</div>
@@ -41,6 +231,51 @@ const SettingsPage = () => {
 
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={16}>
+          {/* Listing Fee Configuration Card */}
+          <Card
+            variant="borderless"
+            style={{ borderRadius: 8, border: "1px solid var(--dm-border)", marginBottom: 24 }}
+            title={
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <DollarOutlined style={{ fontSize: 18, color: "var(--dm-refresh-text)" }} />
+                <span style={{ fontWeight: 600, color: "var(--dm-title)" }}>Cấu hình phí tin đăng</span>
+              </div>
+            }
+            extra={
+              <Space>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={fetchConfigs}
+                  loading={loadingConfigs}
+                  size="small"
+                >
+                  Làm mới
+                </Button>
+                {configs.length === 0 && (
+                  <Button
+                    type="primary"
+                    onClick={handleSeedConfigs}
+                    loading={seedingConfigs}
+                    size="small"
+                  >
+                    Khởi tạo cấu hình mặc định
+                  </Button>
+                )}
+              </Space>
+            }
+          >
+            <Spin spinning={loadingConfigs}>
+              <Table
+                dataSource={configs}
+                columns={columns}
+                rowKey="id"
+                pagination={false}
+                size="middle"
+                locale={{ emptyText: "Chưa có cấu hình phí đăng tin. Vui lòng bấm 'Khởi tạo cấu hình mặc định'." }}
+              />
+            </Spin>
+          </Card>
+
           {/* General Settings Card */}
           <Card
             variant="borderless"
@@ -179,6 +414,77 @@ const SettingsPage = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Edit Config Modal */}
+      <Modal
+        title={
+          <div style={{ fontWeight: 600, fontSize: 16, borderBottom: "1px solid var(--dm-border)", paddingBottom: 12 }}>
+            Cấu hình phí: {editingConfig ? PROPERTY_TYPE_LABELS[editingConfig.propertyType] : ""}
+          </div>
+        }
+        open={isEditModalOpen}
+        onCancel={() => {
+          setIsEditModalOpen(false);
+          setEditingConfig(null);
+        }}
+        onOk={handleEditSubmit}
+        confirmLoading={submittingConfig}
+        okText="Lưu thay đổi"
+        cancelText="Hủy bỏ"
+        width={450}
+        destroyOnClose
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          style={{ marginTop: 16 }}
+        >
+          <Form.Item
+            name="feeAmount"
+            label="Phí gia hạn (VND)"
+            rules={[{ required: true, message: "Vui lòng nhập phí gia hạn" }]}
+          >
+            <InputNumber
+              formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+              parser={(value) => value!.replace(/\$\s?|(,*)/g, "") as any}
+              style={{ width: "100%" }}
+              min={0 as number}
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="durationDays"
+            label="Thời gian hiển thị (Ngày)"
+            rules={[{ required: true, message: "Vui lòng nhập số ngày hiển thị" }]}
+          >
+            <InputNumber style={{ width: "100%" }} min={1} size="large" />
+          </Form.Item>
+
+          <Form.Item
+            name="freeTrialDays"
+            label="Số ngày dùng thử miễn phí"
+            rules={[{ required: true, message: "Vui lòng nhập số ngày dùng thử" }]}
+          >
+            <InputNumber style={{ width: "100%" }} min={0} size="large" />
+          </Form.Item>
+
+          <Form.Item
+            name="isActive"
+            label="Trạng thái kích hoạt"
+            valuePropName="checked"
+          >
+            <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm khóa" />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Mô tả"
+          >
+            <Input.TextArea rows={3} placeholder="Mô tả cho loại phí này..." />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

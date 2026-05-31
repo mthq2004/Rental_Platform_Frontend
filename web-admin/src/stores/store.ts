@@ -4,6 +4,7 @@ import propertyReducer from './slices/property.slice'
 import notificationReducer from './slices/notification.slice'
 import userReducer from './slices/user.slice'
 import dashboardAnalyticsReducer from './slices/dashboard-analytics.slice'
+import blockchainReducer from './slices/blockchain.slice'
 
 export const makeStore = () => {
   return configureStore({
@@ -13,6 +14,7 @@ export const makeStore = () => {
       notification: notificationReducer,
       user: userReducer,
       dashboardAnalytics: dashboardAnalyticsReducer,
+      blockchain: blockchainReducer,
     },
   })
 }

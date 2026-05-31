@@ -16,6 +16,9 @@ import {
   Badge,
   Image,
   App,
+  Modal,
+  Alert,
+  Divider,
 } from "antd";
 import {
   EditOutlined,
@@ -35,6 +38,8 @@ import {
   FileTextOutlined,
   CloseCircleOutlined,
   UploadOutlined,
+  WalletOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
@@ -47,10 +52,12 @@ import {
   type StatusCount,
 } from "@/stores/slices/property.slice";
 import { checkEligibility } from "@/stores/slices/bulk-import.slice";
+import { getWalletOverview } from "@/stores/slices/wallet.slice";
 import { PROPERTY_META } from "@/constants/property.constant";
 import type { PropertyType } from "@/types/property.type";
+import apiClient from "@/utils/api";
 
-const { Text, Paragraph } = Typography;
+const { Text, Paragraph, Title } = Typography;
 
 // ====== Status config ======
 type PostStatus =
@@ -131,8 +138,16 @@ const PostsPage = () => {
   const { statusCount, properties, loadingPropertyStatus, loading } =
     useAppSelector((state) => state.property);
 
+  const walletOverview = useAppSelector((state) => state.wallet.overview);
   const [activeTab, setActiveTab] = useState<PostStatus>("active");
   const [searchText, setSearchText] = useState("");
+
+  // States for Listing Expiry Renewal
+  const [isRenewModalOpen, setIsRenewModalOpen] = useState(false);
+  const [renewingProperty, setRenewingProperty] = useState<PropertyData | null>(null);
+  const [feeConfig, setFeeConfig] = useState<any>(null);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+  const [submittingRenew, setSubmittingRenew] = useState(false);
 
   const bulkImportEligible = useAppSelector((s) => s.bulkImport.eligibility?.eligible);
 
@@ -140,6 +155,7 @@ const PostsPage = () => {
   useEffect(() => {
     dispatch(getPostStatusCounts());
     dispatch(checkEligibility());
+    dispatch(getWalletOverview());
   }, [dispatch]);
 
   // Fetch properties when tab changes
@@ -151,7 +167,69 @@ const PostsPage = () => {
   const handleRefresh = useCallback(() => {
     dispatch(getPostStatusCounts());
     dispatch(getPropertiesByStatus(activeTab));
+    dispatch(getWalletOverview());
   }, [dispatch, activeTab]);
+
+  // Handle Open Expiry Renew Modal
+  const handleOpenRenewModal = async (record: PropertyData) => {
+    setRenewingProperty(record);
+    setIsRenewModalOpen(true);
+    setLoadingConfig(true);
+    dispatch(getWalletOverview());
+
+    try {
+      const type = record.propertyType;
+      const res = await apiClient.get(`/estate/listing-fee/config/${type}`);
+      if (res.data) {
+        setFeeConfig(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching listing fee config:", err);
+      // Mặc định config nếu lỗi API hoặc chưa seed
+      setFeeConfig({
+        feeAmount: record.propertyType === "room" ? 50000 : 100000,
+        durationDays: 30,
+        freeTrialDays: 30,
+      });
+    } finally {
+      setLoadingConfig(false);
+    }
+  };
+
+  // Submit Listing Expiry Renewal
+  const handleSubmitRenew = async () => {
+    if (!renewingProperty || !feeConfig) return;
+
+    // Check balance
+    const walletBalance = Number(walletOverview?.availableBalance || 0);
+    const requiredAmount = Number(feeConfig.feeAmount || 0);
+
+    if (walletBalance < requiredAmount) {
+      message.error("Số dư ví của bạn không đủ. Vui lòng nạp thêm tiền vào ví.");
+      return;
+    }
+
+    setSubmittingRenew(true);
+    const propertyId = renewingProperty.id || (renewingProperty as any).propertyId;
+
+    try {
+      const res = await apiClient.post(`/estate/listing-fee/renew/${propertyId}`, {
+        paymentMethod: "wallet",
+      });
+
+      if (res.data) {
+        message.success("Gia hạn thời gian hiển thị tin đăng thành công!");
+        setIsRenewModalOpen(false);
+        setRenewingProperty(null);
+        handleRefresh();
+      }
+    } catch (err: any) {
+      console.error("Renewal failed:", err);
+      message.error(err.response?.data?.message || err.message || "Gia hạn thất bại.");
+    } finally {
+      setSubmittingRenew(false);
+    }
+  };
 
   // Build tab items from status counts
   const tabs = Array.isArray(statusCount) ? statusCount : [];
@@ -175,7 +253,7 @@ const PostsPage = () => {
     {
       title: "Tin đăng",
       key: "property",
-      width: 400,
+      width: 350,
       render: (_, record) => {
         const primaryImage = record.images?.find((img: any) => img.isPrimary) || record.images?.[0];
         const meta = PROPERTY_META[record.propertyType as PropertyType];
@@ -225,7 +303,7 @@ const PostsPage = () => {
     {
       title: "Giá thuê",
       key: "price",
-      width: 160,
+      width: 150,
       render: (_, record) => (
         <Text strong className="text-red-500 text-sm">
           {formatPrice(record.pricePerMonth)}
@@ -251,16 +329,31 @@ const PostsPage = () => {
       },
     },
     {
-      title: "Trạng thái",
+      title: "Trạng thái hiển thị",
       key: "status",
-      width: 140,
+      width: 170,
       render: (_, record) => {
         const status = (record.status as PostStatus) || "draft";
         const config = STATUS_CONFIG[status] || STATUS_CONFIG.draft;
+        const expiry = (record as any).listingExpiresAt ? new Date((record as any).listingExpiresAt) : null;
+        const isExpired = (record as any).isListingExpired;
+
         return (
-          <Tag color={config.color} icon={config.icon} className="text-xs">
-            {config.label}
-          </Tag>
+          <div className="flex flex-col gap-0.5 w-full">
+            <Tag color={isExpired ? "error" : config.color} icon={isExpired ? <ExclamationCircleOutlined /> : config.icon} className="text-xs m-0">
+              {isExpired ? "Hết hạn đăng tin" : config.label}
+            </Tag>
+            {expiry && (
+              <span className={`text-[11px] block whitespace-nowrap ${isExpired ? 'text-red-500 font-medium' : 'text-gray-400'}`}>
+                {isExpired ? 'Hết hạn: ' : 'Hạn hiển thị: '}
+                {expiry.toLocaleDateString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                })}
+              </span>
+            )}
+          </div>
         );
       },
     },
@@ -268,7 +361,7 @@ const PostsPage = () => {
       title: "Lượt xem",
       dataIndex: "viewCount",
       key: "viewCount",
-      width: 100,
+      width: 90,
       align: "center",
       render: (val) => (
         <Space size={4}>
@@ -282,18 +375,19 @@ const PostsPage = () => {
       title: "Ngày tạo",
       dataIndex: "createdAt",
       key: "createdAt",
-      width: 120,
+      width: 110,
       render: (val) => <Text className="text-sm text-gray-500">{formatDate(val)}</Text>,
       sorter: (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     },
     {
       title: "Hành động",
       key: "actions",
-      width: 140,
+      width: 150,
       fixed: "right",
       render: (_, record) => {
         const status = record.status as PostStatus;
         const propertyId = record.id || (record as any).propertyId;
+        const isExpired = (record as any).isListingExpired;
         return (
           <Space size={4}>
             <Tooltip title="Xem chi tiết">
@@ -306,7 +400,7 @@ const PostsPage = () => {
                 }
               />
             </Tooltip>
-            {(status === "draft" || status === "active" || status === "inactive" || status === "rejected") && (
+            {(status === "draft" || status === "active" || status === "inactive" || status === "rejected" || isExpired) && (
               <Tooltip title="Chỉnh sửa">
                 <Button
                   type="text"
@@ -332,7 +426,17 @@ const PostsPage = () => {
                 </Button>
               </Tooltip>
             )}
-            {(status === "active" || status === "inactive") && (
+            {(status === "active" || status === "inactive" || isExpired) && (
+              <Tooltip title="Gia hạn tin đăng hiển thị">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<ReloadOutlined className="text-blue-500" />}
+                  onClick={() => handleOpenRenewModal(record)}
+                />
+              </Tooltip>
+            )}
+            {(status === "active" || status === "inactive") && !isExpired && (
               <Tooltip title={status === "active" ? "Ẩn tin" : "Hiện tin"}>
                 <Button
                   type="text"
@@ -341,10 +445,10 @@ const PostsPage = () => {
                   onClick={async () => {
                     try {
                       await dispatch(
-                        updatePropertyVisibility({
-                          id: propertyId,
-                          visible: status !== "active",
-                        }),
+                         updatePropertyVisibility({
+                           id: propertyId,
+                           visible: status !== "active",
+                         }),
                       ).unwrap();
                       message.success(status === "active" ? "Đã ẩn tin" : "Đã hiển thị lại tin");
                       dispatch(getPostStatusCounts());
@@ -404,6 +508,10 @@ const PostsPage = () => {
       </span>
     ),
   }));
+
+  const walletBalance = Number(walletOverview?.availableBalance || 0);
+  const renewFee = Number(feeConfig?.feeAmount || 0);
+  const isBalanceEnough = walletBalance >= renewFee;
 
   return (
     <div className="space-y-4">
@@ -509,6 +617,147 @@ const PostsPage = () => {
           className="[&_.ant-table-thead_th]:bg-gray-50! [&_.ant-table-thead_th]:text-gray-600! [&_.ant-table-thead_th]:font-medium! [&_.ant-table-thead_th]:text-xs! [&_.ant-table-thead_th]:uppercase!"
         />
       </div>
+
+      {/* Expiry Renewal Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 border-b pb-3 text-lg font-semibold">
+            <CalendarOutlined className="text-blue-500" />
+            <span>Gia hạn tin đăng hiển thị</span>
+          </div>
+        }
+        open={isRenewModalOpen}
+        onCancel={() => {
+          setIsRenewModalOpen(false);
+          setRenewingProperty(null);
+        }}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={() => {
+              setIsRenewModalOpen(false);
+              setRenewingProperty(null);
+            }}
+          >
+            Đóng
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            icon={<WalletOutlined />}
+            loading={submittingRenew}
+            disabled={loadingConfig || !isBalanceEnough}
+            onClick={handleSubmitRenew}
+          >
+            Thanh toán & Gia hạn
+          </Button>,
+        ]}
+        width={500}
+        destroyOnHidden
+      >
+        <Spin spinning={loadingConfig}>
+          {renewingProperty && (
+            <div className="space-y-4 py-3">
+              {/* Property Details */}
+              <div className="bg-gray-50 p-3 rounded-lg border">
+                <Text type="secondary" className="text-xs block mb-1">
+                  Bất động sản gia hạn:
+                </Text>
+                <Title level={5} style={{ margin: "0 0 8px 0", fontSize: "14px" }}>
+                  {renewingProperty.title}
+                </Title>
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span>
+                    Loại:{" "}
+                    <Tag color="cyan" className="m-0 text-[11px]">
+                      {PROPERTY_META[renewingProperty.propertyType as PropertyType]?.label || renewingProperty.propertyType}
+                    </Tag>
+                  </span>
+                  {((renewingProperty as any).listingExpiresAt) && (
+                    <span>
+                      Hạn cũ: <strong>{formatDate((renewingProperty as any).listingExpiresAt)}</strong>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Renewal Options / Pricing Config */}
+              {feeConfig && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="border p-3 rounded-lg flex flex-col justify-center">
+                    <Text type="secondary" className="text-xs block mb-1">
+                      Thời gian gia hạn:
+                    </Text>
+                    <Text strong className="text-base text-gray-800">
+                      {feeConfig.durationDays} ngày
+                    </Text>
+                  </div>
+                  <div className="border p-3 rounded-lg flex flex-col justify-center">
+                    <Text type="secondary" className="text-xs block mb-1">
+                      Chi phí:
+                    </Text>
+                    <Text strong className="text-base text-red-500">
+                      {renewFee.toLocaleString("vi-VN")} đ
+                    </Text>
+                  </div>
+                </div>
+              )}
+
+              <Divider className="my-2" />
+
+              {/* Payment Details */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-sm text-gray-600">
+                    <WalletOutlined />
+                    <span>Số dư Ví sàn hiện tại:</span>
+                  </span>
+                  <Tag color={isBalanceEnough ? "success" : "error"} className="font-semibold text-sm px-2 py-0.5 m-0">
+                    {walletBalance.toLocaleString("vi-VN")} đ
+                  </Tag>
+                </div>
+
+                {!isBalanceEnough && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    title="Số dư không đủ"
+                    description={
+                      <div className="text-xs space-y-1.5 mt-1">
+                        <div>
+                          Bạn cần thêm{" "}
+                          <strong>{(renewFee - walletBalance).toLocaleString("vi-VN")} đ</strong> để
+                          thực hiện gia hạn tin đăng.
+                        </div>
+                        <Button
+                          type="primary"
+                          size="small"
+                          onClick={() => {
+                            setIsRenewModalOpen(false);
+                            router.push("/dashboard/wallet");
+                          }}
+                        >
+                          Nạp tiền vào ví
+                        </Button>
+                      </div>
+                    }
+                  />
+                )}
+
+                {isBalanceEnough && (
+                  <Alert
+                    type="info"
+                    showIcon
+                    title="Thanh toán an toàn"
+                    description="Chi phí sẽ được khấu trừ trực tiếp từ số dư ví sàn của bạn. Sau khi thanh toán, tin đăng hiển thị của bạn sẽ được tự động kích hoạt hiển thị ngay lập tức."
+                    className="text-xs"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+        </Spin>
+      </Modal>
     </div>
   );
 };

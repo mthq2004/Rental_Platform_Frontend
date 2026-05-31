@@ -1,6 +1,6 @@
 "use client";
 
-import { Input, Avatar, Badge, Typography, Tag, Spin, Dropdown, MenuProps, Modal, Button } from "antd";
+import { Input, Avatar, Badge, Typography, Tag, Spin, Dropdown, MenuProps, Modal, Button, App } from "antd";
 import { SearchOutlined, PushpinFilled, MoreOutlined, EyeInvisibleOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { useMemo, useState } from "react";
 import { Conversation } from "@/types/conversation.type";
@@ -74,6 +74,7 @@ export default function ChatSidebar({
   onTabChange,
 }: ChatSidebarProps) {
   const dispatch = useAppDispatch();
+  const { modal } = App.useApp();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
 
@@ -82,7 +83,7 @@ export default function ChatSidebar({
   };
 
   const handleDelete = (id: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Xóa hội thoại",
       content: "Bạn có chắc chắn muốn xóa hội thoại này không?",
       okText: "Xóa",

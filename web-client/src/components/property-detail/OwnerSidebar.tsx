@@ -47,7 +47,7 @@ const USER_TYPE_LABELS: Record<string, string> = {
 export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLoggedIn = false, pricePerMonth }: OwnerSidebarProps) {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { message: messageApi } = App.useApp();
+  const { message: messageApi, modal } = App.useApp();
   const actionLoading = useAppSelector((state) => state.contract.actionLoading);
   const { detail } = useAppSelector(state => state.estate)
   const currentUser = useAppSelector(state => state.auth.user);
@@ -116,7 +116,7 @@ export default function OwnerSidebar({ owner, propertyId, isTenant = false, isLo
 
     const missing = getMissingRentalRequirements(currentUser);
     if (missing.length > 0) {
-      Modal.confirm({
+      modal.confirm({
         title: "Cần bổ sung thông tin cá nhân",
         content: (
           <div>

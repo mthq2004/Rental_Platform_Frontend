@@ -43,7 +43,7 @@ type Params = Promise<{ propertyId: string }>;
 
 export default function BookSchedulePage({ params }: { params: Params }) {
   const { propertyId } = use(params);
-  const { message } = App.useApp();
+  const { message, modal } = App.useApp();
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
@@ -108,7 +108,7 @@ export default function BookSchedulePage({ params }: { params: Params }) {
 
     const [start, end] = slot.time.split(" - ");
 
-    Modal.confirm({
+    modal.confirm({
       title: "Xác nhận đặt lịch",
       content: `Bạn muốn đặt lịch xem nhà vào ${selectedDate.format("DD/MM/YYYY")} - ${slot.time}?`,
       okText: "Xác nhận",
