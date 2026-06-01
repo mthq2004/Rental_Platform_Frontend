@@ -59,7 +59,7 @@ export interface ContractTerm {
 // Contract Types
 export type RentalContractStatus =
   'draft' | 'pending_tenant' | 'tenant_signed' | 'pending_landlord' | 'owner_signed' |
-  'fully_signed' | 'active' | 'near_expiration' | 'expired' | 'terminated' | 'renewed' | 'cancelled';
+  'fully_signed' | 'active' | 'near_expiration' | 'expired' | 'terminated' | 'renewed' | 'cancelled' | 'superseded';
 
 export interface RentalContract {
   rentalId: string;
@@ -90,6 +90,11 @@ export interface RentalContract {
   renewedFromContractId?: string;
   maxAutoRenewCount?: number;
   autoRenewCount?: number;
+  // Version / Update Draft fields
+  parentContractId?: string;
+  version?: number;
+  updateExpirationTime?: string;
+  updateNote?: string;
   status: RentalContractStatus;
   isActive: boolean;
   notes?: string;
@@ -111,9 +116,15 @@ export interface RentalContract {
   signatureLog?: SignatureLog[];
   payments?: Payment[];
   rentalRequest?: RentalRequest;
+  parentContract?: { rentalId?: string; contractCode?: string; version?: number; status?: RentalContractStatus; createdAt?: string };
+  renewedFrom?: { rentalId?: string; contractCode?: string; version?: number; status?: RentalContractStatus; createdAt?: string };
+  renewedTo?: { rentalId?: string; contractCode?: string; version?: number; status?: RentalContractStatus; createdAt?: string };
   owner?: { name?: string; fullName?: string; email?: string; phone?: string; phoneRaw?: string; avatarUrl?: string };
   tenant?: { name?: string; fullName?: string; email?: string; phone?: string; phoneRaw?: string; avatarUrl?: string };
   _count?: { payments: number };
+  // Child update drafts
+  updateDrafts?: ContractVersion[];
+  childContracts?: ContractVersion[];
 }
 
 export interface SignatureLog {
@@ -123,6 +134,22 @@ export interface SignatureLog {
   actor?: string;
   actorRole: string;
   createdAt: string;
+}
+
+// Contract Version (Update Draft) Type
+export interface ContractVersion {
+  rentalId: string;
+  contractCode: string;
+  version: number;
+  status: RentalContractStatus;
+  parentContractId?: string;
+  updateNote?: string;
+  updateExpirationTime?: string;
+  ownerSignedAt?: string;
+  tenantSignedAt?: string;
+  blockchainTxHash?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Payment Types

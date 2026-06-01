@@ -43,6 +43,7 @@ import {
   getReportsByContract,
   updateReportStatus,
   sendContractToTenant,
+  createUpdateDraft,
 } from "@/stores/slices/contract.slice";
 import { createConversation } from "@/stores/slices/conversation.slice";
 import {
@@ -322,6 +323,9 @@ export default function ContractDetailPage() {
   const [terminationUpdateOpen, setTerminationUpdateOpen] = useState(false);
   const [terminationUpdateForm] = Form.useForm();
 
+  const [updateDraftOpen, setUpdateDraftOpen] = useState(false);
+  const [updateDraftForm] = Form.useForm();
+
   const [terminationDetailOpen, setTerminationDetailOpen] = useState(false);
   const [terminationDetailItem, setTerminationDetailItem] = useState<TerminationRequest | null>(null);
   const [selectedReport, setSelectedReport] = useState<ReportItem | null>(null);
@@ -419,6 +423,36 @@ export default function ContractDetailPage() {
     [contractId, reports]
   );
   const latestReport = reportItems[0] || null;
+  const contractVersions = useMemo(() => {
+    if (!contract) return [] as Array<any>;
+    const items: Array<any> = [];
+
+    if (contract.parentContract) {
+      items.push({ ...contract.parentContract, kind: "parent" });
+    }
+
+    items.push({ ...contract, kind: "current" });
+
+    if (Array.isArray(contract.childContracts)) {
+      items.push(...contract.childContracts.map((item) => ({ ...item, kind: "child" })));
+    }
+
+    const seen = new Set<string>();
+    const deduped = items.filter((item) => {
+      if (!item?.rentalId || seen.has(item.rentalId)) return false;
+      seen.add(item.rentalId);
+      return true;
+    });
+
+    return deduped.sort((a, b) => {
+      const aVersion = Number(a?.version ?? 0);
+      const bVersion = Number(b?.version ?? 0);
+      if (aVersion !== bVersion) return bVersion - aVersion;
+      const aTime = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }, [contract]);
   const isAdminReportBlocking = Boolean(latestReport && ["open", "admin", "cancel_requested"].includes(latestReport.status));
   const activeTerminationStatuses: TerminationRequest["status"][] = [
     "pending",
@@ -964,6 +998,35 @@ export default function ContractDetailPage() {
     setTerminationDetailOpen(true);
   };
 
+  const handleCreateUpdateDraft = async () => {
+    try {
+      const values = await updateDraftForm.validateFields();
+      if (!contract) return;
+      const res = await dispatch(
+        createUpdateDraft({
+          contractId: contract.rentalId,
+          data: {
+            expiresInHours: values.expiresInHours,
+            updateNote: values.updateNote,
+          },
+        })
+      ).unwrap();
+      
+      message.success("Đã tạo bản nháp chỉnh sửa hợp đồng thành công");
+      setUpdateDraftOpen(false);
+      
+      // Navigate to template editor with the new draft's ID
+      if (res.data?.rentalId) {
+         router.push(`/template-contracts/${res.data.templateId}?contractId=${res.data.rentalId}`);
+      } else {
+         handleRefresh();
+      }
+    } catch (error: any) {
+      if (error?.errorFields) return;
+      message.error(error.message || "Tạo bản nháp chỉnh sửa thất bại");
+    }
+  };
+
   const handleSubmitTerminationUpdate = async () => {
     if (!selectedTermination) return;
     try {
@@ -1189,6 +1252,17 @@ export default function ContractDetailPage() {
                   Ký hợp đồng
                 </Button>
               )}
+              {contract.status === "active" && isOwnerSide && (
+                <Button
+                  type="default"
+                  icon={<EditOutlined />}
+                  onClick={() => setUpdateDraftOpen(true)}
+                  loading={actionLoading}
+                  className="rounded-lg h-9 px-4 shadow-none font-medium text-white border-white/25 bg-white/10 hover:bg-white/20 hover:border-white/40"
+                >
+                  Chỉnh sửa hợp đồng
+                </Button>
+              )}
               {contract.status === "draft" && isOwnerSide && (
                 <Button
                   type="primary"
@@ -1304,6 +1378,63 @@ export default function ContractDetailPage() {
                   <Descriptions.Item label="Phí internet">{formatMoney(contract.internetFee || 0)}</Descriptions.Item>
                   <Descriptions.Item label="Phí trễ hạn">{formatMoney(contract.lateFeePerDay || 0)}</Descriptions.Item>
                 </Descriptions>
+              </div>
+
+              <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Text className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Phiên bản hợp đồng</Text>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">Lịch sử các bản hợp đồng</h3>
+                    <Text className="text-sm text-slate-500">Theo dõi hợp đồng gốc, bản hiện tại và các bản chỉnh sửa.</Text>
+                  </div>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {contractVersions.length ? (
+                    contractVersions.map((item) => {
+                      const status = item.status as RentalContractStatus | undefined;
+                      const cfg = status ? (STATUS_CONFIG[status] || STATUS_CONFIG.draft) : STATUS_CONFIG.draft;
+                      const isCurrent = item.rentalId === contract.rentalId;
+                      const kindLabel = item.kind === "parent"
+                        ? "Hợp đồng gốc"
+                        : item.kind === "current"
+                          ? "Phiên bản hiện tại"
+                          : "Bản chỉnh sửa";
+
+                      return (
+                        <div key={item.rentalId} className={`rounded-2xl border p-4 ${isCurrent ? "border-blue-200 bg-blue-50/60" : "border-slate-200"}`}>
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Text className="font-semibold text-slate-900">{item.contractCode || "—"}</Text>
+                                <Tag color={cfg.color} icon={cfg.icon} className="m-0">
+                                  {cfg.label}
+                                </Tag>
+                              </div>
+                              <div className="mt-1 text-sm text-slate-500">
+                                {kindLabel} {item.version ? `· v${item.version}` : ""}
+                              </div>
+                              <div className="mt-1 text-xs text-slate-400">
+                                {item.createdAt ? `Tạo lúc ${dayjs(item.createdAt).format("HH:mm · DD/MM/YYYY")}` : "—"}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {isCurrent ? (
+                                <Tag color="blue" className="m-0">Đang xem</Tag>
+                              ) : (
+                                <Button size="small" onClick={() => router.push(`/dashboard/contracts/${item.rentalId}`)}>
+                                  Xem chi tiết
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <Empty description="Chưa có lịch sử phiên bản" />
+                  )}
+                </div>
               </div>
 
               <div className="rounded-3xl border border-slate-200 bg-white shadow-sm p-6">
@@ -2261,6 +2392,43 @@ export default function ContractDetailPage() {
                 </Form.Item>
               );
             }}
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal Chỉnh sửa hợp đồng */}
+      <Modal
+        open={updateDraftOpen}
+        onCancel={() => { setUpdateDraftOpen(false); updateDraftForm.resetFields(); }}
+        onOk={handleCreateUpdateDraft}
+        okText="Tạo bản nháp chỉnh sửa"
+        cancelText="Đóng"
+        confirmLoading={actionLoading}
+        title="Chỉnh sửa hợp đồng đang hiệu lực"
+        destroyOnHidden
+        width={520}
+      >
+        <Form form={updateDraftForm} layout="vertical" initialValues={{ expiresInHours: 72 }}>
+          <Alert
+            message="Lưu ý quan trọng"
+            description="Hệ thống sẽ tạo một bản nháp chỉnh sửa. Sau khi bạn hoàn chỉnh và gửi đi, cả hai bên cần ký số xác nhận. Bản chỉnh sửa chỉ có hiệu lực khi cả hai bên đồng thuận."
+            type="info"
+            showIcon
+            className="mb-4 rounded-xl"
+          />
+          <Form.Item
+            name="expiresInHours"
+            label="Thời hạn xác nhận (giờ)"
+            tooltip="Nếu quá thời hạn mà một trong hai bên chưa ký, bản chỉnh sửa sẽ bị hủy tự động"
+            rules={[{ required: true, message: "Vui lòng nhập thời hạn xác nhận" }]}
+          >
+            <InputNumber className="w-full" min={1} max={720} addonAfter="giờ" />
+          </Form.Item>
+          <Form.Item name="updateNote" label="Ghi chú / Lý do chỉnh sửa">
+            <Input.TextArea
+              rows={3}
+              placeholder="Ví dụ: Thay đổi giá thuê tháng 7, điều chỉnh thời hạn hợp đồng..."
+            />
           </Form.Item>
         </Form>
       </Modal>

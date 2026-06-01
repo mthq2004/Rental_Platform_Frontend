@@ -97,8 +97,26 @@ export const createContract = async (data: Record<string, unknown>) => {
 }
 
 export const updateContract = async (contractId: string, data: Record<string, unknown>) => {
-  const res = await apiClient.put(`/contract/rental-contracts/${contractId}`, data)
-  return res.data
+  try {
+    const res = await apiClient.put(`/contract/rental-contracts/${contractId}`, data)
+    return res.data
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || err?.message || 'Cập nhật hợp đồng thất bại'
+    throw new Error(msg)
+  }
+}
+
+export const createUpdateDraft = async (
+  contractId: string,
+  data: { expiresInHours: number; updateNote?: string }
+) => {
+  try {
+    const res = await apiClient.post(`/contract/rental-contracts/${contractId}/update-draft`, data)
+    return res.data
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || err?.message || 'Tạo bản nháp chỉnh sửa thất bại'
+    throw new Error(msg)
+  }
 }
 
 export const sendContractToTenant = async (contractId: string) => {
@@ -274,6 +292,7 @@ export default {
   getRequestTemplateData,
   createContract,
   updateContract,
+  createUpdateDraft,
   confirmPayment,
   sendContractToTenant,
   tenantSignContract,

@@ -13,7 +13,11 @@ import SyncTextInput from '@/components/common/SyncTextInput'
 import CustomDatePicker from '@/components/CustomDatePicker'
 import PrimaryButton from '@/components/PrimaryButton'
 import { useAppDispatch, useAppSelector } from '@/store/hook'
-import { getContractDetail as getContractDetailThunk } from '@/store/slices/contract.slice'
+import {
+  getContractDetail as getContractDetailThunk,
+  createUpdateDraft,
+} from '@/store/slices/contract.slice'
+import UpdateDraftModal from '@/components/contracts/UpdateDraftModal'
 import {
   signContract, handleSignResult, getContractSignStatus,
   tickSmartCARemaining, resetSmartCAState,
@@ -32,6 +36,9 @@ import { useThemeColors } from '@/utils/colors'
 import WebView from 'react-native-webview'
 import { Ionicons } from '@expo/vector-icons'
 import ScreenHeader from '@/components/common/ScreenHeader'
+import ContractIdentityBadges from '@/components/contracts/ContractIdentityBadges'
+import ContractFinancialGrid from '@/components/contracts/ContractFinancialGrid'
+import { getContractSource, getTemplateDisplay } from '@/utils/contractDisplay'
 import { useEnableFloatingKeyboard } from '@/contexts/FloatingKeyboardContext'
 import FloatingKeyboardBar from '@/components/common/FloatingKeyboardBar'
 import NebulaLoader from '@/components/NebulaLoader'
@@ -201,6 +208,9 @@ const ContractDetail = () => {
   const [updateTermResolution, setUpdateTermResolution] = useState<'continue_contract' | 'terminate_contract'>('continue_contract')
 
 
+  const [showUpdateDraftModal, setShowUpdateDraftModal] = useState(false)
+  const [updateDraftLoading, setUpdateDraftLoading] = useState(false)
+
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportTitle, setReportTitle] = useState('')
   const [reportDesc, setReportDesc] = useState('')
@@ -216,6 +226,14 @@ const ContractDetail = () => {
   const isTenant = useMemo(() => Boolean(contract?.tenantId && user?.id && contract.tenantId === user.id), [contract?.tenantId, user?.id])
   const canSign = useMemo(() => (isOwner && contract?.status === 'pending_landlord') || (isTenant && contract?.status === 'pending_tenant'), [isOwner, isTenant, contract?.status])
   const canSend = isOwner && contract?.status === 'draft'
+  const canEditActiveContract = isOwner && contract?.status === 'active'
+  const canContinueUpdateDraft =
+    isOwner && contract?.status === 'draft' && Boolean(contract?.parentContractId)
+  const canEditRequestDraft =
+    isOwner &&
+    contract?.status === 'draft' &&
+    !contract?.parentContractId &&
+    Boolean(contract?.templateId)
   const hasActiveSession = Boolean(transactionId) && ['WAITING_CONFIRM', 'PENDING', 'PROCESSING'].includes(signStatus)
   const progressPercent = initialExpiredIn > 0 ? Math.max(0, Math.min(100, (expiredIn / initialExpiredIn) * 100)) : 0
 
@@ -437,6 +455,72 @@ const ContractDetail = () => {
       Alert.alert('❌ Lỗi', e?.message || 'Gửi hợp đồng thất bại')
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  const openContractEditor = (c: any) => {
+    const tid = c?.templateId
+    if (!tid) {
+      Alert.alert('Lỗi', 'Không tìm thấy mẫu hợp đồng gắn với hợp đồng này.')
+      return
+    }
+    if (c?.parentContractId) {
+      router.push({
+        pathname: '/(rental)/contract-builder',
+        params: { templateId: tid, contractId: c.rentalId },
+      })
+      return
+    }
+    const reqId = c?.fromRequestId || c?.rentalRequest?.requestId
+    if (reqId) {
+      router.push({
+        pathname: '/(rental)/contract-builder',
+        params: { templateId: tid, requestId: reqId, contractId: c.rentalId },
+      })
+      return
+    }
+    router.push({
+      pathname: '/(rental)/contract-builder',
+      params: { templateId: tid, contractId: c.rentalId },
+    })
+  }
+
+  const handleCreateUpdateDraft = async (values: {
+    expiresInHours: number
+    updateNote?: string
+  }) => {
+    if (!contract?.rentalId) return
+    setUpdateDraftLoading(true)
+    try {
+      const res = await dispatch(
+        createUpdateDraft({
+          contractId: contract.rentalId,
+          data: values,
+        })
+      ).unwrap()
+      const draft = unwrap(res)
+      setShowUpdateDraftModal(false)
+      Alert.alert('Thành công', 'Đã tạo bản nháp chỉnh sửa.', [
+        {
+          text: 'Soạn chỉnh sửa',
+          onPress: () => {
+            const draftId = draft?.rentalId
+            const templateIdFromDraft = draft?.templateId || contract.templateId
+            if (draftId && templateIdFromDraft) {
+              router.push({
+                pathname: '/(rental)/contract-builder',
+                params: { templateId: templateIdFromDraft, contractId: draftId },
+              })
+            } else {
+              loadDetail(false)
+            }
+          },
+        },
+      ])
+    } catch (e: any) {
+      Alert.alert('Lỗi', String(e?.message || e || 'Tạo bản nháp chỉnh sửa thất bại'))
+    } finally {
+      setUpdateDraftLoading(false)
     }
   }
 
@@ -862,7 +946,7 @@ const ContractDetail = () => {
 
           <ScreenHeader
             title="Chi tiết hợp đồng"
-            subtitle={contract?.contractCode ? contract.contractCode : undefined}
+            subtitle={getTemplateDisplay(contract)}
             rightComponent={
               <TouchableOpacity onPress={onRefresh} disabled={refreshing} style={{ padding: 6 }}>
                 <RefreshCw size={18} color={colors.primary} />
@@ -901,6 +985,43 @@ const ContractDetail = () => {
                   <MapPin size={12} color="#93C5FD" />
                   <Text style={{ color: '#93C5FD', fontSize: 12, flex: 1 }} numberOfLines={1}>{propertyAddress}</Text>
                 </View>
+              </View>
+            </View>
+
+            {/* ── Contract identity ───────────────────────────────────── */}
+            <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+              <View
+                style={{
+                  backgroundColor: current.card,
+                  borderRadius: 18,
+                  padding: 16,
+                  borderWidth: 1,
+                  borderColor: current.border,
+                }}
+              >
+                <ContractIdentityBadges contract={contract} userId={user?.id} />
+                {contract?.parentContract?.contractCode && (
+                  <View
+                    style={{
+                      marginTop: 12,
+                      padding: 12,
+                      backgroundColor: isDark ? '#1E293B' : '#FFFBEB',
+                      borderRadius: 12,
+                      borderLeftWidth: 3,
+                      borderLeftColor: '#F59E0B',
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#B45309' }}>
+                      HỢP ĐỒNG GỐC
+                    </Text>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: current.text, marginTop: 4 }}>
+                      {contract.parentContract.contractCode}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: theme.textInactive, marginTop: 2 }}>
+                      {getContractSource(contract).hint}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -954,31 +1075,61 @@ const ContractDetail = () => {
               </View>
             </View>
 
-            {/* ── Contract Info ────────────────────────────────────────── */}
-            {/* <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
+            {/* ── Contract financials ──────────────────────────────────── */}
+            <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 }}>
                 <Ionicons name="document-text-outline" size={18} color={current.text} />
-                <Text style={{ fontSize: 13, fontWeight: '800', color: current.text }}>Thông tin hợp đồng</Text>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: current.text }}>
+                  Điều khoản tài chính
+                </Text>
               </View>
-              <View style={{ backgroundColor: current.card, borderRadius: 18, borderWidth: 1, borderColor: current.border, overflow: 'hidden' }}>
-                {[
-                  { icon: <Hash size={15} color={colors.primary} />, label: 'Mã hợp đồng', value: contract?.contractCode || '—' },
-                  { icon: <Calendar size={15} color={colors.primary} />, label: 'Ngày bắt đầu', value: fmtDate(contract?.startDate) },
-                  { icon: <Calendar size={15} color="#EF4444" />, label: 'Ngày kết thúc', value: fmtDate(contract?.endDate) },
-                  { icon: <Wallet size={15} color="#16A34A" />, label: 'Tiền thuê/tháng', value: `${money(contract?.monthlyRent)} VND` },
-                  { icon: <Shield size={15} color="#6D28D9" />, label: 'Tiền đặt cọc', value: `${money(contract?.depositAmount)} VND` },
-                ].map((row, i, arr) => (
-                  <View key={row.label}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 }}>
-                      <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E8F0' }}>{row.icon}</View>
-                      <Text style={{ flex: 1, fontSize: 13, color: '#64748B', fontWeight: '500' }}>{row.label}</Text>
-                      <Text style={{ fontSize: 14, fontWeight: '700', color: current.text }}>{row.value}</Text>
-                    </View>
-                    {i < arr.length - 1 && <View style={{ height: 1, backgroundColor: current.border, marginHorizontal: 16 }} />}
+              <View
+                style={{
+                  backgroundColor: current.card,
+                  borderRadius: 18,
+                  borderWidth: 1,
+                  borderColor: current.border,
+                  padding: 14,
+                }}
+              >
+                <ContractFinancialGrid
+                  contract={contract}
+                  textColor={current.text}
+                  mutedColor={theme.textInactive}
+                  cardBg={isDark ? '#1E293B' : '#F8FAFC'}
+                />
+                {(contract?.managementFee != null ||
+                  contract?.parkingFee != null ||
+                  contract?.internetFee != null) && (
+                  <View style={{ marginTop: 10, gap: 8 }}>
+                    {contract?.managementFee != null && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ fontSize: 13, color: theme.textInactive }}>Phí quản lý</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: current.text }}>
+                          {money(contract.managementFee)} đ
+                        </Text>
+                      </View>
+                    )}
+                    {contract?.parkingFee != null && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ fontSize: 13, color: theme.textInactive }}>Giữ xe</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: current.text }}>
+                          {money(contract.parkingFee)} đ
+                        </Text>
+                      </View>
+                    )}
+                    {contract?.internetFee != null && (
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text style={{ fontSize: 13, color: theme.textInactive }}>Internet</Text>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: current.text }}>
+                          {money(contract.internetFee)} đ
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                ))}
+                )}
               </View>
-            </View> */}
+            </View>
 
             {/* ── Signing Status ───────────────────────────────────────── */}
             <View style={{ marginHorizontal: 16, marginBottom: 14 }}>
@@ -1669,6 +1820,24 @@ const ContractDetail = () => {
                 />
               )}
 
+              {canEditActiveContract && (
+                <PrimaryButton
+                  title="Chỉnh sửa hợp đồng"
+                  loading={updateDraftLoading}
+                  onPress={() => setShowUpdateDraftModal(true)}
+                  style={{ backgroundColor: '#0F766E', borderColor: '#0D9488' }}
+                  icon={<Ionicons name="create-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />}
+                />
+              )}
+              {(canContinueUpdateDraft || canEditRequestDraft) && (
+                <PrimaryButton
+                  title={canContinueUpdateDraft ? 'Tiếp tục chỉnh sửa' : 'Chỉnh sửa nháp'}
+                  loading={actionLoading}
+                  onPress={() => openContractEditor(contract)}
+                  style={{ backgroundColor: '#4F46E5', borderColor: '#4338CA' }}
+                  icon={<Ionicons name="document-text-outline" size={20} color="#FFF" style={{ marginRight: 8 }} />}
+                />
+              )}
               {canSend && (
                 <PrimaryButton
                   title="Gửi hợp đồng cho người thuê ký"
@@ -1685,7 +1854,12 @@ const ContractDetail = () => {
                   icon={<Ionicons name={hasActiveSession ? "refresh-outline" : "key-outline"} size={20} color="#FFF" style={{ marginRight: 8 }} />}
                 />
               )}
-              {!canSend && !canSign && contract?.status !== 'active' && (
+              {!canSend &&
+                !canSign &&
+                !canEditActiveContract &&
+                !canContinueUpdateDraft &&
+                !canEditRequestDraft &&
+                contract?.status !== 'active' && (
                 <View style={{ padding: 16, borderRadius: 14, backgroundColor: current.card, alignItems: 'center', borderWidth: 1, borderColor: current.border }}>
                   <Text style={{ color: theme.textInactive, fontSize: 13 }}>Không có thao tác khả dụng lúc này.</Text>
                 </View>
@@ -2389,6 +2563,13 @@ const ContractDetail = () => {
               </View>
             </View>
           </Modal>
+
+          <UpdateDraftModal
+            visible={showUpdateDraftModal}
+            loading={updateDraftLoading}
+            onClose={() => setShowUpdateDraftModal(false)}
+            onSubmit={handleCreateUpdateDraft}
+          />
 
         </KeyboardSafeWrapper>
       </SafeAreaView>
