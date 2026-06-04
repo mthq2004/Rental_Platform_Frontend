@@ -168,14 +168,14 @@ export function getContractTableColumns(
 
             {owner && record.status === "draft" && (
               <>
-                <Tooltip title="Chỉnh sửa">
+                {/* <Tooltip title="Chỉnh sửa">
                   <Button
                     type="text"
                     size="small"
                     icon={<EditOutlined />}
                     onClick={() => actions.onEdit(record)}
                   />
-                </Tooltip>
+                </Tooltip> */}
                 <Tooltip title="Gửi cho người thuê ký">
                   <Button
                     type="text"

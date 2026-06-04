@@ -169,7 +169,7 @@ const ContractDetail = () => {
   const [showAllPayments, setShowAllPayments] = useState(false)
 
   const [verifyLoading, setVerifyLoading] = useState(false)
-  const [verifyResult, setVerifyResult] = useState<{ ok: boolean; checkedAt: string } | null>(null)
+  const [verifyResult, setVerifyResult] = useState<{ ok: boolean; status?: string; version?: number; checkedAt: string } | null>(null)
   const [verifyError, setVerifyError] = useState<string | null>(null)
   const [paymentVerifyState, setPaymentVerifyState] = useState<Record<string, { status: 'idle' | 'loading' | 'success' | 'error'; message?: string; checkedAt?: string }>>({})
 
@@ -544,10 +544,15 @@ const ContractDetail = () => {
       setVerifyLoading(true)
       setVerifyError(null)
 
-      const payload = await smartcaService.verifyBlockchain(resolvedId, file.uri, file.name)
+      const payload: any = await smartcaService.verifyBlockchain(resolvedId, file.uri, file.name)
       const ok = payload === true || (payload && payload.verified === true)
 
-      setVerifyResult({ ok, checkedAt: new Date().toISOString() })
+      setVerifyResult({ 
+        ok, 
+        status: payload?.status,
+        version: payload?.version,
+        checkedAt: new Date().toISOString() 
+      })
     } catch (e: any) {
       setVerifyError(e?.message || 'Xác thực thất bại')
       setVerifyResult(null)
@@ -1204,6 +1209,18 @@ const ContractDetail = () => {
                         <Text style={{ fontSize: 11, color: verifyResult.ok ? '#15803D' : '#7F1D1D', marginTop: 2 }}>
                           {verifyResult.ok ? 'Nội dung khớp với blockchain.' : 'Nội dung đã bị thay đổi.'}
                         </Text>
+                        {verifyResult.ok && verifyResult.status && (
+                          <View style={{ marginTop: 6, paddingTop: 6, borderTopWidth: 1, borderTopColor: '#BBF7D0' }}>
+                            <Text style={{ fontSize: 11, color: '#166534', fontWeight: '600' }}>
+                              Trạng thái: <Text style={{ fontWeight: '800' }}>{verifyResult.status === 'Active' ? 'Đang hiệu lực' : verifyResult.status === 'Terminated' ? 'Đã chấm dứt' : verifyResult.status === 'Expired' ? 'Đã hết hạn' : verifyResult.status}</Text>
+                            </Text>
+                            {verifyResult.version && (
+                              <Text style={{ fontSize: 11, color: '#166534', fontWeight: '600', marginTop: 2 }}>
+                                Phiên bản: <Text style={{ fontWeight: '800' }}>v{verifyResult.version}</Text>
+                              </Text>
+                            )}
+                          </View>
+                        )}
                       </View>
                     </View>
                   )}
