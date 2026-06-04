@@ -325,6 +325,17 @@ export const updateContract = createAsyncThunk(
   }
 );
 
+export const createUpdateDraft = createAsyncThunk(
+  "contract/createUpdateDraft",
+  async ({ contractId, data }: { contractId: string; data: any }, { rejectWithValue }) => {
+    try {
+      return await http.post(`/contract/rental-contracts/${contractId}/update-draft`, data);
+    } catch (e: any) {
+      return rejectWithValue(e.message);
+    }
+  }
+);
+
 export const tenantSignContract = createAsyncThunk(
   "contract/tenantSign",
   async (contractId: string, { rejectWithValue }) => {
@@ -703,7 +714,7 @@ export const contractSlice = createSlice({
       });
 
     // Contract actions loading
-    for (const thunk of [sendContractToTenant, tenantSignContract, ownerSignContract, activateContract, cancelContract, updateContract]) {
+    for (const thunk of [sendContractToTenant, tenantSignContract, ownerSignContract, activateContract, cancelContract, updateContract, createUpdateDraft]) {
       builder
         .addCase(thunk.pending, (state) => { state.actionLoading = true; })
         .addCase(thunk.fulfilled, (state) => { state.actionLoading = false; })

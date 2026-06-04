@@ -45,13 +45,34 @@ const { Text } = Typography;
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(value || 0));
 
-const getContractTenantName = (record: RentalContract) => record.tenant?.name || record.tenantId || "—";
+const getContractTenantName = (record: RentalContract) =>
+  record.tenant?.name ||
+  (record.contractData as any)?.tenant?.name ||
+  (record.contractData as any)?.tenant?.fullName ||
+  (record.contractData as any)?.tenantName ||
+  record.tenantId ||
+  "—";
 
 const getContractPropertyName = (record: RentalContract) =>
   (record as RentalContract & { property?: { title?: string }; propertyName?: string }).property?.title ||
   (record as RentalContract & { propertyName?: string }).propertyName ||
+  (record.contractData as any)?.property?.title ||
+  (record.contractData as any)?.property?.address ||
   record.propertyId ||
   "—";
+
+const getContractSourceText = (record: RentalContract) => {
+  if (record.parentContractId) {
+    return `chinh sua ${record.parentContract?.contractCode ?? ""}`.trim();
+  }
+  if (record.renewedFromContractId || record.renewedFrom) {
+    return `gia han ${record.renewedFrom?.contractCode ?? record.renewedFromContractId ?? ""}`.trim();
+  }
+  if (record.fromRequestId || record.rentalRequest) {
+    return `yeu cau ${record.rentalRequest?.requestCode ?? record.fromRequestId ?? ""}`.trim();
+  }
+  return "tao moi";
+};
 
 const getContractSearchText = (record: RentalContract) =>
   [
@@ -59,6 +80,7 @@ const getContractSearchText = (record: RentalContract) =>
     getContractTenantName(record),
     getContractPropertyName(record),
     record.propertyId,
+    getContractSourceText(record),
     record.status,
   ]
     .filter(Boolean)
@@ -303,9 +325,12 @@ export default function ContractsPage() {
     if (!contractDetail) return;
     try {
       const values = await editForm.validateFields();
-      await dispatch(
-        updateContract({ contractId: contractDetail.rentalId, data: values })
-      ).unwrap();
+
+      console.log("KIiem tra: ", values);
+      
+      // await dispatch(
+      //   updateContract({ contractId: contractDetail.rentalId, data: values })
+      // ).unwrap();
       message.success("Cập nhật hợp đồng thành công");
       setEditOpen(false);
       dispatch(getContractDetail(contractDetail.rentalId));

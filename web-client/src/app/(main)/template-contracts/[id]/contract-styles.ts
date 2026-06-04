@@ -34,11 +34,11 @@ export const CONTRACT_EDITOR_STYLES = `
   .toolbar-inner {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 10px 20px;
+    padding: 12px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 20px;
     flex-wrap: wrap;
   }
   .toolbar-left {
@@ -50,8 +50,19 @@ export const CONTRACT_EDITOR_STYLES = `
   .toolbar-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex-wrap: wrap;
+  }
+  .toolbar-actions-divider {
+    width: 1px;
+    height: 28px;
+    background: #e5e7eb;
+    flex-shrink: 0;
+  }
+  .toolbar-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .toolbar-back-btn {
     display: flex;
@@ -82,23 +93,45 @@ export const CONTRACT_EDITOR_STYLES = `
     min-width: 0;
   }
   .toolbar-title {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 600;
     color: #111827;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 300px;
-    letter-spacing: -0.01em;
+    max-width: 340px;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
   }
   .toolbar-subtitle {
     font-size: 11px;
-    color: #9ca3af;
+    color: #6b7280;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 300px;
-    margin-top: 1px;
+    max-width: 340px;
+    margin-top: 2px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.01em;
+  }
+
+  /* ─── Update-draft mode badge ─── */
+  .mode-badge-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+    flex-shrink: 0;
+  }
+  .mode-badge-edit .anticon {
+    font-size: 11px;
   }
 
   /* ─── Mode Toggle ─── */
@@ -152,13 +185,27 @@ export const CONTRACT_EDITOR_STYLES = `
   .progress-bar-fill {
     height: 100%;
     border-radius: 999px;
+    background: linear-gradient(90deg, #60a5fa, #3b82f6);
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease;
+  }
+  .progress-bar-fill.complete {
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+  }
+  .progress-container.complete {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
   }
   .progress-label {
     font-size: 11px;
     font-weight: 600;
     color: #6b7280;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .progress-label.complete {
+    color: #15803d;
   }
 
   /* ─── Action Buttons ─── */
@@ -178,8 +225,19 @@ export const CONTRACT_EDITOR_STYLES = `
     gap: 4px;
     letter-spacing: -0.01em;
   }
-  .action-btn:hover { background: #f9fafb; border-color: #9ca3af; }
+  .action-btn:hover:not(:disabled) { background: #f9fafb; border-color: #9ca3af; }
   .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .action-btn-ghost {
+    border-color: transparent;
+    background: transparent;
+    color: #6b7280;
+  }
+  .action-btn-ghost:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: transparent;
+    color: #374151;
+  }
 
   .action-btn-primary {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
@@ -191,6 +249,54 @@ export const CONTRACT_EDITOR_STYLES = `
     background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
     box-shadow: 0 2px 6px rgba(37,99,235,0.3);
     transform: translateY(-0.5px);
+  }
+
+  /* ─── Update-draft info banner ─── */
+  .update-draft-banner-wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px 14px;
+  }
+  .update-draft-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid #e2e8f0;
+    border-left: 3px solid #3b82f6;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .update-draft-banner-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eff6ff;
+    border-radius: 8px;
+    color: #2563eb;
+    font-size: 18px;
+  }
+  .update-draft-banner-text {
+    min-width: 0;
+    flex: 1;
+  }
+  .update-draft-banner-title {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1e293b;
+    letter-spacing: -0.01em;
+  }
+  .update-draft-banner-desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #64748b;
+    font-weight: 400;
   }
 
   /* ─── Status Badge ─── */
@@ -470,9 +576,14 @@ export const CONTRACT_EDITOR_STYLES = `
       padding: 16px 0;
     }
     .toolbar-inner {
-      padding: 8px 12px;
+      padding: 10px 14px;
+      gap: 12px;
     }
-    .toolbar-title { max-width: 160px; }
+    .toolbar-actions-divider { display: none; }
+    .toolbar-title { max-width: 180px; }
+    .toolbar-subtitle { max-width: 180px; }
+    .update-draft-banner-wrap { padding: 0 14px 12px; }
+    .update-draft-banner { flex-direction: column; gap: 10px; }
     .contract-content { font-size: 11pt; }
   }
 

@@ -31,12 +31,44 @@ export function getContractTableColumns(
   actions: ContractTableActions
 ): ColumnsType<RentalContract> {
   const isOwner = (record: RentalContract) => record.ownerId === userId;
-  const getTenantName = (record: RentalContract) => record.tenant?.name || record.tenantId || "—";
+  const getTenantName = (record: RentalContract) =>
+    record.tenant?.name ||
+    (record.contractData as any)?.tenant?.name ||
+    (record.contractData as any)?.tenant?.fullName ||
+    (record.contractData as any)?.tenantName ||
+    record.tenantId ||
+    "—";
   const getPropertyName = (record: RentalContract) =>
     (record as RentalContract & { property?: { title?: string }; propertyName?: string }).property?.title ||
     (record as RentalContract & { propertyName?: string }).propertyName ||
+    (record.contractData as any)?.property?.title ||
+    (record.contractData as any)?.property?.address ||
     record.propertyId ||
     "—";
+  const getContractSource = (record: RentalContract) => {
+    if (record.parentContractId) {
+      return {
+        label: `Chỉnh sửa v${record.version ?? ""}`.trim(),
+        hint: record.parentContract?.contractCode ? `Từ ${record.parentContract.contractCode}` : "Bản chỉnh sửa",
+        color: "gold",
+      };
+    }
+    if (record.renewedFromContractId || record.renewedFrom) {
+      return {
+        label: "Gia hạn",
+        hint: record.renewedFrom?.contractCode || record.renewedFromContractId || "Gia hạn từ hợp đồng trước",
+        color: "blue",
+      };
+    }
+    if (record.fromRequestId || record.rentalRequest) {
+      return {
+        label: "Yêu cầu thuê",
+        hint: record.rentalRequest?.requestCode || record.fromRequestId || "Tạo từ yêu cầu thuê",
+        color: "geekblue",
+      };
+    }
+    return { label: "Tạo mới", hint: "Tạo trực tiếp", color: "default" };
+  };
 
   return [
     {
@@ -59,6 +91,21 @@ export function getContractTableColumns(
       width: 220,
       ellipsis: true,
       render: (_, r) => <Text className="text-sm">{getPropertyName(r)}</Text>,
+    },
+    {
+      title: "Nguồn",
+      key: "source",
+      width: 160,
+      render: (_, r) => {
+        const source = getContractSource(r);
+        return (
+          <Tooltip title={source.hint}>
+            <Tag color={source.color} className="text-[11px]">
+              {source.label}
+            </Tag>
+          </Tooltip>
+        );
+      },
     },
     {
       title: "Thời hạn",
@@ -140,7 +187,7 @@ export function getContractTableColumns(
               </>
             )}
 
-            {!owner && record.status === "pending_tenant" && (
+            {!owner && (record.status === "pending_tenant" || record.status === "owner_signed") && (
               <>
                 {record.signedContractUrl && (
                   <Button
@@ -162,7 +209,7 @@ export function getContractTableColumns(
               </>
             )}
 
-            {owner && record.status === "pending_landlord" && (
+            {owner && (record.status === "pending_landlord" || record.status === "tenant_signed") && (
               <Button
                 size="small"
                 type="primary"

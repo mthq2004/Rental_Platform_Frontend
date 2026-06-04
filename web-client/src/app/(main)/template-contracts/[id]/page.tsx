@@ -10,6 +10,7 @@ import {
   DownloadOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
+  InfoCircleOutlined,
   EyeOutlined,
   SaveOutlined,
   SendOutlined,
@@ -18,7 +19,7 @@ import {
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/stores/hooks";
 import { getRequestTemplateData, getTemplateDetail } from "@/stores/slices/template-contract.slice";
-import { createContract, getContractDetail, sendContractToTenant } from "@/stores/slices/contract.slice";
+import { createContract, getContractDetail, sendContractToTenant, updateContract } from "@/stores/slices/contract.slice";
 import { FIELD_STANDARD } from "@/constants/fieldDefinitions";
 import { CreateContractPayload } from "@/types/contract.type";
 import { CONTRACT_EDITOR_STYLES } from "./contract-styles";
@@ -367,8 +368,8 @@ const RentalContractContent = () => {
       // 🔥 SMART MAPPING: Map property defaults to contract fields if empty
       // This ensures the form is pre-filled with property's prices if no draft exists yet
       const propertyToContractMap: Record<string, string> = {
-        "property.monthlyRent": "contract.monthlyRent",
-        "property.depositAmount": "contract.depositAmount",
+        "property.monthlyRent": "property.monthlyRent",
+        "property.depositAmount": "property.depositAmount",
         "property.electricityCostPerKwh": "contract.electricityCostPerKwh",
         "property.waterCostPerM3": "contract.waterCostPerM3",
         "property.parkingFee": "contract.parkingFee",
@@ -702,12 +703,50 @@ const RentalContractContent = () => {
     return isNaN(num) ? 0 : num;
   };
 
+  // ──── Detect update-draft mode (when contractID is present but no requestId) ────
+  const isUpdateDraftMode = !!contractID && !requestId;
+
   // ──── Handlers ────
   const handleSaveDraft = useCallback(async () => {
     setSaveError(null);
     setIsSaving(true);
 
     try {
+      // ── UPDATE DRAFT MODE: chỉnh sửa bản nháp của hợp đồng đang active ──
+      if (isUpdateDraftMode && contractID) {
+        const updatePayload = {
+          startDate: String(formData["contract.startDate"] || ""),
+          endDate: String(formData["contract.endDate"] || ""),
+          monthlyRent: parseSafeNumber(formData["property.monthlyRent"]),
+          depositAmount: parseSafeNumber(formData["property.depositAmount"]),
+          electricityCostPerKwh: parseSafeNumber(formData["contract.electricityCostPerKwh"]),
+          waterCostPerM3: parseSafeNumber(formData["contract.waterCostPerM3"]),
+          managementFee: parseSafeNumber(formData["contract.managementFee"]),
+          parkingFee: parseSafeNumber(formData["contract.parkingFee"]),
+          internetFee: parseSafeNumber(formData["contract.internetFee"]),
+          paymentDueDay: parseSafeNumber(formData["contract.paymentDueDay"] || 5),
+          lateFeePerDay: parseSafeNumber(formData["contract.lateFeePerDay"]),
+          gracePeriodDays: parseSafeNumber(formData["contract.gracePeriodDays"]),
+          earlyTerminationFee: parseSafeNumber(formData["contract.earlyTerminationFee"]),
+          autoRenewal: formData["contract.autoRenewal"] === "true" || formData["contract.autoRenewal"] === true,
+          renewalNoticeDays: parseSafeNumber(formData["contract.renewalNoticeDays"] || 30),
+          notes: String(formData["contract.notes"] || ""),
+          contractData: formData,
+          contractHtml: editorContent,
+        };
+        console.log("KIiem tra123: ", updatePayload);
+        
+        const resultAction = await dispatch(updateContract({ contractId: contractID, data: updatePayload }));
+        if (updateContract.fulfilled.match(resultAction)) {
+          setSaveSuccess(true);
+          setTimeout(() => { setSaveSuccess(false); }, 2500);
+        } else {
+          throw new Error("Lưu bản nháp chỉnh sửa thất bại");
+        }
+        return;
+      }
+
+      // ── NORMAL MODE: tạo mới hợp đồng từ request ──
       if (!requestData?.property?.id || !requestData?.owner?.id || !requestData?.tenant?.id) {
         throw new Error("Thiếu thông tin bất động sản hoặc người dùng để tạo hợp đồng");
       }
@@ -721,7 +760,7 @@ const RentalContractContent = () => {
         startDate: String(formData["contract.startDate"] || requestData!.contract.startDate),
         endDate: String(formData["contract.endDate"] || requestData!.contract.endDate),
         monthlyRent: parseSafeNumber(formData["property.monthlyRent"]),
-        depositAmount: parseSafeNumber(formData["property.depositAmount"]), 
+        depositAmount: parseSafeNumber(formData["property.depositAmount"]),
         electricityCostPerKwh: parseSafeNumber(formData["contract.electricityCostPerKwh"]),
         waterCostPerM3: parseSafeNumber(formData["contract.waterCostPerM3"]),
         managementFee: parseSafeNumber(formData["contract.managementFee"]),
@@ -737,13 +776,12 @@ const RentalContractContent = () => {
         contractData: formData,
         contractHtml: editorContent,
       };
-      
+
       const resultAction = await dispatch(createContract(payload));
       if (createContract.fulfilled.match(resultAction)) {
         const contract = resultAction.payload.data;
         setContractId(contract.rentalId);
         setSaveSuccess(true);
-        // We stay on the page so they can click "Send" next, or redirect after delay
         setTimeout(() => {
           router.push("/dashboard/contracts");
         }, 2000);
@@ -755,23 +793,66 @@ const RentalContractContent = () => {
     } finally {
       setIsSaving(false);
     }
-  }, [dispatch, template, requestData, formData, editorContent]);
+  }, [dispatch, template, requestData, formData, editorContent, isUpdateDraftMode, contractID]);
 
   const handleSendContract = useCallback(async () => {
     setSendError(null);
     setSaveError(null);
-    if (!validateForm()) {
-      setSaveError("Vui lòng điền tất cả các trường bắt buộc");
-      return;
-    }
     setIsSaving(true);
     setIsSendingContract(true);
     try {
+      // ── UPDATE DRAFT MODE: Lưu nội dung rồi gửi để đối tác ký ──
+      if (isUpdateDraftMode && contractID) {
+        const updatePayload = {
+          startDate: String(formData["contract.startDate"] || ""),
+          endDate: String(formData["contract.endDate"] || ""),
+          monthlyRent: parseSafeNumber(formData["contract.monthlyRent"]),
+          depositAmount: parseSafeNumber(formData["contract.depositAmount"]),
+          electricityCostPerKwh: parseSafeNumber(formData["contract.electricityCostPerKwh"]),
+          waterCostPerM3: parseSafeNumber(formData["contract.waterCostPerM3"]),
+          managementFee: parseSafeNumber(formData["contract.managementFee"]),
+          parkingFee: parseSafeNumber(formData["contract.parkingFee"]),
+          internetFee: parseSafeNumber(formData["contract.internetFee"]),
+          paymentDueDay: parseSafeNumber(formData["contract.paymentDueDay"] || 5),
+          lateFeePerDay: parseSafeNumber(formData["contract.lateFeePerDay"]),
+          gracePeriodDays: parseSafeNumber(formData["contract.gracePeriodDays"]),
+          earlyTerminationFee: parseSafeNumber(formData["contract.earlyTerminationFee"]),
+          autoRenewal: formData["contract.autoRenewal"] === "true" || formData["contract.autoRenewal"] === true,
+          renewalNoticeDays: parseSafeNumber(formData["contract.renewalNoticeDays"] || 30),
+          notes: String(formData["contract.notes"] || ""),
+          contractData: formData,
+          contractHtml: editorContent,
+        };
+        // 1. Lưu nội dung đã chỉnh sửa
+        const updateAction = await dispatch(updateContract({ contractId: contractID, data: updatePayload }));
+        if (!updateContract.fulfilled.match(updateAction)) {
+          throw new Error("Lỗi khi lưu nội dung chỉnh sửa");
+        }
+        // 2. Gửi cho đối tác ký (chủ nhà ký trước → gửi tenant)
+        const sendAction = await dispatch(sendContractToTenant(contractID));
+        if (sendContractToTenant.fulfilled.match(sendAction)) {
+          setContractStatus("sent");
+          setSaveSuccess(true);
+          setTimeout(() => {
+            setSaveSuccess(false);
+            router.replace("/dashboard/contracts");
+          }, 2500);
+        } else {
+          throw new Error("Không thể gửi bản chỉnh sửa. Vui lòng kiểm tra lại.");
+        }
+        return;
+      }
+
+      // ── NORMAL MODE: Tạo mới & gửi hợp đồng ──
+      if (!validateForm()) {
+        setSaveError("Vui lòng điền tất cả các trường bắt buộc");
+        return;
+      }
+
       if (!requestData?.property?.id || !requestData?.owner?.id || !requestData?.tenant?.id) {
         throw new Error("Thiếu thông tin bất động sản hoặc người dùng để tạo hợp đồng");
       }
 
-      // 1. First ensure contract is created/saved as draft
       const payload: CreateContractPayload = {
         templateId: template?.templateId,
         propertyId: requestData.property.id,
@@ -806,7 +887,6 @@ const RentalContractContent = () => {
       const createdContract = saveAction.payload.data;
       const contractIdToUse = createdContract.rentalId;
 
-      // 2. Call send API
       const resultAction = await dispatch(sendContractToTenant(contractIdToUse));
 
       if (sendContractToTenant.fulfilled.match(resultAction)) {
@@ -825,7 +905,7 @@ const RentalContractContent = () => {
       setIsSendingContract(false);
       setIsSaving(false);
     }
-  }, [validateForm, template, requestData, formData, editorContent, dispatch, router]);
+  }, [validateForm, template, requestData, formData, editorContent, dispatch, router, isUpdateDraftMode, contractID]);
 
   const handleDownloadPDF = useCallback(() => {
     try {
@@ -877,15 +957,27 @@ const RentalContractContent = () => {
             </button>
             <div className="toolbar-divider" />
             <div className="toolbar-title-group">
-              <div className="toolbar-title">{template.templateName}</div>
-              <div className="toolbar-subtitle">{template.description}</div>
+              <div className="toolbar-title">
+                {isUpdateDraftMode ? "Chỉnh sửa hợp đồng" : template.templateName}
+              </div>
+              <div className="toolbar-subtitle">
+                {isUpdateDraftMode
+                  ? `Bản nháp chỉnh sửa · ${contractDetail?.contractCode || contractID}`
+                  : template.description
+                }
+              </div>
             </div>
-            <StatusBadge status={contractStatus} />
+            {isUpdateDraftMode ? (
+              <span className="mode-badge-edit">
+                <EditOutlined /> Chỉnh sửa
+              </span>
+            ) : (
+              <StatusBadge status={contractStatus} />
+            )}
           </div>
 
           <div className="toolbar-right">
-            {/* Edit/Preview Toggle */}
-            <div className="mode-toggle" role="tablist">
+            <div className="mode-toggle" role="tablist" aria-label="Chế độ xem">
               <button
                 onClick={() => setIsEditMode(true)}
                 role="tab"
@@ -906,53 +998,89 @@ const RentalContractContent = () => {
               </button>
             </div>
 
-            {/* Progress */}
-            <div className="progress-container">
+            <div className="toolbar-actions-divider" aria-hidden="true" />
+
+            <div
+              className={`progress-container${progressPercent === 100 ? " complete" : ""}`}
+              title="Tiến độ điền các trường bắt buộc"
+            >
               <div className="progress-bar-track">
                 <div
-                  className="progress-bar-fill"
-                  style={{
-                    width: `${progressPercent}%`,
-                    background: progressPercent === 100
-                      ? "linear-gradient(90deg, #22c55e, #16a34a)"
-                      : "linear-gradient(90deg, #60a5fa, #3b82f6)",
-                  }}
+                  className={`progress-bar-fill${progressPercent === 100 ? " complete" : ""}`}
+                  style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <span className="progress-label">
-                {filledRequiredCount}/{requiredFields.length} trường
+              <span className={`progress-label${progressPercent === 100 ? " complete" : ""}`}>
+                {progressPercent === 100 ? (
+                  <><CheckCircleOutlined /> Hoàn tất</>
+                ) : (
+                  <>{filledRequiredCount}/{requiredFields.length} trường</>
+                )}
               </span>
             </div>
 
-            {/* Actions */}
-            <button onClick={handleDownloadPDF} disabled={isSaving} className="action-btn" type="button">
-              <DownloadOutlined /> PDF
-            </button>
-            <button
-              onClick={handleSaveDraft}
-              disabled={isSaving || !areAllRequiredFieldsFilled()}
-              className="action-btn"
-              type="button"
-            >
-              {isSaving ? "Đang lưu..." : <><SaveOutlined /> Lưu hợp đồng</>}
-            </button>
+            <div className="toolbar-actions-divider" aria-hidden="true" />
+
+            <div className="toolbar-actions-group">
+              <button
+                onClick={handleDownloadPDF}
+                disabled={isSaving}
+                className="action-btn action-btn-ghost"
+                type="button"
+                title="Tải PDF"
+              >
+                <DownloadOutlined /> PDF
+              </button>
+              <button
+                onClick={handleSaveDraft}
+                disabled={isSaving}
+                className="action-btn"
+                type="button"
+              >
+                {isSaving ? "Đang lưu..." : <><SaveOutlined /> {isUpdateDraftMode ? "Lưu chỉnh sửa" : "Lưu hợp đồng"}</>}
+              </button>
+            </div>
+
             <button
               onClick={handleSendContract}
-              disabled={isSaving || !areAllRequiredFieldsFilled()}
+              disabled={isSaving}
               className="action-btn action-btn-primary"
               type="button"
             >
-              {isSaving ? "Đang xử lý..." : <><SendOutlined /> Gửi ký</>}
+              {isSaving
+                ? "Đang xử lý..."
+                : <><SendOutlined /> {isUpdateDraftMode ? "Gửi chỉnh sửa" : "Gửi ký"}</>
+              }
             </button>
           </div>
         </div>
+
+        {isUpdateDraftMode && (
+          <div className="update-draft-banner-wrap">
+            <div className="update-draft-banner" role="status">
+              <div className="update-draft-banner-icon" aria-hidden="true">
+                <InfoCircleOutlined />
+              </div>
+              <div className="update-draft-banner-text">
+                <p className="update-draft-banner-title">Chế độ chỉnh sửa hợp đồng</p>
+                <p className="update-draft-banner-desc">
+                  Bạn đang chỉnh sửa bản nháp của hợp đồng đang hiệu lực. Sau khi gửi chỉnh sửa, cả hai bên cần ký số xác nhận.
+                  Bản chỉnh sửa chỉ có hiệu lực khi cả hai bên đồng thuận.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Alert Messages */}
         {(saveSuccess || saveError) && (
           <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 20px' }}>
             {saveSuccess && (
               <div className="alert-bar alert-success" role="alert">
-                <CheckCircleOutlined /> {contractStatus === "sent" ? "Hợp đồng đã được gửi thành công!" : "Hợp đồng đã được lưu thành công!"}
+                <CheckCircleOutlined /> {isUpdateDraftMode
+                  ? (contractStatus === "sent" ? "Đã gửi bản chỉnh sửa thành công!" : "Đã lưu bản chỉnh sửa thành công!")
+                  : (contractStatus === "sent" ? "Hợp đồng đã được gửi thành công!" : "Hợp đồng đã được lưu thành công!")
+                }
               </div>
             )}
             {saveError && (

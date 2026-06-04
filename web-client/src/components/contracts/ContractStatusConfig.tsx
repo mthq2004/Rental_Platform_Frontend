@@ -77,6 +77,11 @@ export const STATUS_CONFIG: Record<
     color: "default",
     icon: <CloseCircleOutlined />,
   },
+  superseded: {
+    label: "Đã bị thay thế",
+    color: "default",
+    icon: <SwapOutlined />,
+  },
 };
 
 export const formatDate = (dateStr: string) => {

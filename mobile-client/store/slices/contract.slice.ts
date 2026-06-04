@@ -3,6 +3,7 @@ import contractService from '@/services/contract.service'
 
 interface ContractState {
   loading: boolean
+  actionLoading: boolean
   myRequests: any[]
   ownerRequests: any[]
   contracts: any[]
@@ -13,6 +14,7 @@ interface ContractState {
 
 const initialState: ContractState = {
   loading: false,
+  actionLoading: false,
   myRequests: [],
   ownerRequests: [],
   contracts: [],
@@ -180,6 +182,45 @@ export const createContract = createAsyncThunk(
   }
 )
 
+export const updateContract = createAsyncThunk(
+  'contract/updateContract',
+  async (
+    { contractId, data }: { contractId: string; data: Record<string, unknown> },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await contractService.updateContract(contractId, data)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Cập nhật hợp đồng thất bại')
+    }
+  }
+)
+
+export const createUpdateDraft = createAsyncThunk(
+  'contract/createUpdateDraft',
+  async (
+    { contractId, data }: { contractId: string; data: { expiresInHours: number; updateNote?: string } },
+    { rejectWithValue }
+  ) => {
+    try {
+      return await contractService.createUpdateDraft(contractId, data)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Tạo bản nháp chỉnh sửa thất bại')
+    }
+  }
+)
+
+export const sendContractToTenant = createAsyncThunk(
+  'contract/sendContractToTenant',
+  async (contractId: string, { rejectWithValue }) => {
+    try {
+      return await contractService.sendContractToTenant(contractId)
+    } catch (e: any) {
+      return rejectWithValue(e?.message || 'Gửi hợp đồng thất bại')
+    }
+  }
+)
+
 export const getContractAppendices = createAsyncThunk(
   'contract/getContractAppendices',
   async (contractId: string, { rejectWithValue }) => {
@@ -227,6 +268,24 @@ const slice = createSlice({
       .addCase(createContract.pending, (state) => { state.loading = true; state.error = null })
       .addCase(createContract.fulfilled, (state) => { state.loading = false })
       .addCase(createContract.rejected, (state, action) => { state.loading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(updateContract.pending, (state) => { state.actionLoading = true; state.error = null })
+      .addCase(updateContract.fulfilled, (state, action) => {
+        state.actionLoading = false
+        const payload = (action.payload as any)?.data ?? action.payload
+        if (payload && state.contractDetail?.rentalId === payload?.rentalId) {
+          state.contractDetail = payload
+        }
+      })
+      .addCase(updateContract.rejected, (state, action) => { state.actionLoading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(createUpdateDraft.pending, (state) => { state.actionLoading = true; state.error = null })
+      .addCase(createUpdateDraft.fulfilled, (state) => { state.actionLoading = false })
+      .addCase(createUpdateDraft.rejected, (state, action) => { state.actionLoading = false; state.error = String(action.payload || action.error?.message) })
+
+      .addCase(sendContractToTenant.pending, (state) => { state.actionLoading = true; state.error = null })
+      .addCase(sendContractToTenant.fulfilled, (state) => { state.actionLoading = false })
+      .addCase(sendContractToTenant.rejected, (state, action) => { state.actionLoading = false; state.error = String(action.payload || action.error?.message) })
 
       .addCase(getContractDetail.pending, (state) => { state.loading = true; state.error = null; state.contractDetail = null })
       .addCase(getContractDetail.fulfilled, (state, action) => { state.loading = false; state.contractDetail = action.payload })

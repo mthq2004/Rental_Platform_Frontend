@@ -115,7 +115,7 @@ export default function ContractDetailModal({
                   </>
                 )}
 
-                {contractDetail.status === "pending_tenant" && !ownerSide && (
+                {(contractDetail.status === "pending_tenant" || contractDetail.status === "owner_signed") && !ownerSide && (
                   <>
                     {contractDetail.signedContractUrl && (
                       <Button
@@ -133,7 +133,7 @@ export default function ContractDetailModal({
                   </>
                 )}
 
-                {contractDetail.status === "pending_landlord" && ownerSide && (
+                {(contractDetail.status === "pending_landlord" || contractDetail.status === "tenant_signed") && ownerSide && (
                   <Button size="small" type="primary" onClick={() => onOwnerSign(contractDetail.rentalId)}>
                     Ký hợp đồng
                   </Button>

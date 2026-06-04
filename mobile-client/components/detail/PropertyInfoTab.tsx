@@ -4,6 +4,7 @@ import { useAppSelector } from '@/store/hook'
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons'
 import { User } from 'lucide-react-native'
 import { PropertyListItem } from '@/types/property.type';
+import PropertyContractsSection from '@/components/detail/PropertyContractsSection';
 
 export interface PropertyReview {
   id: string;
@@ -893,6 +894,14 @@ export const PropertyInfoTab: React.FC<PropertyInfoTabProps> = ({
 
       {/* Price & Stats */}
       <PriceStatsSection property={property} />
+
+      {/* Rental contracts linked to this property */}
+      <PropertyContractsSection
+        propertyId={property.id}
+        isOwner={isOwner}
+        listingRent={property.pricePerMonth}
+        listingDeposit={property.depositAmount}
+      />
 
       {/* Address & Time */}
       <AddressTimeSection property={property} />
