@@ -339,7 +339,7 @@ export default function ContractDetailPage() {
   const verifyInputRef = useRef<HTMLInputElement | null>(null);
   const [verifyFile, setVerifyFile] = useState<File | null>(null);
   const [verifyLoading, setVerifyLoading] = useState(false);
-  const [verifyResult, setVerifyResult] = useState<{ ok: boolean; checkedAt: string } | null>(null);
+  const [verifyResult, setVerifyResult] = useState<{ ok: boolean; checkedAt: string; status?: string; version?: number } | null>(null);
   const [verifyError, setVerifyError] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [paymentVerifyState, setPaymentVerifyState] = useState<Record<string, { status: "idle" | "loading" | "success" | "error"; checkedAt?: string; message?: string }>>({});
@@ -543,8 +543,10 @@ export default function ContractDetailPage() {
       const payload = await http.post(`/contract/smartca/verify/blockchain/${contractId}`, formData);
       const result = (payload as any)?.data ?? payload;
       const ok = result === true || (result && result.verified === true);
+      const chainStatus = result?.status;
+      const chainVersion = result?.version;
 
-      setVerifyResult({ ok, checkedAt: new Date().toISOString() });
+      setVerifyResult({ ok, checkedAt: new Date().toISOString(), status: chainStatus, version: chainVersion });
       message.success(ok ? "Hợp đồng khớp dữ liệu blockchain" : "Hợp đồng không khớp dữ liệu blockchain");
     } catch (error: any) {
       const errorMessage = error?.message || error || "Xác thực thất bại";
@@ -2178,6 +2180,20 @@ export default function ContractDetailPage() {
                       <div className={`text-sm font-semibold ${verifyResult.ok ? "text-emerald-700" : "text-rose-700"}`}>
                         {verifyResult.ok ? "Hợp đồng trùng khớp" : "Hợp đồng đã bị thay đổi"}
                       </div>
+                      {verifyResult.ok && verifyResult.status && (
+                        <div className="mt-2 text-sm text-gray-700">
+                          <span className="font-medium">Trạng thái trên Blockchain: </span>
+                          <span className={`font-semibold ${verifyResult.status === 'Active' ? 'text-green-600' : verifyResult.status === 'Terminated' ? 'text-red-600' : 'text-gray-500'}`}>
+                            {verifyResult.status === 'Active' ? 'Đang hiệu lực' : verifyResult.status === 'Terminated' ? 'Đã chấm dứt' : verifyResult.status === 'Expired' ? 'Đã hết hạn' : verifyResult.status}
+                          </span>
+                        </div>
+                      )}
+                      {verifyResult.ok && verifyResult.version && (
+                        <div className="text-sm text-gray-700">
+                          <span className="font-medium">Phiên bản trên Blockchain: </span>
+                          v{verifyResult.version}
+                        </div>
+                      )}
                       <div className="mt-1 text-xs text-slate-500">
                         {dayjs(verifyResult.checkedAt).format("HH:mm · DD/MM/YYYY")}
                       </div>
